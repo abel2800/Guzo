@@ -1,0 +1,66 @@
+# ============================================================================
+# Local development infrastructure (OPTIONAL).
+# You can run the whole platform with ONLY PostgreSQL.
+# Redis + Mailpit are optional conveniences. Nothing here is required to be
+# changed when migrating to the cloud later (same images, same env contracts).
+# ============================================================================
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: delivery_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: delivery
+      POSTGRES_PASSWORD: delivery
+      POSTGRES_DB: delivery_platform
+    ports:
+      - '5432:5432'
+    volumes:
+      - delivery_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U delivery -d delivery_platform']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # OPTIONAL: enable by setting REDIS_ENABLED=true in .env
+  redis:
+    image: redis:7-alpine
+    container_name: delivery_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - delivery_redisdata:/data
+
+  # OPTIONAL: local SMTP inbox UI at http://localhost:8025 (set EMAIL_DRIVER=smtp, SMTP_PORT=1025)
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: delivery_mailpit
+    restart: unless-stopped
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
+  # OPTIONAL: self-hosted S3-compatible storage to test the "s3" driver locally
+  # Migrate STORAGE_DRIVER=local -> s3 later with zero code changes.
+  minio:
+    image: minio/minio:latest
+    container_name: delivery_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: delivery
+      MINIO_ROOT_PASSWORD: delivery123
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - delivery_miniodata:/data
+
+volumes:
+  delivery_pgdata:
+  delivery_redisdata:
+  delivery_miniodata:

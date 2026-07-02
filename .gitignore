@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Environment (never publish env files, including examples, per project policy)
+.env
+.env.*
+.env.local
+.env.*.local
+*.env
+
+# Internal documentation (not published to the public repo)
+docs/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+build-web.log
+customer-web.log
+dev-web.log
+install-web.log
+server-boot.log
+
+# Expo / mobile caches
+.expo/
+.expo-export-test/
+
+# Uploads (local file storage) - keep folder structure, ignore content
+apps/server/uploads/**/*
+!apps/server/uploads/.gitkeep
+!apps/server/uploads/**/.gitkeep
+
+# Prisma
+packages/database/prisma/*.db
+packages/database/prisma/migrations/dev.db*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Testing
+coverage/
+
+# Build / local artifacts
+build-artifacts/
