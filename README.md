@@ -4,7 +4,7 @@
 
 ### Enterprise logistics & delivery platform
 
-**Book · Dispatch · Track · Deliver — across web, mobile, and API**
+**Book | Dispatch | Track | Deliver - across web, mobile, and API**
 
 <br/>
 
@@ -19,11 +19,11 @@
 
 <br/>
 
-**One API · One PostgreSQL database · Six client applications · Realtime tracking**
+**One API | One PostgreSQL database | Six client applications | Realtime tracking**
 
 <br/>
 
-[Overview](#-overview) · [Architecture](#-architecture) · [Applications](#-applications) · [Data layer](#-data-layer) · [API](#-api-server) · [Auth & RBAC](#-authentication--rbac) · [Quick start](#-quick-start) · [Demo logins](#-demo-accounts)
+[Overview](#overview) | [Architecture](#architecture) | [Applications](#applications) | [Data layer](#data-layer) | [API](#api-server) | [Auth & RBAC](#authentication--rbac) | [Quick start](#quick-start) | [Demo logins](#demo-accounts)
 
 <br/>
 
@@ -37,26 +37,26 @@
 
 ## Overview
 
-**GUZO** is a full-stack logistics platform — the kind of system behind Uber Delivery, FedEx, or DHL — built as a **modular monolith** that runs on your machine today and scales to production tomorrow.
+**GUZO** is a full-stack logistics platform - the kind of system behind Uber Delivery, FedEx, or DHL - built as a **modular monolith** that runs on your machine today and scales to production tomorrow.
 
 Every shipment, GPS ping, payment, notification, and support ticket is stored in **PostgreSQL** and served through a typed **REST API** plus **Socket.IO** realtime channel. Six dedicated clients share the same backend:
 
 | | |
 |:---:|:---:|
-| **6 applications** | API server · Web dashboard · Marketing site · Customer · Driver · Merchant |
-| **36 database tables** | Users, orders, deliveries, payments, tracking, warehouses, support… |
+| **6 applications** | API server | Web dashboard | Marketing site | Customer | Driver | Merchant |
+| **36 database tables** | Users, orders, deliveries, payments, tracking, warehouses, support... |
 | **28 API modules** | Auth, RBAC, orders, drivers, merchants, analytics, and more |
-| **10 user roles** | Admin, customer, driver, merchant, warehouse, finance, support… |
+| **10 user roles** | Admin, customer, driver, merchant, warehouse, finance, support... |
 | **90+ permissions** | Fine-grained `resource.action` access control |
 
 ### Why GUZO?
 
 | Principle | What it means |
 |-----------|---------------|
-| **Local-first** | Runs entirely on one machine — no cloud required to develop |
+| **Local-first** | Runs entirely on one machine - no cloud required to develop |
 | **Free & open-source stack** | PostgreSQL, Prisma, Express, Next.js, Expo, OpenStreetMap, Socket.IO |
 | **Cloud-ready** | Provider abstractions (storage, payments, SMS, push) and clean module boundaries |
-| **End-to-end typed** | Shared TypeScript contracts from database → API → web → mobile |
+| **End-to-end typed** | Shared TypeScript contracts from database -> API -> web -> mobile |
 | **Production patterns** | JWT + refresh tokens, RBAC, rate limiting, audit logs, file uploads, background jobs |
 
 ---
@@ -65,18 +65,18 @@ Every shipment, GPS ping, payment, notification, and support ticket is stored in
 
 ```mermaid
 flowchart TB
-    subgraph Clients["🖥️ Client applications"]
-        WEB["Web dashboard<br/><sub>Next.js · :3000</sub>"]
-        MKT["Marketing site<br/><sub>Next.js · :3001</sub>"]
-        CUS["Customer app<br/><sub>Expo · :8081</sub>"]
-        DRV["Driver app<br/><sub>Expo · :8082</sub>"]
-        MER["Merchant app<br/><sub>Expo · :8083</sub>"]
+    subgraph Clients["Client applications"]
+        WEB["Web dashboard<br/><sub>Next.js :3000</sub>"]
+        MKT["Marketing site<br/><sub>Next.js :3001</sub>"]
+        CUS["Customer app<br/><sub>Expo :8081</sub>"]
+        DRV["Driver app<br/><sub>Expo :8082</sub>"]
+        MER["Merchant app<br/><sub>Expo :8083</sub>"]
     end
 
-    subgraph Core["⚙️ Core platform"]
-        API["API server<br/><sub>Express + TypeScript · :4000</sub>"]
-        RT["Socket.IO<br/><sub>live tracking & notifications</sub>"]
-        DB[("PostgreSQL<br/><sub>36 tables · Prisma ORM</sub>")]
+    subgraph Core["Core platform"]
+        API["API server<br/><sub>Express + TypeScript :4000</sub>"]
+        RT["Socket.IO<br/><sub>live tracking and notifications</sub>"]
+        DB[("PostgreSQL<br/><sub>36 tables, Prisma ORM</sub>")]
     end
 
     WEB & MKT & CUS & DRV & MER -->|REST /api/v1| API
@@ -85,34 +85,34 @@ flowchart TB
     API --> DB
 ```
 
-**Request flow:** Client → Helmet → CORS → body parsing → rate limit → JWT auth → RBAC → module handler → Prisma → PostgreSQL → JSON response (+ Socket.IO broadcast when status changes).
+**Request flow:** Client -> Helmet -> CORS -> body parsing -> rate limit -> JWT auth -> RBAC -> module handler -> Prisma -> PostgreSQL -> JSON response (+ Socket.IO broadcast when status changes).
 
 ---
 
 ## Applications
 
-### 1. API server — `apps/server`
+### 1. API server - `apps/server`
 
-The heart of GUZO. Express + TypeScript modular monolith — each domain is a self-contained module (`routes → controller → service → repository`).
+The heart of GUZO. Express + TypeScript modular monolith - each domain is a self-contained module (`routes -> controller -> service -> repository`).
 
 | Capability | Details |
 |------------|---------|
-| **28 feature modules** | See [API server](#-api-server) section |
+| **28 feature modules** | See [API server](#api-server) section |
 | **Auth** | JWT access (15m) + refresh (7d), token rotation, session tracking |
 | **Security** | Helmet, CORS, rate limiting, Bcrypt passwords, RBAC middleware |
-| **Realtime** | Socket.IO — driver GPS, order status, notifications |
-| **Uploads** | Multer — proof of delivery, driver licenses, avatars |
+| **Realtime** | Socket.IO - driver GPS, order status, notifications |
+| **Uploads** | Multer - proof of delivery, driver licenses, avatars |
 | **Jobs** | Background tasks (e.g. expired token cleanup) |
-| **Providers** | Storage (local → S3), payments (fake → Stripe/Chapa), email, SMS, push |
+| **Providers** | Storage (local -> S3), payments (fake -> Stripe/Chapa), email, SMS, push |
 | **Logging** | Winston with size-capped rotation |
 
-**Base URL:** `http://localhost:4000/api/v1` · **Health:** `GET /health`
+**Base URL:** `http://localhost:4000/api/v1` | **Health:** `GET /health`
 
 ---
 
-### 2. Web dashboard — `apps/web` · port **3000**
+### 2. Web dashboard - `apps/web` | port **3000**
 
-Role-aware Next.js console. Route pattern: `/dashboard/[role]/[section]` — each role sees a tailored workspace with sidebar navigation, command menu, notification center, and light/dark theme.
+Role-aware Next.js console. Route pattern: `/dashboard/[role]/[section]` - each role sees a tailored workspace with sidebar navigation, command menu, notification center, and light/dark theme.
 
 <table>
 <tr>
@@ -201,7 +201,7 @@ Includes live **Leaflet + OpenStreetMap** tracking map.
 
 #### Support
 
-**Tickets** · **Notifications** · threaded ticket conversations with internal notes
+**Tickets** | **Notifications** | threaded ticket conversations with internal notes
 
 </td>
 </tr>
@@ -209,7 +209,7 @@ Includes live **Leaflet + OpenStreetMap** tracking map.
 
 ---
 
-### 3. Marketing site — `apps/marketing` · port **3001**
+### 3. Marketing site - `apps/marketing` | port **3001**
 
 Public-facing website for GUZO with premium design (3D hero scene, animations, responsive layout).
 
@@ -222,32 +222,32 @@ Public-facing website for GUZO with premium design (3D hero scene, animations, r
 | **Drivers** | Driver recruitment + earnings calculator |
 | **Merchants** | Business onboarding info |
 | **Download** | App download hub (iOS / Android) |
-| **About · Careers · Press · Investors · FAQ · Contact** | Company pages |
-| **Privacy · Terms** | Legal pages |
+| **About | Careers | Press | Investors | FAQ | Contact** | Company pages |
+| **Privacy | Terms** | Legal pages |
 
 ---
 
-### 4. Customer mobile app — `apps/mobile-customer` · Expo **:8081**
+### 4. Customer mobile app - `apps/mobile-customer` | Expo **:8081**
 
 Premium mobile experience (Uber Eats / DoorDash style) with glass UI, gradient buttons, and floating tab bar.
 
 | Tab / Screen | What you do |
 |--------------|-------------|
 | **Home** | Active orders, quick actions, promos |
-| **Book** | 4-step delivery wizard (pickup → dropoff → package → confirm) |
+| **Book** | 4-step delivery wizard (pickup -> dropoff -> package -> confirm) |
 | **Orders** | Order list + detail (`order/[id]`) |
 | **Track** | Live map tracking by reference (`track/[ref]`) |
 | **Alerts** | Notification timeline |
 | **Profile** | Account settings, sign out |
 | **Login** | Email/password + biometric unlock (Face ID / fingerprint) |
 
-**Extras:** offline support · push notifications · Socket.IO realtime · deep links
+**Extras:** offline support | push notifications | Socket.IO realtime | deep links
 
 ---
 
-### 5. Driver mobile app — `apps/mobile-driver` · Expo **:8082**
+### 5. Driver mobile app - `apps/mobile-driver` | Expo **:8082**
 
-Built for couriers on the road — accept jobs, navigate, ping GPS, and capture proof of delivery.
+Built for couriers on the road - accept jobs, navigate, ping GPS, and capture proof of delivery.
 
 | Tab / Screen | What you do |
 |--------------|-------------|
@@ -256,15 +256,15 @@ Built for couriers on the road — accept jobs, navigate, ping GPS, and capture 
 | **Delivery** (`delivery/[id]`) | Status updates, GPS pings every 15s, live map |
 | **POD** | Upload delivery photo + signature |
 | **Profile** | Earnings, settings, sign out |
-| **Login** | Role-validated — only **DRIVER** accounts allowed |
+| **Login** | Role-validated - only **DRIVER** accounts allowed |
 
-**Extras:** offline GPS queue (syncs when back online) · biometric login · push notifications · maps integration
+**Extras:** offline GPS queue (syncs when back online) | biometric login | push notifications | maps integration
 
 ---
 
-### 6. Merchant mobile app — `apps/mobile-merchant` · Expo **:8083**
+### 6. Merchant mobile app - `apps/mobile-merchant` | Expo **:8083**
 
-Ship at scale from your phone — same API as the web merchant console.
+Ship at scale from your phone - same API as the web merchant console.
 
 | Tab / Screen | What you do |
 |--------------|-------------|
@@ -273,13 +273,13 @@ Ship at scale from your phone — same API as the web merchant console.
 | **Bulk** | Batch upload multiple orders |
 | **Orders** | Order management list |
 | **Profile** | Business settings, sign out |
-| **Login** | Role-validated — only **MERCHANT** accounts allowed |
+| **Login** | Role-validated - only **MERCHANT** accounts allowed |
 
 ---
 
 ## Order lifecycle
 
-Every shipment follows a defined state machine — visible to customers, drivers, and ops staff in realtime via Socket.IO.
+Every shipment follows a defined state machine - visible to customers, drivers, and ops staff in realtime via Socket.IO.
 
 ```mermaid
 stateDiagram-v2
@@ -302,35 +302,29 @@ stateDiagram-v2
 
 ## Features
 
-<table>
-<tr>
-<td align="center" width="20%"><br/>📍<br/><b>Live GPS tracking</b><br/><sub>Driver pings + Socket.IO broadcast</sub><br/><br/></td>
-<td align="center" width="20%"><br/>📸<br/><b>Proof of delivery</b><br/><sub>Photo + digital signature</sub><br/><br/></td>
-<td align="center" width="20%"><br/>🔐<br/><b>RBAC security</b><br/><sub>10 roles · 90+ permissions</sub><br/><br/></td>
-<td align="center" width="20%"><br/>💳<br/><b>Payments & billing</b><br/><sub>Wallets · invoices · coupons</sub><br/><br/></td>
-<td align="center" width="20%"><br/>🏭<br/><b>Warehouse ops</b><br/><sub>Receive · inventory · dispatch</sub><br/><br/></td>
-</tr>
-<tr>
-<td align="center"><br/>🎫<br/><b>Support tickets</b><br/><sub>Threaded help desk</sub><br/><br/></td>
-<td align="center"><br/>📱<br/><b>Offline mobile</b><br/><sub>Queued GPS when no network</sub><br/><br/></td>
-<td align="center"><br/>🗺️<br/><b>Free maps</b><br/><sub>OpenStreetMap + OSRM routing</sub><br/><br/></td>
-<td align="center"><br/>🔔<br/><b>Notifications</b><br/><sub>In-app · push · email · SMS</sub><br/><br/></td>
-<td align="center"><br/>⭐<br/><b>Reviews & ratings</b><br/><sub>Driver · order · merchant · platform</sub><br/><br/></td>
-</tr>
-<tr>
-<td align="center"><br/>📦<br/><b>Bulk shipping</b><br/><sub>Merchant batch order upload</sub><br/><br/></td>
-<td align="center"><br/>🧾<br/><b>Audit logs</b><br/><sub>Every change tracked</sub><br/><br/></td>
-<td align="center"><br/>🔑<br/><b>Biometric login</b><br/><sub>Face ID / fingerprint on mobile</sub><br/><br/></td>
-<td align="center"><br/>📊<br/><b>Analytics</b><br/><sub>Admin · merchant · finance dashboards</sub><br/><br/></td>
-<td align="center"><br/>🌐<br/><b>Multi-client</b><br/><sub>Web + 3 mobile apps + API</sub><br/><br/></td>
-</tr>
-</table>
+| Feature | Description |
+|---------|-------------|
+| **Live GPS tracking** | Driver pings + Socket.IO broadcast |
+| **Proof of delivery** | Photo + digital signature |
+| **RBAC security** | 10 roles, 90+ permissions |
+| **Payments & billing** | Wallets, invoices, coupons |
+| **Warehouse ops** | Receive, inventory, dispatch |
+| **Support tickets** | Threaded help desk |
+| **Offline mobile** | Queued GPS when no network |
+| **Free maps** | OpenStreetMap + OSRM routing |
+| **Notifications** | In-app, push, email, SMS |
+| **Reviews & ratings** | Driver, order, merchant, platform |
+| **Bulk shipping** | Merchant batch order upload |
+| **Audit logs** | Every change tracked |
+| **Biometric login** | Face ID / fingerprint on mobile |
+| **Analytics** | Admin, merchant, finance dashboards |
+| **Multi-client** | Web + 3 mobile apps + API |
 
 ---
 
 ## Data layer
 
-Everything flows through **PostgreSQL** via **Prisma** — one schema, one client, shared by the API and every app.
+Everything flows through **PostgreSQL** via **Prisma** - one schema, one client, shared by the API and every app.
 
 ```mermaid
 erDiagram
@@ -358,7 +352,7 @@ erDiagram
 
 | Path | Purpose |
 |------|---------|
-| `prisma/schema.prisma` | Single source of truth — all models, enums, relations |
+| `prisma/schema.prisma` | Single source of truth - all models, enums, relations |
 | `prisma/migrations/` | Versioned SQL migrations |
 | `prisma/seed.ts` | Roles, permissions, demo accounts, warehouse, pricing, coupons |
 
@@ -369,15 +363,15 @@ erDiagram
 
 | Domain | Tables |
 |--------|--------|
-| **Identity & access** | `users` · `roles` · `permissions` · `user_roles` · `role_permissions` · `sessions` · `refresh_tokens` |
-| **Profiles** | `customers` · `drivers` · `merchants` · `merchant_api_keys` |
+| **Identity & access** | `users` | `roles` | `permissions` | `user_roles` | `role_permissions` | `sessions` | `refresh_tokens` |
+| **Profiles** | `customers` | `drivers` | `merchants` | `merchant_api_keys` |
 | **Addresses** | `addresses` |
-| **Logistics** | `warehouses` · `warehouse_inventory` · `vehicles` |
-| **Orders & fulfilment** | `orders` · `packages` · `deliveries` · `tracking_events` · `gps_locations` |
-| **Pricing & promos** | `pricing_rules` · `coupons` · `coupon_usages` |
-| **Money** | `payments` · `invoices` · `wallet_transactions` |
-| **Engagement** | `notifications` · `push_devices` · `reviews` · `support_tickets` · `ticket_messages` |
-| **System** | `files` · `settings` · `audit_logs` · `activity_logs` |
+| **Logistics** | `warehouses` | `warehouse_inventory` | `vehicles` |
+| **Orders & fulfilment** | `orders` | `packages` | `deliveries` | `tracking_events` | `gps_locations` |
+| **Pricing & promos** | `pricing_rules` | `coupons` | `coupon_usages` |
+| **Money** | `payments` | `invoices` | `wallet_transactions` |
+| **Engagement** | `notifications` | `push_devices` | `reviews` | `support_tickets` | `ticket_messages` |
+| **System** | `files` | `settings` | `audit_logs` | `activity_logs` |
 
 </details>
 
@@ -388,12 +382,12 @@ erDiagram
 
 | Data | Details |
 |------|---------|
-| **10 roles** | SUPER_ADMIN · ADMIN · OPERATIONS_MANAGER · WAREHOUSE_MANAGER · WAREHOUSE_STAFF · DRIVER · MERCHANT · CUSTOMER · SUPPORT · FINANCE |
+| **10 roles** | SUPER_ADMIN | ADMIN | OPERATIONS_MANAGER | WAREHOUSE_MANAGER | WAREHOUSE_STAFF | DRIVER | MERCHANT | CUSTOMER | SUPPORT | FINANCE |
 | **90 permissions** | Fine-grained keys like `orders.create`, `payments.read`, `tracking.create` |
-| **10 demo users** | One per role — see [Demo accounts](#-demo-accounts) |
+| **10 demo users** | One per role - see [Demo accounts](#demo-accounts) |
 | **Warehouse** | Addis Central Hub (`WH-ADD-001`) |
-| **Pricing rules** | Standard · Express · Same-day |
-| **Coupon** | `WELCOME10` — 10% off, max 100 ETB |
+| **Pricing rules** | Standard | Express | Same-day |
+| **Coupon** | `WELCOME10` - 10% off, max 100 ETB |
 | **Vehicle** | Driver motorcycle Bajaj Boxer (`AA-12345`) |
 | **Support ticket** | Demo ticket with threaded messages |
 | **Customer addresses** | Home + office for demo customer |
@@ -404,12 +398,12 @@ erDiagram
 
 ```bash
 npm run db:generate    # generate Prisma client
-npm run db:migrate     # apply migrations → create all tables
+npm run db:migrate     # apply migrations -> create all tables
 npm run db:seed        # roles, permissions, demo data
 npm run db:studio      # browse data in Prisma Studio
 ```
 
-> Set `DATABASE_URL` in your local `apps/server/.env` — env files are never committed.
+> Set `DATABASE_URL` in your local `apps/server/.env` - env files are never committed.
 
 ---
 
@@ -464,8 +458,8 @@ All endpoints return a standard envelope:
 |--------------|----------------|
 | `/auth` | Authentication & sessions |
 | `/users` | User management |
-| `/roles` · `/permissions` | RBAC administration |
-| `/customers` · `/drivers` · `/merchants` | Profile management |
+| `/roles` | `/permissions` | RBAC administration |
+| `/customers` | `/drivers` | `/merchants` | Profile management |
 | `/addresses` | Reusable pickup/dropoff addresses |
 | `/warehouses` | Warehouse + inventory |
 | `/vehicles` | Driver vehicles |
@@ -475,12 +469,12 @@ All endpoints return a standard envelope:
 | `/tracking` | Tracking events + live GPS |
 | `/pricing` | Pricing rules & quotes |
 | `/coupons` | Discount codes |
-| `/payments` · `/invoices` | Payments & billing |
-| `/notifications` · `/push-tokens` | Alerts & device registration |
+| `/payments` | `/invoices` | Payments & billing |
+| `/notifications` | `/push-tokens` | Alerts & device registration |
 | `/reviews` | Ratings & reviews |
 | `/support` | Support tickets & messages |
 | `/settings` | Global/user/merchant settings |
-| `/reports` · `/analytics` · `/dashboard` | Metrics & reporting |
+| `/reports` | `/analytics` | `/dashboard` | Metrics & reporting |
 | `/search` | Cross-entity search |
 | `/admin` | Admin-only operations |
 
@@ -492,15 +486,15 @@ All endpoints return a standard envelope:
 
 ### Token flow
 
-- **Access token** — JWT, expires in 15 minutes
-- **Refresh token** — stored hashed in DB, expires in 7 days, rotated on use
+- **Access token** - JWT, expires in 15 minutes
+- **Refresh token** - stored hashed in DB, expires in 7 days, rotated on use
 - Mobile client **auto-refreshes** on 401 responses
 
 ### Roles
 
 | Role | Purpose |
 |------|---------|
-| `SUPER_ADMIN` | Full access — bypasses all permission checks |
+| `SUPER_ADMIN` | Full access - bypasses all permission checks |
 | `ADMIN` | Platform administration |
 | `OPERATIONS_MANAGER` | Order/driver/warehouse orchestration |
 | `WAREHOUSE_MANAGER` | Warehouse domain management |
@@ -516,7 +510,7 @@ All endpoints return a standard envelope:
 Fine-grained `resource.action` keys (e.g. `orders.create`, `payments.read`) mapped to roles. Enforced via middleware:
 
 ```
-authenticate → authorize(...roles) → authorizePermission(...keys) → handler
+authenticate -> authorize(...roles) -> authorizePermission(...keys) -> handler
 ```
 
 ---
@@ -525,13 +519,13 @@ authenticate → authorize(...roles) → authorizePermission(...keys) → handle
 
 | Event | Direction | Purpose |
 |-------|-----------|---------|
-| `driver:location` | Driver → Server → Clients | Live GPS position |
-| `order:status` | Server → Clients | Order status change |
-| `order:tracking` | Server → Clients | Tracking timeline update |
-| `driver:status` | Server → Clients | Online / offline / on-delivery |
-| `notification:new` | Server → User | New notification |
+| `driver:location` | Driver -> Server -> Clients | Live GPS position |
+| `order:status` | Server -> Clients | Order status change |
+| `order:tracking` | Server -> Clients | Tracking timeline update |
+| `driver:status` | Server -> Clients | Online / offline / on-delivery |
+| `notification:new` | Server -> User | New notification |
 | `chat:message` | Bidirectional | Support chat |
-| `admin:metrics` | Server → Admin | Live dashboard stats |
+| `admin:metrics` | Server -> Admin | Live dashboard stats |
 
 Event names are defined in `@delivery/types` (`SOCKET_EVENTS`).
 
@@ -543,9 +537,9 @@ Event names are defined in `@delivery/types` (`SOCKET_EVENTS`).
 |---------|----------|---------|
 | `packages/database` | `@delivery/database` | Prisma schema, client, migrations, seed |
 | `packages/types` | `@delivery/types` | API contracts, enums, socket events |
-| `packages/utils` | — | Isomorphic utility helpers |
-| `packages/config` | — | Shared constants & config |
-| `packages/ui` | — | Shared web React/Shadcn components |
+| `packages/utils` | - | Isomorphic utility helpers |
+| `packages/config` | - | Shared constants & config |
+| `packages/ui` | - | Shared web React/Shadcn components |
 | `packages/mobile-shared` | `@guzo/mobile-shared` | Mobile API client, auth, offline queue, sockets |
 | `packages/mobile-ui` | `@guzo/mobile-ui` | Premium mobile design system (GlassCard, GradientButton, FloatingTabBar, LiveTrackingMap) |
 
@@ -557,18 +551,18 @@ Event names are defined in `@delivery/types` (`SOCKET_EVENTS`).
 
 | Backend | Web | Mobile | Data & infra |
 |---------|-----|--------|--------------|
-| Node.js 20+ · Express · TypeScript | Next.js · React · Tailwind CSS | Expo SDK 54 · React Native | PostgreSQL · Prisma ORM |
-| JWT + refresh · Bcrypt · Helmet | React Query · Zod · React Hook Form | Expo Router · React Query | Socket.IO · optional Redis |
-| Multer · Winston · Nodemailer | Leaflet · OpenStreetMap · Framer Motion | Secure Store · Biometrics · Location | Docker Compose · npm workspaces |
-| Socket.IO · express-validator | Shadcn UI · dark/light theme | Offline queue · push notifications | EAS builds · ESLint · Prettier |
+| Node.js 20+ | Express | TypeScript | Next.js | React | Tailwind CSS | Expo SDK 54 | React Native | PostgreSQL | Prisma ORM |
+| JWT + refresh | Bcrypt | Helmet | React Query | Zod | React Hook Form | Expo Router | React Query | Socket.IO | optional Redis |
+| Multer | Winston | Nodemailer | Leaflet | OpenStreetMap | Framer Motion | Secure Store | Biometrics | Location | Docker Compose | npm workspaces |
+| Socket.IO | express-validator | Shadcn UI | dark/light theme | Offline queue | push notifications | EAS builds | ESLint | Prettier |
 
 </div>
 
 | Integration | Technology | Cost |
 |-------------|------------|------|
 | **Maps** | OpenStreetMap + Leaflet + OSRM + Nominatim | Free |
-| **Storage** | Local filesystem (abstracted → S3/MinIO) | Free locally |
-| **Payments** | Fake provider (abstracted → Stripe/Chapa/Telebirr) | Free in dev |
+| **Storage** | Local filesystem (abstracted -> S3/MinIO) | Free locally |
+| **Payments** | Fake provider (abstracted -> Stripe/Chapa/Telebirr) | Free in dev |
 | **Email** | Console / SMTP / Mailpit | Free in dev |
 | **SMS / Push** | Console / Expo Push API | Free in dev |
 
@@ -578,29 +572,29 @@ Event names are defined in `@delivery/types` (`SOCKET_EVENTS`).
 
 ```
 Guzo/
-├── apps/
-│   ├── server/              # Express API — 28 modules, Socket.IO, jobs
-│   ├── web/                 # Next.js role-based web dashboard
-│   ├── marketing/           # Next.js public marketing site
-│   ├── mobile-customer/     # Expo — customer app
-│   ├── mobile-driver/       # Expo — driver app
-│   └── mobile-merchant/     # Expo — merchant app
-├── packages/
-│   ├── database/            # Prisma schema, migrations, seed
-│   ├── types/               # Shared API contracts
-│   ├── mobile-shared/       # Mobile API client & auth
-│   ├── mobile-ui/           # Premium mobile design system
-│   ├── ui/                  # Shared web components
-│   ├── utils/ · config/
-├── docker/                  # Postgres · Redis · Mailpit · MinIO
-└── scripts/                 # Mobile dev, EAS builds, git helpers
+|-- apps/
+|   |-- server/              # Express API - 28 modules, Socket.IO, jobs
+|   |-- web/                 # Next.js role-based web dashboard
+|   |-- marketing/           # Next.js public marketing site
+|   |-- mobile-customer/     # Expo - customer app
+|   |-- mobile-driver/       # Expo - driver app
+|   +-- mobile-merchant/     # Expo - merchant app
+|-- packages/
+|   |-- database/            # Prisma schema, migrations, seed
+|   |-- types/               # Shared API contracts
+|   |-- mobile-shared/       # Mobile API client & auth
+|   |-- mobile-ui/           # Premium mobile design system
+|   |-- ui/                  # Shared web components
+|   +-- utils/ and config/
+|-- docker/                  # Postgres | Redis | Mailpit | MinIO
++-- scripts/                 # Mobile dev, EAS builds, git helpers
 ```
 
 ---
 
 ## Quick start
 
-**Prerequisites:** Node.js 20+ · PostgreSQL (or `npm run docker:up`)
+**Prerequisites:** Node.js 20+ | PostgreSQL (or `npm run docker:up`)
 
 ```bash
 # 1. Clone & install
@@ -608,7 +602,7 @@ git clone https://github.com/abel2800/Guzo.git
 cd Guzo
 npm install
 
-# 2. Configure database (create apps/server/.env locally — never committed)
+# 2. Configure database (create apps/server/.env locally - never committed)
 #    DATABASE_URL=postgresql://USER:PASS@localhost:5432/Guzo?schema=public
 
 # 3. Initialize database
@@ -618,8 +612,8 @@ npm run db:seed
 
 # 4. Start the API
 npm run dev:server
-# → http://localhost:4000/api/v1
-# → http://localhost:4000/health
+# -> http://localhost:4000/api/v1
+# -> http://localhost:4000/health
 ```
 
 ---
@@ -647,7 +641,7 @@ For physical phone testing: scan the QR code in each Expo window with **Expo Go*
 |----------|---------|-------------|
 | `NODE_ENV` | `development` | Environment |
 | `PORT` | `4000` | API port |
-| `DATABASE_URL` | — | PostgreSQL connection (**required**) |
+| `DATABASE_URL` | - | PostgreSQL connection (**required**) |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | dev values | Token secrets (**change in prod**) |
 | `JWT_ACCESS_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | `15m` / `7d` | Token lifetimes |
 | `CORS_ORIGINS` | localhost list | Allowed frontend origins |
@@ -659,7 +653,7 @@ For physical phone testing: scan the QR code in each Expo window with **Expo Go*
 | `OSRM_BASE_URL` / `NOMINATIM_BASE_URL` | public OSM | Maps/routing |
 | `LOG_LEVEL` | `debug` | Logging verbosity |
 
-Mobile: `EXPO_PUBLIC_API_URL` — your LAN IP when testing on a physical phone.
+Mobile: `EXPO_PUBLIC_API_URL` - your LAN IP when testing on a physical phone.
 
 </details>
 
@@ -670,12 +664,12 @@ Mobile: `EXPO_PUBLIC_API_URL` — your LAN IP when testing on a physical phone.
 
 | Category | Scripts |
 |----------|---------|
-| **Development** | `dev:server` · `dev:web` · `dev:marketing` · `dev:mobile-customer` · `dev:mobile-driver` · `dev:mobile-merchant` · `dev:mobile:phone` |
-| **Database** | `db:generate` · `db:migrate` · `db:seed` · `db:studio` |
-| **Quality** | `lint` · `format` · `typecheck:mobile` · `build` |
-| **Mobile builds** | `build:mobile:android` · `build:mobile:ios` · `build:mobile:all` · `copy:mobile-builds` |
-| **EAS** | `eas:customer:preview` · `eas:driver:preview` · `eas:merchant:preview` · `eas:setup` |
-| **Docker** | `docker:up` · `docker:down` |
+| **Development** | `dev:server` | `dev:web` | `dev:marketing` | `dev:mobile-customer` | `dev:mobile-driver` | `dev:mobile-merchant` | `dev:mobile:phone` |
+| **Database** | `db:generate` | `db:migrate` | `db:seed` | `db:studio` |
+| **Quality** | `lint` | `format` | `typecheck:mobile` | `build` |
+| **Mobile builds** | `build:mobile:android` | `build:mobile:ios` | `build:mobile:all` | `copy:mobile-builds` |
+| **EAS** | `eas:customer:preview` | `eas:driver:preview` | `eas:merchant:preview` | `eas:setup` |
+| **Docker** | `docker:up` | `docker:down` |
 
 </details>
 
@@ -716,7 +710,7 @@ Password for **all** accounts: **`Password123!`**
 
 ### Built as a modular monolith
 
-Run locally today · Scale to the cloud tomorrow · MIT licensed
+Run locally today | Scale to the cloud tomorrow | MIT licensed
 
 <br/>
 
@@ -724,6 +718,6 @@ Run locally today · Scale to the cloud tomorrow · MIT licensed
 
 <br/>
 
-**GUZO** — Logistics & delivery, done right.
+**GUZO** - Logistics & delivery, done right.
 
 </div>
