@@ -1,0 +1,124 @@
+import type { Request, Response } from 'express';
+import { ordersService } from './orders.service.js';
+import { ORDER_MESSAGES } from './orders.constants.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { ok, created } from '../../utils/ApiResponse.js';
+import { parseListQuery } from '../../utils/pagination.js';
+import { ROLES } from '../../constants/index.js';
+
+function isAdmin(req: Request) {
+  return !!req.user?.roles.some(
+    (r) =>
+      r === ROLES.ADMIN ||
+      r === ROLES.SUPER_ADMIN ||
+      r === ROLES.SUPPORT ||
+      r === ROLES.OPERATIONS_MANAGER,
+  );
+}
+
+function isDriver(req: Request) {
+  return !!req.user?.roles.some((r) => r === ROLES.DRIVER);
+}
+
+function isMerchant(req: Request) {
+  return !!req.user?.roles.some((r) => r === ROLES.MERCHANT);
+}
+
+export const ordersController = {
+  list: asyncHandler(async (req: Request, res: Response) => {
+    // Resolve the read scope from the caller's role:
+    //  - admins/ops see everything,
+    //  - drivers see either their assigned deliveries or the pool of available jobs,
+    //  - everyone else is scoped to the orders owned by their customer profile.
+    let scope: Parameters<typeof ordersService.list>[1];
+    if (isAdmin(req)) {
+      scope = undefined;
+    } else if (isDriver(req)) {
+      scope =
+        req.query.scope === 'available'
+          ? { unassigned: true }
+          : { driverUserId: req.user!.id };
+    } else if (isMerchant(req)) {
+      scope = { merchantUserId: req.user!.id };
+    } else {
+      scope = { customerUserId: req.user!.id };
+    }
+    const { items, meta } = await ordersService.list(parseListQuery(req), scope);
+    return ok(res, items, ORDER_MESSAGES.FETCHED, meta);
+  }),
+
+  getById: asyncHandler(async (req: Request, res: Response) => {
+    const order = await ordersService.getById(req.params.id);
+    return ok(res, order, ORDER_MESSAGES.FOUND);
+  }),
+
+  create: asyncHandler(async (req: Request, res: Response) => {
+    const order = await ordersService.create(req.body, {
+      userId: req.user!.id,
+      isAdmin: isAdmin(req),
+      isMerchant: isMerchant(req),
+    });
+    return created(res, order, ORDER_MESSAGES.CREATED);
+  }),
+
+  createBulk: asyncHandler(async (req: Request, res: Response) => {
+    const rows = Array.isArray(req.body?.orders) ? req.body.orders : [];
+    if (rows.length === 0) throw ApiError.badRequest('Provide a non-empty "orders" array');
+    if (rows.length > 200) throw ApiError.badRequest('Bulk upload is limited to 200 orders per request');
+    const summary = await ordersService.createBulk(rows, {
+      userId: req.user!.id,
+      isAdmin: isAdmin(req),
+      isMerchant: isMerchant(req),
+    });
+    return created(res, summary, `Processed ${summary.total} orders`);
+  }),
+
+  quote: asyncHandler(async (req: Request, res: Response) => {
+    const breakdown = await ordersService.quote(req.body);
+    return ok(res, breakdown, 'Price quote');
+  }),
+
+  track: asyncHandler(async (req: Request, res: Response) => {
+    const order = await ordersService.track(req.params.reference);
+    return ok(res, order, 'Tracking details');
+  }),
+
+  updateStatus: asyncHandler(async (req: Request, res: Response) => {
+    const order = await ordersService.updateStatus(req.params.id, req.body);
+    return ok(res, order, ORDER_MESSAGES.STATUS_UPDATED);
+  }),
+
+  assignDriver: asyncHandler(async (req: Request, res: Response) => {
+    const order = await ordersService.assignDriver(req.params.id, req.body);
+    return ok(res, order, ORDER_MESSAGES.ASSIGNED);
+  }),
+
+  accept: asyncHandler(async (req: Request, res: Response) => {
+    const order = await ordersService.accept(req.params.id, req.user!.id);
+    return ok(res, order, ORDER_MESSAGES.ASSIGNED);
+  }),
+
+  submitProof: asyncHandler(async (req: Request, res: Response) => {
+    const files = req.files as Record<string, Express.Multer.File[]> | undefined;
+    const photo = files?.photo?.[0];
+    if (!photo) throw ApiError.badRequest('A delivery photo is required');
+    const signature = files?.signature?.[0];
+
+    const toNum = (v: unknown) => (v !== undefined && v !== '' ? Number(v) : undefined);
+    const order = await ordersService.completeWithProof(req.params.id, req.user!.id, {
+      photo,
+      signature,
+      recipientName: typeof req.body.recipientName === 'string' ? req.body.recipientName : undefined,
+      note: typeof req.body.note === 'string' ? req.body.note : undefined,
+      latitude: toNum(req.body.latitude),
+      longitude: toNum(req.body.longitude),
+    });
+    return ok(res, order, ORDER_MESSAGES.STATUS_UPDATED);
+  }),
+
+  cancel: asyncHandler(async (req: Request, res: Response) => {
+    const order = await ordersService.cancel(req.params.id);
+    return ok(res, order, ORDER_MESSAGES.CANCELLED);
+  }),
+};
