@@ -1,0 +1,14 @@
+/* Shared base styles (imported by each app's globals.css after Tailwind). */
+:root {
+  --brand: 14 116 144;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
