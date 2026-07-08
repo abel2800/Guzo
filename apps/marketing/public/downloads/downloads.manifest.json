@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-07-01",
+  "apps": {
+    "customer": {
+      "android": { "file": "guzo-customer-android.apk", "available": false },
+      "ios": { "file": "guzo-customer-ios.ipa", "available": false }
+    },
+    "driver": {
+      "android": { "file": "guzo-driver-android.apk", "available": false },
+      "ios": { "file": "guzo-driver-ios.ipa", "available": false }
+    },
+    "merchant": {
+      "android": { "file": "guzo-merchant-android.apk", "available": false },
+      "ios": { "file": "guzo-merchant-ios.ipa", "available": false }
+    }
+  },
+  "buildCommand": "npm run build:mobile:android",
+  "note": "Place APK/IPA files here after EAS build. Run: npm run copy:mobile-builds"
+}

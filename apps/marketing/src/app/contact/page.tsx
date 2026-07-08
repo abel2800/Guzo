@@ -1,0 +1,86 @@
+'use client';
+
+import { useState } from 'react';
+import { Mail, MapPin, Phone } from 'lucide-react';
+import { PageHeader, SectionReveal } from '@/components/common/section-reveal';
+import { Button } from '@/components/ui/button';
+
+export default function ContactPage() {
+  const [sent, setSent] = useState(false);
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Contact"
+        title="Let's move forward together."
+        description="Partnerships, enterprise sales, driver onboarding, and press — we'd love to hear from you."
+      />
+
+      <section className="container pb-24">
+        <div className="grid gap-12 lg:grid-cols-2">
+          <SectionReveal>
+            <div className="space-y-6">
+              {[
+                { icon: Mail, label: 'Email', value: 'hello@guzo.et' },
+                { icon: Phone, label: 'Phone', value: '+251 11 000 0000' },
+                { icon: MapPin, label: 'HQ', value: 'Addis Ababa, Ethiopia' },
+              ].map((item) => (
+                <div key={item.label} className="flex gap-4 rounded-2xl border border-white/10 bg-guzo-card/40 p-5">
+                  <item.icon className="h-6 w-6 text-guzo-primary" />
+                  <div>
+                    <p className="text-sm font-semibold text-white">{item.label}</p>
+                    <p className="text-guzo-muted">{item.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SectionReveal>
+
+          <SectionReveal delay={0.1}>
+            {sent ? (
+              <div className="rounded-2xl border border-guzo-primary/30 bg-guzo-primary/10 p-8 text-center">
+                <p className="font-semibold text-white">Message received</p>
+                <p className="mt-2 text-sm text-guzo-muted">Our team will respond within 1–2 business days.</p>
+              </div>
+            ) : (
+              <form
+                className="space-y-4 rounded-2xl border border-white/10 bg-guzo-card/40 p-8"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setSent(true);
+                }}
+              >
+                <input
+                  required
+                  placeholder="Your name"
+                  className="w-full rounded-xl border border-white/10 bg-guzo-bg/60 px-4 py-3 text-white placeholder:text-guzo-muted/60 focus:border-guzo-primary focus:outline-none"
+                />
+                <input
+                  required
+                  type="email"
+                  placeholder="Email address"
+                  className="w-full rounded-xl border border-white/10 bg-guzo-bg/60 px-4 py-3 text-white placeholder:text-guzo-muted/60 focus:border-guzo-primary focus:outline-none"
+                />
+                <select className="w-full rounded-xl border border-white/10 bg-guzo-bg/60 px-4 py-3 text-white focus:border-guzo-primary focus:outline-none">
+                  <option value="general">General inquiry</option>
+                  <option value="merchant">Merchant / API</option>
+                  <option value="driver">Become a driver</option>
+                  <option value="press">Press</option>
+                </select>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="How can we help?"
+                  className="w-full rounded-xl border border-white/10 bg-guzo-bg/60 px-4 py-3 text-white placeholder:text-guzo-muted/60 focus:border-guzo-primary focus:outline-none"
+                />
+                <Button type="submit" size="lg" className="w-full">
+                  Send message
+                </Button>
+              </form>
+            )}
+          </SectionReveal>
+        </div>
+      </section>
+    </>
+  );
+}
