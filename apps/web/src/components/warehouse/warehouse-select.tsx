@@ -5,8 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Warehouse as WarehouseIcon } from 'lucide-react';
 import { listWarehouses } from '@/lib/warehouse';
 import { useWarehouseStore } from '@/lib/warehouse-store';
+import { PanelSelect } from '@/components/dashboard/futuristic-primitives';
 
-/** Warehouse picker wired to the shared store; auto-selects the first warehouse. */
 export function WarehouseSelect() {
   const { selectedId, setSelected } = useWarehouseStore();
   const { data: warehouses = [] } = useQuery({ queryKey: ['warehouses'], queryFn: listWarehouses });
@@ -21,23 +21,21 @@ export function WarehouseSelect() {
 
   return (
     <label className="flex items-center gap-2 text-sm">
-      <WarehouseIcon className="h-4 w-4 text-muted-foreground" />
-      <select
+      <WarehouseIcon className="h-4 w-4 text-slate-400" />
+      <PanelSelect
         value={selectedId ?? ''}
         onChange={(e) => setSelected(e.target.value)}
-        className="h-9 rounded-md border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-ring"
       >
         {warehouses.map((w) => (
           <option key={w.id} value={w.id}>
             {w.code} — {w.name}
           </option>
         ))}
-      </select>
+      </PanelSelect>
     </label>
   );
 }
 
-/** Convenience hook returning the currently selected warehouse id (may be null before load). */
 export function useSelectedWarehouse() {
   return useWarehouseStore((s) => s.selectedId);
 }

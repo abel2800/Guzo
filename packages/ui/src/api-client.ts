@@ -3,20 +3,12 @@ import type { ApiResponse, AuthTokens } from '@delivery/types';
 
 export interface ApiClientOptions {
   baseURL: string;
-  /** Returns the current access token (e.g. from localStorage/zustand). */
-  getAccessToken?: () => string | null;
-  /** Returns the current refresh token. */
-  getRefreshToken?: () => string | null;
-  /** Persist refreshed tokens. */
-  onTokensRefreshed?: (tokens: AuthTokens) => void;
-  /** Called when refresh fails (force logout). */
-  onAuthError?: () => void;
+    getAccessToken?: () => string | null;
+    getRefreshToken?: () => string | null;
+    onTokensRefreshed?: (tokens: AuthTokens) => void;
+    onAuthError?: () => void;
 }
 
-/**
- * Shared axios client used by every frontend. Attaches the Bearer token and
- * transparently refreshes it on a 401 using the refresh token (single-flight).
- */
 export function createApiClient(opts: ApiClientOptions): AxiosInstance {
   const client = axios.create({
     baseURL: opts.baseURL,

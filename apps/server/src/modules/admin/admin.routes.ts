@@ -9,6 +9,8 @@ router.use(authenticate, authorize('ADMIN'));
 router.get('/summary', adminController.summary);
 router.get('/audit-logs', adminController.auditLogs);
 router.get('/activity-logs', adminController.activityLogs);
+router.get('/exceptions', adminController.exceptions);
+router.get('/payments/reconciliation', adminController.paymentReconciliation);
 router.post('/drivers/:id/approve', adminController.approveDriver);
 router.post('/drivers/:id/reject', adminController.rejectDriver);
 

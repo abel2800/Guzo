@@ -14,7 +14,6 @@ import { UPLOAD_FOLDERS } from '../../constants/index.js';
 
 const router = Router();
 
-// Public price quote + public tracking (no auth required).
 router.post('/quote', validate(createOrderValidator), ordersController.quote);
 router.get('/track/:reference', optionalAuth, ordersController.track);
 
@@ -28,7 +27,6 @@ router.patch('/:id/status', authorize('ADMIN', 'SUPPORT', 'OPERATIONS_MANAGER', 
 router.post('/:id/assign', authorize('ADMIN', 'SUPPORT', 'OPERATIONS_MANAGER'), validate(assignDriverValidator), ordersController.assignDriver);
 router.post('/:id/accept', authorize('DRIVER'), validate(idParamValidator), ordersController.accept);
 
-// Proof of delivery: driver uploads a photo (+ optional signature) to complete.
 router.post(
   '/:id/pod',
   authorize('DRIVER'),
@@ -39,6 +37,19 @@ router.post(
   ]),
   ordersController.submitProof,
 );
+router.post(
+  '/:id/pickup-proof',
+  authorize('DRIVER'),
+  uploadTo(UPLOAD_FOLDERS.PARCEL_IMAGES),
+  upload.fields([
+    { name: 'photo', maxCount: 1 },
+    { name: 'signature', maxCount: 1 },
+  ]),
+  ordersController.submitPickupProof,
+);
+router.post('/:id/branch-handoff', authorize('DRIVER'), validate(idParamValidator), ordersController.branchHandoff);
+router.post('/:id/failed', authorize('DRIVER'), validate(idParamValidator), ordersController.markFailed);
+router.post('/:id/reattempt', authorize('DRIVER'), validate(idParamValidator), ordersController.reattempt);
 router.post('/:id/cancel', validate(idParamValidator), ordersController.cancel);
 
 export default router;

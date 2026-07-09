@@ -1,73 +1,49 @@
--- CreateEnum
 CREATE TYPE "UserStatus" AS ENUM ('PENDING', 'ACTIVE', 'SUSPENDED', 'BANNED', 'DELETED');
 
--- CreateEnum
 CREATE TYPE "Gender" AS ENUM ('MALE', 'FEMALE', 'OTHER', 'UNSPECIFIED');
 
--- CreateEnum
 CREATE TYPE "AddressType" AS ENUM ('HOME', 'WORK', 'WAREHOUSE', 'BILLING', 'PICKUP', 'DROPOFF', 'OTHER');
 
--- CreateEnum
 CREATE TYPE "DriverStatus" AS ENUM ('OFFLINE', 'ONLINE', 'ON_DELIVERY', 'ON_BREAK');
 
--- CreateEnum
 CREATE TYPE "DriverApprovalStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED');
 
--- CreateEnum
 CREATE TYPE "VehicleType" AS ENUM ('BICYCLE', 'MOTORCYCLE', 'CAR', 'VAN', 'TRUCK', 'SCOOTER');
 
--- CreateEnum
 CREATE TYPE "VehicleStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'MAINTENANCE');
 
--- CreateEnum
 CREATE TYPE "OrderStatus" AS ENUM ('DRAFT', 'PENDING_PAYMENT', 'CONFIRMED', 'ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'AT_WAREHOUSE', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED', 'CANCELLED', 'RETURNED');
 
--- CreateEnum
 CREATE TYPE "DeliveryType" AS ENUM ('STANDARD', 'EXPRESS', 'SAME_DAY', 'SCHEDULED', 'INTERNATIONAL');
 
--- CreateEnum
 CREATE TYPE "PackageStatus" AS ENUM ('CREATED', 'AT_ORIGIN', 'IN_WAREHOUSE', 'SORTED', 'DISPATCHED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'LOST', 'DAMAGED', 'RETURNED');
 
--- CreateEnum
 CREATE TYPE "TrackingEventType" AS ENUM ('ORDER_CREATED', 'PAYMENT_CONFIRMED', 'DRIVER_ASSIGNED', 'PICKED_UP', 'ARRIVED_AT_WAREHOUSE', 'SORTED', 'DISPATCHED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERY_ATTEMPTED', 'DELIVERED', 'CANCELLED', 'RETURNED', 'EXCEPTION');
 
--- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PROCESSING', 'PAID', 'FAILED', 'REFUNDED', 'PARTIALLY_REFUNDED', 'CANCELLED');
 
--- CreateEnum
 CREATE TYPE "PaymentMethod" AS ENUM ('WALLET', 'CASH_ON_DELIVERY', 'CARD', 'MOBILE_MONEY', 'BANK_TRANSFER', 'FAKE');
 
--- CreateEnum
 CREATE TYPE "InvoiceStatus" AS ENUM ('DRAFT', 'ISSUED', 'PAID', 'OVERDUE', 'VOID');
 
--- CreateEnum
 CREATE TYPE "WalletTxnType" AS ENUM ('CREDIT', 'DEBIT', 'REFUND', 'PAYOUT', 'ADJUSTMENT');
 
--- CreateEnum
 CREATE TYPE "NotificationChannel" AS ENUM ('IN_APP', 'EMAIL', 'SMS', 'PUSH');
 
--- CreateEnum
 CREATE TYPE "NotificationStatus" AS ENUM ('PENDING', 'SENT', 'FAILED', 'READ');
 
--- CreateEnum
 CREATE TYPE "CouponType" AS ENUM ('PERCENTAGE', 'FIXED', 'FREE_SHIPPING');
 
--- CreateEnum
 CREATE TYPE "TicketStatus" AS ENUM ('OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'RESOLVED', 'CLOSED');
 
--- CreateEnum
 CREATE TYPE "TicketPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'URGENT');
 
--- CreateEnum
 CREATE TYPE "ReviewTargetType" AS ENUM ('DRIVER', 'ORDER', 'MERCHANT', 'PLATFORM');
 
--- CreateEnum
 CREATE TYPE "FileCategory" AS ENUM ('IMAGE', 'DOCUMENT', 'DRIVER_LICENSE', 'PROOF_OF_DELIVERY', 'PARCEL_IMAGE', 'SIGNATURE', 'AVATAR', 'OTHER');
 
--- CreateEnum
 CREATE TYPE "SettingScope" AS ENUM ('GLOBAL', 'USER', 'MERCHANT');
 
--- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
@@ -88,7 +64,6 @@ CREATE TABLE "users" (
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "roles" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -100,7 +75,6 @@ CREATE TABLE "roles" (
     CONSTRAINT "roles_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "permissions" (
     "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
@@ -112,7 +86,6 @@ CREATE TABLE "permissions" (
     CONSTRAINT "permissions_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "user_roles" (
     "userId" TEXT NOT NULL,
     "roleId" TEXT NOT NULL,
@@ -121,7 +94,6 @@ CREATE TABLE "user_roles" (
     CONSTRAINT "user_roles_pkey" PRIMARY KEY ("userId","roleId")
 );
 
--- CreateTable
 CREATE TABLE "role_permissions" (
     "roleId" TEXT NOT NULL,
     "permissionId" TEXT NOT NULL,
@@ -129,7 +101,6 @@ CREATE TABLE "role_permissions" (
     CONSTRAINT "role_permissions_pkey" PRIMARY KEY ("roleId","permissionId")
 );
 
--- CreateTable
 CREATE TABLE "sessions" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -143,7 +114,6 @@ CREATE TABLE "sessions" (
     CONSTRAINT "sessions_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "refresh_tokens" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -160,7 +130,6 @@ CREATE TABLE "refresh_tokens" (
     CONSTRAINT "refresh_tokens_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "customers" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -175,7 +144,6 @@ CREATE TABLE "customers" (
     CONSTRAINT "customers_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "drivers" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -200,7 +168,6 @@ CREATE TABLE "drivers" (
     CONSTRAINT "drivers_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "merchants" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -218,7 +185,6 @@ CREATE TABLE "merchants" (
     CONSTRAINT "merchants_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "merchant_api_keys" (
     "id" TEXT NOT NULL,
     "merchantId" TEXT NOT NULL,
@@ -233,7 +199,6 @@ CREATE TABLE "merchant_api_keys" (
     CONSTRAINT "merchant_api_keys_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "addresses" (
     "id" TEXT NOT NULL,
     "userId" TEXT,
@@ -256,7 +221,6 @@ CREATE TABLE "addresses" (
     CONSTRAINT "addresses_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "warehouses" (
     "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
@@ -275,7 +239,6 @@ CREATE TABLE "warehouses" (
     CONSTRAINT "warehouses_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "warehouse_inventory" (
     "id" TEXT NOT NULL,
     "warehouseId" TEXT NOT NULL,
@@ -290,7 +253,6 @@ CREATE TABLE "warehouse_inventory" (
     CONSTRAINT "warehouse_inventory_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "vehicles" (
     "id" TEXT NOT NULL,
     "driverId" TEXT,
@@ -307,7 +269,6 @@ CREATE TABLE "vehicles" (
     CONSTRAINT "vehicles_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "orders" (
     "id" TEXT NOT NULL,
     "orderNumber" TEXT NOT NULL,
@@ -338,7 +299,6 @@ CREATE TABLE "orders" (
     CONSTRAINT "orders_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "packages" (
     "id" TEXT NOT NULL,
     "trackingNumber" TEXT NOT NULL,
@@ -360,7 +320,6 @@ CREATE TABLE "packages" (
     CONSTRAINT "packages_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "deliveries" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
@@ -383,7 +342,6 @@ CREATE TABLE "deliveries" (
     CONSTRAINT "deliveries_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "tracking_events" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
@@ -399,7 +357,6 @@ CREATE TABLE "tracking_events" (
     CONSTRAINT "tracking_events_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "gps_locations" (
     "id" TEXT NOT NULL,
     "driverId" TEXT NOT NULL,
@@ -414,7 +371,6 @@ CREATE TABLE "gps_locations" (
     CONSTRAINT "gps_locations_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "pricing_rules" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -433,7 +389,6 @@ CREATE TABLE "pricing_rules" (
     CONSTRAINT "pricing_rules_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "coupons" (
     "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
@@ -453,7 +408,6 @@ CREATE TABLE "coupons" (
     CONSTRAINT "coupons_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "coupon_usages" (
     "id" TEXT NOT NULL,
     "couponId" TEXT NOT NULL,
@@ -465,7 +419,6 @@ CREATE TABLE "coupon_usages" (
     CONSTRAINT "coupon_usages_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "payments" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
@@ -485,7 +438,6 @@ CREATE TABLE "payments" (
     CONSTRAINT "payments_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "invoices" (
     "id" TEXT NOT NULL,
     "invoiceNumber" TEXT NOT NULL,
@@ -505,7 +457,6 @@ CREATE TABLE "invoices" (
     CONSTRAINT "invoices_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "wallet_transactions" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -520,7 +471,6 @@ CREATE TABLE "wallet_transactions" (
     CONSTRAINT "wallet_transactions_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "notifications" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -537,7 +487,6 @@ CREATE TABLE "notifications" (
     CONSTRAINT "notifications_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "reviews" (
     "id" TEXT NOT NULL,
     "authorId" TEXT NOT NULL,
@@ -552,7 +501,6 @@ CREATE TABLE "reviews" (
     CONSTRAINT "reviews_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "support_tickets" (
     "id" TEXT NOT NULL,
     "ticketNumber" TEXT NOT NULL,
@@ -570,7 +518,6 @@ CREATE TABLE "support_tickets" (
     CONSTRAINT "support_tickets_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "ticket_messages" (
     "id" TEXT NOT NULL,
     "ticketId" TEXT NOT NULL,
@@ -582,7 +529,6 @@ CREATE TABLE "ticket_messages" (
     CONSTRAINT "ticket_messages_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "settings" (
     "id" TEXT NOT NULL,
     "scope" "SettingScope" NOT NULL DEFAULT 'GLOBAL',
@@ -595,7 +541,6 @@ CREATE TABLE "settings" (
     CONSTRAINT "settings_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "files" (
     "id" TEXT NOT NULL,
     "uploaderId" TEXT,
@@ -612,7 +557,6 @@ CREATE TABLE "files" (
     CONSTRAINT "files_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "audit_logs" (
     "id" TEXT NOT NULL,
     "actorId" TEXT,
@@ -628,7 +572,6 @@ CREATE TABLE "audit_logs" (
     CONSTRAINT "audit_logs_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
 CREATE TABLE "activity_logs" (
     "id" TEXT NOT NULL,
     "userId" TEXT,
@@ -640,368 +583,246 @@ CREATE TABLE "activity_logs" (
     CONSTRAINT "activity_logs_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
--- CreateIndex
 CREATE UNIQUE INDEX "users_phone_key" ON "users"("phone");
 
--- CreateIndex
 CREATE INDEX "users_status_idx" ON "users"("status");
 
--- CreateIndex
 CREATE INDEX "users_createdAt_idx" ON "users"("createdAt");
 
--- CreateIndex
 CREATE UNIQUE INDEX "roles_name_key" ON "roles"("name");
 
--- CreateIndex
 CREATE UNIQUE INDEX "permissions_key_key" ON "permissions"("key");
 
--- CreateIndex
 CREATE INDEX "permissions_resource_idx" ON "permissions"("resource");
 
--- CreateIndex
 CREATE INDEX "sessions_userId_idx" ON "sessions"("userId");
 
--- CreateIndex
 CREATE UNIQUE INDEX "refresh_tokens_tokenHash_key" ON "refresh_tokens"("tokenHash");
 
--- CreateIndex
 CREATE INDEX "refresh_tokens_userId_idx" ON "refresh_tokens"("userId");
 
--- CreateIndex
 CREATE INDEX "refresh_tokens_expiresAt_idx" ON "refresh_tokens"("expiresAt");
 
--- CreateIndex
 CREATE UNIQUE INDEX "customers_userId_key" ON "customers"("userId");
 
--- CreateIndex
 CREATE UNIQUE INDEX "customers_customerCode_key" ON "customers"("customerCode");
 
--- CreateIndex
 CREATE UNIQUE INDEX "drivers_userId_key" ON "drivers"("userId");
 
--- CreateIndex
 CREATE UNIQUE INDEX "drivers_driverCode_key" ON "drivers"("driverCode");
 
--- CreateIndex
 CREATE INDEX "drivers_status_idx" ON "drivers"("status");
 
--- CreateIndex
 CREATE INDEX "drivers_approvalStatus_idx" ON "drivers"("approvalStatus");
 
--- CreateIndex
 CREATE INDEX "drivers_isAvailable_idx" ON "drivers"("isAvailable");
 
--- CreateIndex
 CREATE UNIQUE INDEX "merchants_userId_key" ON "merchants"("userId");
 
--- CreateIndex
 CREATE UNIQUE INDEX "merchants_merchantCode_key" ON "merchants"("merchantCode");
 
--- CreateIndex
 CREATE UNIQUE INDEX "merchant_api_keys_keyPrefix_key" ON "merchant_api_keys"("keyPrefix");
 
--- CreateIndex
 CREATE INDEX "merchant_api_keys_merchantId_idx" ON "merchant_api_keys"("merchantId");
 
--- CreateIndex
 CREATE INDEX "addresses_userId_idx" ON "addresses"("userId");
 
--- CreateIndex
 CREATE INDEX "addresses_city_idx" ON "addresses"("city");
 
--- CreateIndex
 CREATE UNIQUE INDEX "warehouses_code_key" ON "warehouses"("code");
 
--- CreateIndex
 CREATE UNIQUE INDEX "warehouse_inventory_packageId_key" ON "warehouse_inventory"("packageId");
 
--- CreateIndex
 CREATE INDEX "warehouse_inventory_warehouseId_idx" ON "warehouse_inventory"("warehouseId");
 
--- CreateIndex
 CREATE INDEX "warehouse_inventory_shelfCode_idx" ON "warehouse_inventory"("shelfCode");
 
--- CreateIndex
 CREATE UNIQUE INDEX "vehicles_plateNumber_key" ON "vehicles"("plateNumber");
 
--- CreateIndex
 CREATE INDEX "vehicles_driverId_idx" ON "vehicles"("driverId");
 
--- CreateIndex
 CREATE UNIQUE INDEX "orders_orderNumber_key" ON "orders"("orderNumber");
 
--- CreateIndex
 CREATE INDEX "orders_customerId_idx" ON "orders"("customerId");
 
--- CreateIndex
 CREATE INDEX "orders_merchantId_idx" ON "orders"("merchantId");
 
--- CreateIndex
 CREATE INDEX "orders_status_idx" ON "orders"("status");
 
--- CreateIndex
 CREATE INDEX "orders_createdAt_idx" ON "orders"("createdAt");
 
--- CreateIndex
 CREATE UNIQUE INDEX "packages_trackingNumber_key" ON "packages"("trackingNumber");
 
--- CreateIndex
 CREATE UNIQUE INDEX "packages_barcode_key" ON "packages"("barcode");
 
--- CreateIndex
 CREATE INDEX "packages_orderId_idx" ON "packages"("orderId");
 
--- CreateIndex
 CREATE INDEX "packages_status_idx" ON "packages"("status");
 
--- CreateIndex
 CREATE UNIQUE INDEX "deliveries_orderId_key" ON "deliveries"("orderId");
 
--- CreateIndex
 CREATE INDEX "deliveries_driverId_idx" ON "deliveries"("driverId");
 
--- CreateIndex
 CREATE INDEX "tracking_events_orderId_idx" ON "tracking_events"("orderId");
 
--- CreateIndex
 CREATE INDEX "tracking_events_createdAt_idx" ON "tracking_events"("createdAt");
 
--- CreateIndex
 CREATE INDEX "gps_locations_driverId_idx" ON "gps_locations"("driverId");
 
--- CreateIndex
 CREATE INDEX "gps_locations_deliveryId_idx" ON "gps_locations"("deliveryId");
 
--- CreateIndex
 CREATE INDEX "gps_locations_recordedAt_idx" ON "gps_locations"("recordedAt");
 
--- CreateIndex
 CREATE UNIQUE INDEX "coupons_code_key" ON "coupons"("code");
 
--- CreateIndex
 CREATE UNIQUE INDEX "coupon_usages_orderId_key" ON "coupon_usages"("orderId");
 
--- CreateIndex
 CREATE INDEX "coupon_usages_couponId_idx" ON "coupon_usages"("couponId");
 
--- CreateIndex
 CREATE INDEX "coupon_usages_userId_idx" ON "coupon_usages"("userId");
 
--- CreateIndex
 CREATE UNIQUE INDEX "payments_orderId_key" ON "payments"("orderId");
 
--- CreateIndex
 CREATE UNIQUE INDEX "payments_reference_key" ON "payments"("reference");
 
--- CreateIndex
 CREATE INDEX "payments_status_idx" ON "payments"("status");
 
--- CreateIndex
 CREATE UNIQUE INDEX "invoices_invoiceNumber_key" ON "invoices"("invoiceNumber");
 
--- CreateIndex
 CREATE UNIQUE INDEX "invoices_orderId_key" ON "invoices"("orderId");
 
--- CreateIndex
 CREATE INDEX "wallet_transactions_userId_idx" ON "wallet_transactions"("userId");
 
--- CreateIndex
 CREATE INDEX "notifications_userId_idx" ON "notifications"("userId");
 
--- CreateIndex
 CREATE INDEX "notifications_status_idx" ON "notifications"("status");
 
--- CreateIndex
 CREATE INDEX "reviews_targetType_targetId_idx" ON "reviews"("targetType", "targetId");
 
--- CreateIndex
 CREATE UNIQUE INDEX "support_tickets_ticketNumber_key" ON "support_tickets"("ticketNumber");
 
--- CreateIndex
 CREATE INDEX "support_tickets_status_idx" ON "support_tickets"("status");
 
--- CreateIndex
 CREATE INDEX "support_tickets_requesterId_idx" ON "support_tickets"("requesterId");
 
--- CreateIndex
 CREATE INDEX "ticket_messages_ticketId_idx" ON "ticket_messages"("ticketId");
 
--- CreateIndex
 CREATE UNIQUE INDEX "settings_scope_ownerId_key_key" ON "settings"("scope", "ownerId", "key");
 
--- CreateIndex
 CREATE INDEX "files_uploaderId_idx" ON "files"("uploaderId");
 
--- CreateIndex
 CREATE INDEX "files_category_idx" ON "files"("category");
 
--- CreateIndex
 CREATE INDEX "audit_logs_actorId_idx" ON "audit_logs"("actorId");
 
--- CreateIndex
 CREATE INDEX "audit_logs_entityType_entityId_idx" ON "audit_logs"("entityType", "entityId");
 
--- CreateIndex
 CREATE INDEX "audit_logs_createdAt_idx" ON "audit_logs"("createdAt");
 
--- CreateIndex
 CREATE INDEX "activity_logs_userId_idx" ON "activity_logs"("userId");
 
--- CreateIndex
 CREATE INDEX "activity_logs_createdAt_idx" ON "activity_logs"("createdAt");
 
--- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_avatarFileId_fkey" FOREIGN KEY ("avatarFileId") REFERENCES "files"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "role_permissions" ADD CONSTRAINT "role_permissions_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "role_permissions" ADD CONSTRAINT "role_permissions_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "permissions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "sessions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "customers" ADD CONSTRAINT "customers_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "customers" ADD CONSTRAINT "customers_defaultAddressId_fkey" FOREIGN KEY ("defaultAddressId") REFERENCES "addresses"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "drivers" ADD CONSTRAINT "drivers_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "drivers" ADD CONSTRAINT "drivers_licenseFileId_fkey" FOREIGN KEY ("licenseFileId") REFERENCES "files"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "drivers" ADD CONSTRAINT "drivers_assignedWarehouseId_fkey" FOREIGN KEY ("assignedWarehouseId") REFERENCES "warehouses"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "merchants" ADD CONSTRAINT "merchants_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "merchants" ADD CONSTRAINT "merchants_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "addresses"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "merchant_api_keys" ADD CONSTRAINT "merchant_api_keys_merchantId_fkey" FOREIGN KEY ("merchantId") REFERENCES "merchants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "addresses" ADD CONSTRAINT "addresses_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "warehouse_inventory" ADD CONSTRAINT "warehouse_inventory_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "warehouses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "warehouse_inventory" ADD CONSTRAINT "warehouse_inventory_packageId_fkey" FOREIGN KEY ("packageId") REFERENCES "packages"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "vehicles" ADD CONSTRAINT "vehicles_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "drivers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "orders" ADD CONSTRAINT "orders_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "customers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "orders" ADD CONSTRAINT "orders_merchantId_fkey" FOREIGN KEY ("merchantId") REFERENCES "merchants"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "orders" ADD CONSTRAINT "orders_pickupAddressId_fkey" FOREIGN KEY ("pickupAddressId") REFERENCES "addresses"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "orders" ADD CONSTRAINT "orders_dropoffAddressId_fkey" FOREIGN KEY ("dropoffAddressId") REFERENCES "addresses"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "orders" ADD CONSTRAINT "orders_couponId_fkey" FOREIGN KEY ("couponId") REFERENCES "coupons"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "packages" ADD CONSTRAINT "packages_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "packages" ADD CONSTRAINT "packages_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "warehouses"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "deliveries" ADD CONSTRAINT "deliveries_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "deliveries" ADD CONSTRAINT "deliveries_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "drivers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "deliveries" ADD CONSTRAINT "deliveries_proofFileId_fkey" FOREIGN KEY ("proofFileId") REFERENCES "files"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "deliveries" ADD CONSTRAINT "deliveries_signatureFileId_fkey" FOREIGN KEY ("signatureFileId") REFERENCES "files"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "tracking_events" ADD CONSTRAINT "tracking_events_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "gps_locations" ADD CONSTRAINT "gps_locations_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "drivers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "gps_locations" ADD CONSTRAINT "gps_locations_deliveryId_fkey" FOREIGN KEY ("deliveryId") REFERENCES "deliveries"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "coupon_usages" ADD CONSTRAINT "coupon_usages_couponId_fkey" FOREIGN KEY ("couponId") REFERENCES "coupons"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "coupon_usages" ADD CONSTRAINT "coupon_usages_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "coupon_usages" ADD CONSTRAINT "coupon_usages_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "payments" ADD CONSTRAINT "payments_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "wallet_transactions" ADD CONSTRAINT "wallet_transactions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "reviews" ADD CONSTRAINT "reviews_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "reviews" ADD CONSTRAINT "reviews_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "support_tickets" ADD CONSTRAINT "support_tickets_requesterId_fkey" FOREIGN KEY ("requesterId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "support_tickets" ADD CONSTRAINT "support_tickets_assigneeId_fkey" FOREIGN KEY ("assigneeId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "ticket_messages" ADD CONSTRAINT "ticket_messages_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "support_tickets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "ticket_messages" ADD CONSTRAINT "ticket_messages_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "files" ADD CONSTRAINT "files_uploaderId_fkey" FOREIGN KEY ("uploaderId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "files" ADD CONSTRAINT "files_packageId_fkey" FOREIGN KEY ("packageId") REFERENCES "packages"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
 ALTER TABLE "activity_logs" ADD CONSTRAINT "activity_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;

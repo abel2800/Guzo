@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { AuthUser } from '@delivery/types';
+import type { AuthUser, LoginResponse } from '@delivery/types';
 import {
   initMobileApi,
   login as apiLogin,
@@ -20,6 +20,7 @@ interface AuthState {
   user: AuthUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  completeSession: (res: LoginResponse) => Promise<void>;
   signInWithBiometrics: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -65,6 +66,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         connectRealtime();
         setupPushNotifications('customer').catch(() => undefined);
       },
+      async completeSession(res) {
+        await tokenStorage.setTokens(res.tokens.accessToken, res.tokens.refreshToken);
+        setUser(res.user);
+        connectRealtime();
+        setupPushNotifications('customer').catch(() => undefined);
+      },
       async signInWithBiometrics() {
         const token = await tokenStorage.getAccessToken();
         if (!token) throw new Error('No saved session');
@@ -76,9 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const rt = await tokenStorage.getRefreshToken();
         try {
           if (rt) await apiLogout(rt);
-        } catch {
-          /* ignore */
-        }
+        } catch {}
         await tokenStorage.clear();
         await clearBiometricPrefs('customer');
         disconnectSocket();

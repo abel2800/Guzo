@@ -1,6 +1,3 @@
-// ============================================================================
-// Shared cross-cutting constants. No framework imports here on purpose.
-// ============================================================================
 
 export const API_PREFIX = '/api/v1';
 
@@ -10,6 +7,7 @@ export const ROLES = {
   OPERATIONS_MANAGER: 'OPERATIONS_MANAGER',
   WAREHOUSE_MANAGER: 'WAREHOUSE_MANAGER',
   WAREHOUSE_STAFF: 'WAREHOUSE_STAFF',
+  BRANCH_STAFF: 'BRANCH_STAFF',
   DRIVER: 'DRIVER',
   MERCHANT: 'MERCHANT',
   CUSTOMER: 'CUSTOMER',
@@ -43,6 +41,7 @@ export const ERROR_CODES = {
 
 export const UPLOAD_FOLDERS = {
   IMAGES: 'images',
+  AVATARS: 'avatars',
   DOCUMENTS: 'documents',
   DRIVER_LICENSE: 'driver-license',
   PROOF_OF_DELIVERY: 'proof-of-delivery',

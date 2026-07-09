@@ -19,11 +19,13 @@
 
 <br/>
 
-**One API | One PostgreSQL database | Six client applications | Realtime tracking**
+**One API | One PostgreSQL database | Seven client applications | Realtime tracking**
+
+> **Dual backend:** The default dev API is **Node/Express** (`apps/server`, port **4010**). A **Java/Spring Boot** mirror (`apps/guzo-api`, port **4000**) shares the same PostgreSQL schema for production-target deployments. Web and mobile clients work with either stack via `API_BASE` / `EXPO_PUBLIC_API_URL`.
 
 <br/>
 
-[Overview](#overview) | [Architecture](#architecture) | [Applications](#applications) | [Data layer](#data-layer) | [API](#api-server) | [Auth & RBAC](#authentication--rbac) | [Quick start](#quick-start) | [Demo logins](#demo-accounts)
+[Overview](#overview) | [Architecture](#architecture) | [Applications](#applications) | [Data layer](#data-layer) | [API](#api-server) | [Auth & RBAC](#authentication--rbac) | [Quick start](#quick-start) | [Demo logins](#demo-accounts) | [Documentation](doc/README.md)
 
 <br/>
 
@@ -39,11 +41,11 @@
 
 **GUZO** is a full-stack logistics platform - the kind of system behind Uber Delivery, FedEx, or DHL - built as a **modular monolith** that runs on your machine today and scales to production tomorrow.
 
-Every shipment, GPS ping, payment, notification, and support ticket is stored in **PostgreSQL** and served through a typed **REST API** plus **Socket.IO** realtime channel. Six dedicated clients share the same backend:
+Every shipment, GPS ping, payment, notification, and support ticket is stored in **PostgreSQL** and served through a typed **REST API** plus **Socket.IO** realtime channel. Seven dedicated clients share the same backend:
 
 | | |
 |:---:|:---:|
-| **6 applications** | API server | Web dashboard | Marketing site | Customer | Driver | Merchant |
+| **7 applications** | Node API | Java API | Web dashboard | Marketing site | Customer | Driver | Merchant | Branch |
 | **36 database tables** | Users, orders, deliveries, payments, tracking, warehouses, support... |
 | **28 API modules** | Auth, RBAC, orders, drivers, merchants, analytics, and more |
 | **10 user roles** | Admin, customer, driver, merchant, warehouse, finance, support... |
@@ -71,18 +73,22 @@ flowchart TB
         CUS["Customer app<br/><sub>Expo :8081</sub>"]
         DRV["Driver app<br/><sub>Expo :8082</sub>"]
         MER["Merchant app<br/><sub>Expo :8083</sub>"]
+        BRN["Branch app<br/><sub>Expo :8084</sub>"]
     end
 
     subgraph Core["Core platform"]
-        API["API server<br/><sub>Express + TypeScript :4000</sub>"]
+        NODE["Node API<br/><sub>Express + TypeScript :4010</sub>"]
+        JAVA["Java API<br/><sub>Spring Boot :4000</sub>"]
         RT["Socket.IO<br/><sub>live tracking and notifications</sub>"]
-        DB[("PostgreSQL<br/><sub>36 tables, Prisma ORM</sub>")]
+        DB[("PostgreSQL<br/><sub>Prisma + Flyway migrations</sub>")]
     end
 
-    WEB & MKT & CUS & DRV & MER -->|REST /api/v1| API
-    WEB & CUS & DRV & MER <-->|realtime| RT
-    API --> RT
-    API --> DB
+    WEB & MKT & CUS & DRV & MER & BRN -->|REST /api/v1| NODE
+    WEB & MKT & CUS & DRV & MER & BRN -.->|optional| JAVA
+    WEB & CUS & DRV & MER & BRN <-->|realtime| RT
+    NODE --> RT
+    NODE --> DB
+    JAVA --> DB
 ```
 
 **Request flow:** Client -> Helmet -> CORS -> body parsing -> rate limit -> JWT auth -> RBAC -> module handler -> Prisma -> PostgreSQL -> JSON response (+ Socket.IO broadcast when status changes).
@@ -91,9 +97,16 @@ flowchart TB
 
 ## Applications
 
-### 1. API server - `apps/server`
+### 1. API servers
 
-The heart of GUZO. Express + TypeScript modular monolith - each domain is a self-contained module (`routes -> controller -> service -> repository`).
+| Stack | Path | Default port | Start |
+|-------|------|--------------|-------|
+| **Node (primary dev)** | `apps/server` | **4010** | `npm run dev:server` |
+| **Java (production target)** | `apps/guzo-api` | **4000** | `npm run dev:server:java` |
+
+Both expose `GET /api/v1/health` and share one PostgreSQL database. Schema is owned by **Prisma** (`packages/database`) with manual SQL in `prisma/migrations-manual/`; Java applies the mirrored DDL via **Flyway** (`V100+`).
+
+The Node server is the heart of day-to-day development — Express + TypeScript modular monolith (`routes → controller → service → repository`).
 
 | Capability | Details |
 |------------|---------|
@@ -106,13 +119,23 @@ The heart of GUZO. Express + TypeScript modular monolith - each domain is a self
 | **Providers** | Storage (local -> S3), payments (fake -> Stripe/Chapa), email, SMS, push |
 | **Logging** | Winston with size-capped rotation |
 
-**Base URL:** `http://localhost:4000/api/v1` | **Health:** `GET /health`
+**Base URL (Node):** `http://localhost:4010/api/v1` | **Java:** `http://localhost:4000/api/v1` | **Health:** `GET /health` under each base
+
+#### Phase integration tests
+
+| Phase | Node | Java |
+|-------|------|------|
+| P5 admin platform | `scripts/test-phase5-node.ps1` | `scripts/test-phase5-java.ps1` |
+| P6 merchant platform | `scripts/test-phase6-node.ps1` | `scripts/test-phase6-java.ps1` |
+| P7 cross-cutting | `scripts/test-phase7-node.ps1` | `scripts/test-phase7-java.ps1` |
+
+Set `$env:API_BASE` to point scripts at either backend. Java unit smoke: `mvn -f apps/guzo-api test`.
 
 ---
 
 ### 2. Web dashboard - `apps/web` | port **3000**
 
-Role-aware Next.js console. Route pattern: `/dashboard/[role]/[section]` - each role sees a tailored workspace with sidebar navigation, command menu, notification center, and light/dark theme.
+Role-aware Next.js console. Route pattern: `/dashboard/[role]/[section]` - each role sees a tailored workspace with sidebar navigation, command menu (`Cmd+K`), notification center, profile settings, and light/dark theme.
 
 <table>
 <tr>
@@ -181,9 +204,27 @@ Includes live **Leaflet + OpenStreetMap** tracking map.
 | **Incoming** | Receive packages |
 | **Inventory** | Shelf & zone management |
 | **Dispatch** | Outbound dispatch queue |
+| **Sorting** | Sort & route packages |
+| **Manifests** | Outbound manifests |
+| **Transfer** | Inter-warehouse transfers |
 
 </td>
 <td valign="top">
+
+#### Branch
+
+| Section | Feature |
+|---------|---------|
+| **Counter** | Customer pickup counter |
+| **Register** | Package registration |
+| **Shelf** | Shelf assignment & lookup |
+| **Inventory** | Branch stock |
+| **Exceptions** | Damaged / missing / hold |
+
+</td>
+</tr>
+<tr>
+<td colspan="2" valign="top">
 
 #### Finance
 
@@ -211,11 +252,11 @@ Includes live **Leaflet + OpenStreetMap** tracking map.
 
 ### 3. Marketing site - `apps/marketing` | port **3001**
 
-Public-facing website for GUZO with premium design (3D hero scene, animations, responsive layout).
+Public-facing website for GUZO with premium design (3D city hero, 3D iPhone platform showcase, animations, responsive layout).
 
 | Page | Content |
 |------|---------|
-| **Home** | Hero, services, how-it-works, stats, testimonials, partners, newsletter |
+| **Home** | Hero (3D city + delivery demo), stats, what-is-GUZO, why-choose, live map, platform showcase, tracking timeline, technology, built-for-everyone, business & security, vision, FAQ, download CTA |
 | **Services** | Delivery service tiers |
 | **Pricing** | Transparent pricing plans |
 | **Tracking** | Interactive tracking demo |
@@ -275,6 +316,25 @@ Ship at scale from your phone - same API as the web merchant console.
 | **Profile** | Business settings, sign out |
 | **Login** | Role-validated - only **MERCHANT** accounts allowed |
 
+**Extras:** invoices | API keys | analytics | customer directory
+
+---
+
+### 7. Branch mobile app - `apps/mobile-branch` | Expo **:8084**
+
+Counter operations for branch staff - receive packages, manage shelf, handle pickups and exceptions.
+
+| Tab / Screen | What you do |
+|--------------|-------------|
+| **Home** | Branch overview & quick actions |
+| **Receive** | Scan and receive incoming packages |
+| **Pickup** | Customer pickup counter |
+| **Inventory** | Branch stock list |
+| **Shelf** | Shelf assignment & lookup |
+| **Exceptions** | Damaged / missing / hold packages |
+| **Profile** | Account settings, sign out |
+| **Login** | Role-validated - only **BRANCH** accounts allowed |
+
 ---
 
 ## Order lifecycle
@@ -318,7 +378,7 @@ stateDiagram-v2
 | **Audit logs** | Every change tracked |
 | **Biometric login** | Face ID / fingerprint on mobile |
 | **Analytics** | Admin, merchant, finance dashboards |
-| **Multi-client** | Web + 3 mobile apps + API |
+| **Multi-client** | Web + 4 mobile apps + dual API |
 
 ---
 
@@ -573,12 +633,14 @@ Event names are defined in `@delivery/types` (`SOCKET_EVENTS`).
 ```
 Guzo/
 |-- apps/
-|   |-- server/              # Express API - 28 modules, Socket.IO, jobs
+|   |-- server/              # Node API - 28 modules, Socket.IO, jobs
+|   |-- guzo-api/            # Java/Spring Boot API (production target)
 |   |-- web/                 # Next.js role-based web dashboard
 |   |-- marketing/           # Next.js public marketing site
 |   |-- mobile-customer/     # Expo - customer app
 |   |-- mobile-driver/       # Expo - driver app
-|   +-- mobile-merchant/     # Expo - merchant app
+|   |-- mobile-merchant/     # Expo - merchant app
+|   +-- mobile-branch/       # Expo - branch staff app
 |-- packages/
 |   |-- database/            # Prisma schema, migrations, seed
 |   |-- types/               # Shared API contracts
@@ -586,8 +648,12 @@ Guzo/
 |   |-- mobile-ui/           # Premium mobile design system
 |   |-- ui/                  # Shared web components
 |   +-- utils/ and config/
+|-- assets/
+|   |-- brand/               # Official logos & splash source
+|   +-- mobile-qr/           # Expo Go QR codes
+|-- doc/                     # Full project documentation
 |-- docker/                  # Postgres | Redis | Mailpit | MinIO
-+-- scripts/                 # Mobile dev, EAS builds, git helpers
++-- scripts/                 # Dev orchestration, EAS builds, tests
 ```
 
 ---
@@ -602,35 +668,56 @@ git clone https://github.com/abel2800/Guzo.git
 cd Guzo
 npm install
 
-# 2. Configure database (create apps/server/.env locally - never committed)
-#    DATABASE_URL=postgresql://USER:PASS@localhost:5432/Guzo?schema=public
+# 2. Configure environment (copy example — never commit .env)
+cp apps/server/.env.example apps/server/.env
+# Edit apps/server/.env with your local database URL, JWT secrets, and SEED_DEMO_PASSWORD
 
 # 3. Initialize database
 npm run db:generate
 npm run db:migrate
 npm run db:seed
 
-# 4. Start the API
-npm run dev:server
-# -> http://localhost:4000/api/v1
-# -> http://localhost:4000/health
+# 4. Start everything in one terminal (recommended)
+npm run dev:stop   # optional - free ports if something is already running
+npm run dev        # Node API + Java API + web + marketing + 4 Expo apps
+
+# Or start the API only (pick one)
+npm run dev:server          # Node -> http://localhost:4010/api/v1
+# npm run dev:server:java   # Java -> http://localhost:4000/api/v1
 ```
+
+> Full technical manual (12 chapters): [`doc/README.md`](doc/README.md)
 
 ---
 
 ## Run everything
 
+### One command (all services)
+
+```bash
+npm run dev:stop   # kill processes on ports 3000, 3001, 4000, 4010, 8081-8084
+npm run dev        # start full stack in one terminal
+```
+
+### Individual services
+
 | Application | Command | URL / Port |
 |-------------|---------|------------|
-| **API server** | `npm run dev:server` | http://localhost:4000 |
+| **Full stack** | `npm run dev` | All services below |
+| **Stop all ports** | `npm run dev:stop` | — |
+| **API server (Node)** | `npm run dev:server` | http://localhost:4010 |
+| **API server (Java)** | `npm run dev:server:java` | http://localhost:4000 |
 | **Web dashboard** | `npm run dev:web` | http://localhost:3000 |
 | **Marketing site** | `npm run dev:marketing` | http://localhost:3001 |
 | **Customer app** | `npm run dev:mobile-customer` | Expo `:8081` |
 | **Driver app** | `npm run dev:mobile-driver` | Expo `:8082` |
 | **Merchant app** | `npm run dev:mobile-merchant` | Expo `:8083` |
-| **All mobile + API** | `npm run dev:mobile:phone` | Starts API + 3 Expo apps for phone testing |
+| **Branch app** | `npm run dev:mobile-branch` | Expo `:8084` |
+| **All mobile + APIs** | `npm run dev:mobile:phone` | Same as `npm run dev` |
 
-For physical phone testing: scan the QR code in each Expo window with **Expo Go**, or set `EXPO_PUBLIC_API_URL=http://YOUR_LAN_IP:4000/api/v1`.
+For physical phone testing: scan the QR code in each Expo window with **Expo Go**, use pre-generated QR images in `assets/mobile-qr/`, or set `EXPO_PUBLIC_API_URL=http://YOUR_LAN_IP:4010/api/v1`.
+
+Mobile branding sync: `npm run mobile:brand` | Splash regenerate: `npm run mobile:splash` | QR regenerate: `npm run mobile:qr`
 
 <details>
 <summary><b>Environment variables</b></summary>
@@ -640,7 +727,7 @@ For physical phone testing: scan the QR code in each Expo window with **Expo Go*
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NODE_ENV` | `development` | Environment |
-| `PORT` | `4000` | API port |
+| `PORT` | `4010` | Node API port (Java uses 4000) |
 | `DATABASE_URL` | - | PostgreSQL connection (**required**) |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | dev values | Token secrets (**change in prod**) |
 | `JWT_ACCESS_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | `15m` / `7d` | Token lifetimes |
@@ -664,7 +751,8 @@ Mobile: `EXPO_PUBLIC_API_URL` - your LAN IP when testing on a physical phone.
 
 | Category | Scripts |
 |----------|---------|
-| **Development** | `dev:server` | `dev:web` | `dev:marketing` | `dev:mobile-customer` | `dev:mobile-driver` | `dev:mobile-merchant` | `dev:mobile:phone` |
+| **Development** | `dev` | `dev:all` | `dev:stop` | `dev:server` | `dev:server:java` | `dev:web` | `dev:marketing` | `dev:mobile-customer` | `dev:mobile-driver` | `dev:mobile-merchant` | `dev:mobile-branch` | `dev:mobile:phone` |
+| **Mobile tooling** | `mobile:qr` | `mobile:brand` | `mobile:splash` |
 | **Database** | `db:generate` | `db:migrate` | `db:seed` | `db:studio` |
 | **Quality** | `lint` | `format` | `typecheck:mobile` | `build` |
 | **Mobile builds** | `build:mobile:android` | `build:mobile:ios` | `build:mobile:all` | `copy:mobile-builds` |
@@ -677,30 +765,16 @@ Mobile: `EXPO_PUBLIC_API_URL` - your LAN IP when testing on a physical phone.
 
 ## Demo accounts
 
-Password for **all** accounts: **`Password123!`**
+Local demo users are created by `npm run db:seed`. Set `SEED_DEMO_PASSWORD` in `apps/server/.env` before seeding. Seeded account emails are printed in the terminal — do not commit credentials.
 
-| Email | Role | Best for testing |
-|-------|------|------------------|
-| `customer@delivery.local` | Customer | Book & track orders (web + mobile) |
-| `driver@delivery.local` | Driver | Accept jobs & upload POD (web + mobile) |
-| `merchant@delivery.local` | Merchant | Create & bulk orders (web + mobile) |
-| `admin@delivery.local` | Admin | Full web dashboard |
-| `superadmin@delivery.local` | Super admin | All permissions |
-
-<details>
-<summary><b>All demo accounts</b></summary>
-
-<br/>
-
-| Email | Role |
-|-------|------|
-| `ops@delivery.local` | Operations manager |
-| `warehouse.manager@delivery.local` | Warehouse manager |
-| `warehouse.staff@delivery.local` | Warehouse staff |
-| `support@delivery.local` | Support |
-| `finance@delivery.local` | Finance |
-
-</details>
+| Role | Best for testing |
+|------|------------------|
+| Customer | Book & track orders (web + mobile) |
+| Driver | Accept jobs & upload POD (web + mobile) |
+| Merchant | Create & bulk orders (web + mobile) |
+| Branch staff | Counter, receive, shelf (web + mobile) |
+| Admin | Full web dashboard |
+| Super admin | All permissions |
 
 ---
 

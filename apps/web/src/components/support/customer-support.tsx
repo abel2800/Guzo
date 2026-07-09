@@ -21,6 +21,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import {
+  EmptyPanel,
+  FuturisticHero,
+  PanelSelect,
+} from '@/components/dashboard/futuristic-primitives';
 
 export function CustomerSupport() {
   const queryClient = useQueryClient();
@@ -50,9 +55,18 @@ export function CustomerSupport() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Support</h1>
-          <p className="text-muted-foreground">Get help with your orders and account.</p>
+        <div className="flex-1">
+          <FuturisticHero
+            eyebrow="Customer care"
+            icon={LifeBuoy}
+            title="Support"
+            description="Get help with your orders and account through a direct support channel."
+            stats={[
+              { label: 'Tickets', value: 'Your inbox' },
+              { label: 'Response', value: 'Team reply' },
+              { label: 'Status', value: 'Live updates' },
+            ]}
+          />
         </div>
         <Button onClick={() => setCreating(true)}>
           <Plus className="h-4 w-4" /> New ticket
@@ -68,13 +82,13 @@ export function CustomerSupport() {
               ))}
             </div>
           ) : tickets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <LifeBuoy className="h-10 w-10 text-muted-foreground" />
-              <p className="font-semibold">No tickets yet</p>
-              <p className="text-sm text-muted-foreground">Open a ticket and our team will help you out.</p>
-            </div>
+            <EmptyPanel
+              icon={LifeBuoy}
+              title="No tickets yet"
+              description="Open a ticket and our team will help you out."
+            />
           ) : (
-            <div className="divide-y">
+            <div className="dashboard-divide">
               {tickets.map((t) => {
                 const sm = TICKET_STATUS_META[t.status];
                 const pm = TICKET_PRIORITY_META[t.priority];
@@ -82,11 +96,11 @@ export function CustomerSupport() {
                   <button
                     key={t.id}
                     onClick={() => setOpenId(t.id)}
-                    className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left transition-colors hover:bg-muted/50"
+                    className="dashboard-list-row flex w-full items-center justify-between gap-3 px-6 py-4 text-left"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-semibold">{t.subject}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="truncate font-semibold text-white">{t.subject}</p>
+                      <p className="text-xs text-slate-400">
                         {t.ticketNumber} · {new Date(t.createdAt).toLocaleDateString()} ·{' '}
                         <MessageSquare className="inline h-3 w-3" /> {t.messages.length}
                       </p>
@@ -103,7 +117,6 @@ export function CustomerSupport() {
         </CardContent>
       </Card>
 
-      {/* New ticket */}
       <Sheet open={creating} onOpenChange={setCreating}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">
           <div className="space-y-5">
@@ -115,31 +128,23 @@ export function CustomerSupport() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Category</Label>
-                <select
-                  className="h-9 w-full rounded-md border bg-background px-2 text-sm"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
+                <PanelSelect value={category} onChange={(e) => setCategory(e.target.value)}>
                   {TICKET_CATEGORIES.map((c) => (
                     <option key={c} value={c}>
                       {c.charAt(0) + c.slice(1).toLowerCase()}
                     </option>
                   ))}
-                </select>
+                </PanelSelect>
               </div>
               <div className="space-y-1.5">
                 <Label>Priority</Label>
-                <select
-                  className="h-9 w-full rounded-md border bg-background px-2 text-sm"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value as TicketPriority)}
-                >
+                <PanelSelect value={priority} onChange={(e) => setPriority(e.target.value as TicketPriority)}>
                   {TICKET_PRIORITIES.map((p) => (
                     <option key={p} value={p}>
                       {TICKET_PRIORITY_META[p].label}
                     </option>
                   ))}
-                </select>
+                </PanelSelect>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -150,7 +155,7 @@ export function CustomerSupport() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Tell us what happened…"
-                className="w-full resize-none rounded-md border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                className="w-full resize-none rounded-md border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:ring-2 focus:ring-guzo-primary/40"
               />
             </div>
             <Button className="w-full" onClick={() => create.mutate()} disabled={subject.trim().length < 3 || create.isPending}>
@@ -161,7 +166,6 @@ export function CustomerSupport() {
         </SheetContent>
       </Sheet>
 
-      {/* Thread */}
       <Sheet open={!!openId} onOpenChange={(o) => !o && setOpenId(null)}>
         <SheetContent className="flex w-full flex-col sm:max-w-lg">
           {openId && <TicketThread ticketId={openId} isAgent={false} />}

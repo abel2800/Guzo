@@ -13,6 +13,8 @@ out/
 # Environment (never publish env files, including examples, per project policy)
 .env
 .env.*
+!.env.example
+!.**/.env.example
 .env.local
 .env.*.local
 *.env

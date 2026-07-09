@@ -44,7 +44,6 @@ export class SupportTicketService {
     const ticket = await this.repo.findById(id);
     if (!ticket) throw ApiError.notFound('Support ticket not found');
     this.assertAccess(ticket, ctx);
-    // Customers must never see internal agent notes.
     if (!ctx.isAgent) {
       return { ...ticket, messages: ticket.messages.filter((m) => !m.isInternal) };
     }
@@ -72,7 +71,6 @@ export class SupportTicketService {
     if (!ticket) throw ApiError.notFound('Support ticket not found');
     this.assertAccess(ticket, ctx);
 
-    // Only agents can post internal notes.
     const isInternal = ctx.isAgent ? !!dto.isInternal : false;
     const message = await this.repo.addMessage({
       ticketId: id,
@@ -81,14 +79,12 @@ export class SupportTicketService {
       isInternal,
     });
 
-    // Move the ticket forward based on who replied (skip for internal notes).
     if (!isInternal) {
       let nextStatus: string | undefined;
       if (ctx.isAgent && ticket.status === 'OPEN') nextStatus = 'IN_PROGRESS';
       if (!ctx.isAgent && ['RESOLVED', 'CLOSED', 'WAITING_CUSTOMER'].includes(ticket.status)) nextStatus = 'OPEN';
       await this.repo.touch(id, nextStatus ? { status: nextStatus as never } : {});
 
-      // Notify the other party.
       const notifyUserId = ctx.isAgent ? ticket.requesterId : ticket.assigneeId;
       if (notifyUserId) {
         emitToUser(notifyUserId, SOCKET_EVENTS.NOTIFICATION_NEW, {
@@ -120,7 +116,6 @@ export class SupportTicketService {
       ...(dto.status && !isResolving ? { resolvedAt: null } : {}),
     });
 
-    // Notify the requester of a status change.
     if (dto.status && ticket.requesterId !== ctx.userId) {
       emitToUser(ticket.requesterId, SOCKET_EVENTS.NOTIFICATION_NEW, {
         type: 'SUPPORT_STATUS',

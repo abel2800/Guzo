@@ -1,0 +1,6 @@
+GUZO Branch
+exp://192.168.100.4:8084
+
+iPhone: Expo Go -> Scan QR
+Samsung: Expo Go -> Scan QR
+Same Wi-Fi as PC required

@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
 
-// Load .env from the server app root (apps/server/.env), then fall back to repo root.
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 function required(key: string, fallback?: string): string {
@@ -37,11 +36,11 @@ export const env = {
     .map((o) => o.trim())
     .filter(Boolean),
 
-  databaseUrl: required('DATABASE_URL', 'postgresql://delivery:delivery@localhost:5432/delivery_platform?schema=public'),
+  databaseUrl: required('DATABASE_URL'),
 
   jwt: {
-    accessSecret: required('JWT_ACCESS_SECRET', 'dev_access_secret_change_me'),
-    refreshSecret: required('JWT_REFRESH_SECRET', 'dev_refresh_secret_change_me'),
+    accessSecret: required('JWT_ACCESS_SECRET'),
+    refreshSecret: required('JWT_REFRESH_SECRET'),
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
   },
@@ -78,7 +77,14 @@ export const env = {
     provider: process.env.PAYMENT_PROVIDER ?? 'fake',
   },
 
-  sms: { driver: process.env.SMS_DRIVER ?? 'console' },
+  sms: {
+    driver: process.env.SMS_DRIVER ?? 'console',
+    twilio: {
+      accountSid: process.env.TWILIO_ACCOUNT_SID ?? '',
+      authToken: process.env.TWILIO_AUTH_TOKEN ?? '',
+      fromNumber: process.env.TWILIO_FROM_NUMBER ?? '',
+    },
+  },
   push: { driver: process.env.PUSH_DRIVER ?? 'console' },
 
   rateLimit: {

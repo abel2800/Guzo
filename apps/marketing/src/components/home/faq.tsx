@@ -4,30 +4,8 @@ import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SectionReveal } from '@/components/common/section-reveal';
+import { FAQS } from '@/constants/marketing-content';
 import { cn } from '@/lib/utils';
-
-const FAQS = [
-  {
-    q: 'When is GUZO launching?',
-    a: 'We are onboarding early-access merchants and drivers now. Public app launch is coming soon — join the waitlist to get notified first.',
-  },
-  {
-    q: 'Which cities does GUZO serve?',
-    a: 'We are starting in Addis Ababa and expanding to major Ethiopian cities throughout 2026. Check back for rollout updates.',
-  },
-  {
-    q: 'How do I become a GUZO driver?',
-    a: 'Apply on our Drivers page. You will need a valid license, smartphone, and vehicle (motorcycle or van depending on service type).',
-  },
-  {
-    q: 'Can businesses integrate via API?',
-    a: 'Yes. Merchants get API keys, webhooks, bulk order uploads, and sandbox access during onboarding.',
-  },
-  {
-    q: 'What payment methods are supported?',
-    a: 'Mobile money, bank transfer, and card payments will be supported at launch with instant invoicing and receipts.',
-  },
-];
 
 export function FAQ() {
   const [open, setOpen] = useState<number | null>(0);
@@ -36,8 +14,8 @@ export function FAQ() {
     <section className="py-24">
       <div className="container max-w-3xl">
         <SectionReveal className="text-center">
-          <h2 className="font-display text-4xl font-bold text-white">FAQ</h2>
-          <p className="mt-4 text-guzo-muted">Everything you need to know before joining GUZO.</p>
+          <h2 className="font-display text-4xl font-bold text-white">Frequently Asked Questions</h2>
+          <p className="mt-4 text-guzo-muted">Everything you need to know about shipping with Guzo.</p>
         </SectionReveal>
 
         <div className="mt-12 space-y-3">

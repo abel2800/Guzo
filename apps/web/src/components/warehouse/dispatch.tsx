@@ -6,11 +6,11 @@ import { Send, Truck, Loader2, MapPin, ScanLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { dispatchParcel, listInventory, type InventoryItem } from '@/lib/warehouse';
 import { WarehouseSelect, useSelectedWarehouse } from './warehouse-select';
+import { BarcodeScanner } from './barcode-scanner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { EmptyPanel, FuturisticHero } from '@/components/dashboard/futuristic-primitives';
 
 export function WarehouseDispatch() {
   const warehouseId = useSelectedWarehouse();
@@ -25,7 +25,8 @@ export function WarehouseDispatch() {
   const dispatched: InventoryItem[] = data?.items ?? [];
 
   const dispatch = useMutation({
-    mutationFn: () => dispatchParcel(warehouseId!, { trackingNumber: trackingNumber.trim() }),
+    mutationFn: (overrideTracking?: string) =>
+      dispatchParcel(warehouseId!, { trackingNumber: (overrideTracking ?? trackingNumber).trim() }),
     onSuccess: (item) => {
       toast.success(`Dispatched ${item.package.trackingNumber}`);
       setTrackingNumber('');
@@ -39,15 +40,24 @@ export function WarehouseDispatch() {
     e.preventDefault();
     if (!warehouseId) return toast.error('Select a warehouse first');
     if (!trackingNumber.trim()) return toast.error('Scan or enter a tracking number');
-    dispatch.mutate();
+    dispatch.mutate(undefined);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dispatch</h1>
-          <p className="text-muted-foreground">Send sorted parcels out for delivery.</p>
+        <div className="flex-1">
+          <FuturisticHero
+            eyebrow="Warehouse outbound"
+            icon={Send}
+            title="Dispatch"
+            description="Send sorted parcels out for delivery with barcode scanning and live dispatch history."
+            stats={[
+              { label: 'Scan', value: 'Barcode ready' },
+              { label: 'Queue', value: 'Recent list' },
+              { label: 'Speed', value: 'One-tap' },
+            ]}
+          />
         </div>
         <WarehouseSelect />
       </div>
@@ -61,16 +71,15 @@ export function WarehouseDispatch() {
           </CardHeader>
           <CardContent>
             <form onSubmit={submit} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="d-trk">Tracking / barcode</Label>
-                <Input
-                  id="d-trk"
-                  autoFocus
-                  placeholder="TRK-XXXXXXXX"
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
-                />
-              </div>
+              <BarcodeScanner
+                value={trackingNumber}
+                onChange={setTrackingNumber}
+                onScan={(code) => {
+                  if (!warehouseId) return toast.error('Select a warehouse first');
+                  dispatch.mutate(code);
+                }}
+                label="Tracking / barcode"
+              />
               <Button type="submit" className="w-full" disabled={dispatch.isPending}>
                 {dispatch.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Dispatch parcel
@@ -85,17 +94,14 @@ export function WarehouseDispatch() {
           </CardHeader>
           <CardContent className="p-0">
             {dispatched.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-16 text-center text-sm text-muted-foreground">
-                <Truck className="h-8 w-8" />
-                No parcels dispatched yet.
-              </div>
+              <EmptyPanel icon={Truck} title="No parcels dispatched yet" />
             ) : (
-              <div className="max-h-[360px] divide-y overflow-auto">
+              <div className="max-h-[360px] dashboard-divide overflow-auto">
                 {dispatched.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+                  <div key={item.id} className="dashboard-list-row flex items-center justify-between gap-3 px-5 py-3 text-sm">
                     <div>
-                      <p className="font-semibold">{item.package.trackingNumber}</p>
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <p className="font-semibold text-white">{item.package.trackingNumber}</p>
+                      <p className="flex items-center gap-1 text-xs text-slate-400">
                         <MapPin className="h-3 w-3" /> {item.package.order.dropoffAddress?.city ?? '—'} ·{' '}
                         {item.package.order.orderNumber}
                       </p>

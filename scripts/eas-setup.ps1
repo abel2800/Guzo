@@ -1,5 +1,4 @@
-# GUZO mobile — one-time EAS setup (run from repo root)
-# Requires: npm i -g eas-cli && eas login
+
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot

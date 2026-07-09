@@ -19,6 +19,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  EmptyPanel,
+  FuturisticHero,
+  PanelSelect,
+} from '@/components/dashboard/futuristic-primitives';
 
 const EMPTY: AddressInput = {
   label: '',
@@ -96,10 +101,19 @@ export function CustomerAddresses() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Saved Addresses</h1>
-          <p className="text-muted-foreground">Manage pickup and delivery locations for faster booking.</p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex-1">
+          <FuturisticHero
+            eyebrow="Location vault"
+            icon={MapPin}
+            title="Saved Addresses"
+            description="Manage pickup and delivery locations for faster booking with one-tap address selection."
+            stats={[
+              { label: 'Types', value: 'Home · Office' },
+              { label: 'Default', value: 'One-tap' },
+              { label: 'Speed', value: 'Fast book' },
+            ]}
+          />
         </div>
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" /> Add address
@@ -115,15 +129,14 @@ export function CustomerAddresses() {
             </div>
             <div className="space-y-2">
               <Label>Type</Label>
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              <PanelSelect
                 value={form.type}
                 onChange={(e) => setForm({ ...form, type: e.target.value as AddressInput['type'] })}
               >
                 <option value="HOME">Home</option>
                 <option value="OFFICE">Office</option>
                 <option value="OTHER">Other</option>
-              </select>
+              </PanelSelect>
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label>Street address *</Label>
@@ -171,27 +184,27 @@ export function CustomerAddresses() {
               ))}
             </div>
           ) : addresses.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <MapPin className="h-10 w-10 text-muted-foreground" />
-              <p className="font-semibold">No saved addresses</p>
-              <p className="text-sm text-muted-foreground">Add your home or office for one-tap booking.</p>
-              <Button onClick={openCreate}>Add address</Button>
-            </div>
+            <EmptyPanel
+              icon={MapPin}
+              title="No saved addresses"
+              description="Add your home or office for one-tap booking."
+              action={<Button onClick={openCreate}>Add address</Button>}
+            />
           ) : (
-            <div className="divide-y">
+            <div className="dashboard-divide">
               {addresses.map((a) => (
-                <div key={a.id} className="flex flex-wrap items-start justify-between gap-3 px-6 py-4">
+                <div key={a.id} className="dashboard-list-row flex flex-wrap items-start justify-between gap-3 px-6 py-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold">{a.label || a.type}</p>
+                      <p className="font-semibold text-white">{a.label || a.type}</p>
                       {a.isDefault && (
                         <Badge variant="success" className="gap-1">
                           <Star className="h-3 w-3" /> Default
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">{formatAddress(a)}</p>
-                    {a.contactPhone && <p className="text-xs text-muted-foreground">{a.contactPhone}</p>}
+                    <p className="text-sm text-slate-300">{formatAddress(a)}</p>
+                    {a.contactPhone && <p className="text-xs text-slate-400">{a.contactPhone}</p>}
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => openEdit(a)}>

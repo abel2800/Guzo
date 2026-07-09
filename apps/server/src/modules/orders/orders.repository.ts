@@ -36,10 +36,8 @@ export class OrdersRepository {
       ...(params.status ? { status: params.status as Prisma.EnumOrderStatusFilter['equals'] } : {}),
       ...(params.customerId ? { customerId: params.customerId } : {}),
       ...(params.merchantId ? { merchantId: params.merchantId } : {}),
-      // Orders currently handled by a specific driver.
-      ...(params.driverId ? { delivery: { driverId: params.driverId } } : {}),
-      // Available jobs: confirmed and not yet claimed by any driver.
-      ...(params.unassigned ? { delivery: { is: null }, status: 'CONFIRMED' } : {}),
+            ...(params.driverId ? { delivery: { driverId: params.driverId } } : {}),
+            ...(params.unassigned ? { delivery: { is: null }, status: 'CONFIRMED' } : {}),
       ...(params.search
         ? {
             OR: [
@@ -80,8 +78,7 @@ export class OrdersRepository {
     return prisma.merchant.findUnique({ where: { userId } });
   }
 
-  /** Lazily create a customer profile for a user (used for merchant-owned orders). */
-  async ensureCustomerForUser(userId: string) {
+    async ensureCustomerForUser(userId: string) {
     const existing = await prisma.customer.findUnique({ where: { userId } });
     if (existing) return existing;
     return prisma.customer.create({
@@ -100,8 +97,7 @@ export class OrdersRepository {
     return prisma.coupon.findUnique({ where: { code } });
   }
 
-  /** Creates the order, package, invoice, payment and first tracking event atomically. */
-  create(data: Prisma.OrderCreateInput) {
+    create(data: Prisma.OrderCreateInput) {
     return prisma.order.create({ data, include: orderInclude });
   }
 

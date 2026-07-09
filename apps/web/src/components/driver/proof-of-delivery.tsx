@@ -64,15 +64,13 @@ export function ProofOfDeliveryDialog({ order, open, onOpenChange, onCompleted }
     }
   }, []);
 
-  // Manage the camera lifecycle with the dialog + capture state.
-  useEffect(() => {
+    useEffect(() => {
     if (open && !photo) startCamera();
     return () => stopCamera();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [open, photo]);
 
-  // Reset everything when the dialog closes.
-  useEffect(() => {
+    useEffect(() => {
     if (!open) {
       setPhoto(null);
       setPhotoUrl((u) => {
@@ -83,7 +81,7 @@ export function ProofOfDeliveryDialog({ order, open, onOpenChange, onCompleted }
       setCameraError(false);
       clearSignature();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [open]);
 
   const capture = () => {
@@ -123,8 +121,7 @@ export function ProofOfDeliveryDialog({ order, open, onOpenChange, onCompleted }
     });
   };
 
-  // ---- Signature pad ----
-  const sigRef = useRef<HTMLCanvasElement | null>(null);
+    const sigRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
   const hasSig = useRef(false);
 
@@ -190,21 +187,20 @@ export function ProofOfDeliveryDialog({ order, open, onOpenChange, onCompleted }
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetTitle>Proof of Delivery</SheetTitle>
         {order && (
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-slate-400">
             {order.orderNumber} · {order.dropoffAddress?.city}
           </p>
         )}
 
         <div className="mt-5 space-y-6">
-          {/* Photo */}
+          
           <div className="space-y-2">
             <Label>Delivery photo <span className="text-destructive">*</span></Label>
-            <div className="overflow-hidden rounded-lg border bg-muted">
+            <div className="overflow-hidden rounded-lg border bg-white/5">
               {photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={photoUrl} alt="Proof" className="aspect-[3/4] w-full object-cover" />
+                                <img src={photoUrl} alt="Proof" className="aspect-[3/4] w-full object-cover" />
               ) : cameraError ? (
-                <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted-foreground">
+                <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 p-6 text-center text-sm text-slate-400">
                   <Camera className="h-8 w-8" />
                   <p>Camera unavailable. Upload a photo instead.</p>
                 </div>
@@ -229,7 +225,7 @@ export function ProofOfDeliveryDialog({ order, open, onOpenChange, onCompleted }
             )}
           </div>
 
-          {/* Recipient */}
+          
           <div className="space-y-2">
             <Label htmlFor="recipient">Received by (optional)</Label>
             <Input
@@ -240,13 +236,13 @@ export function ProofOfDeliveryDialog({ order, open, onOpenChange, onCompleted }
             />
           </div>
 
-          {/* Signature */}
+          
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="flex items-center gap-1">
                 <PenLine className="h-3.5 w-3.5" /> Signature (optional)
               </Label>
-              <button type="button" onClick={clearSignature} className="text-xs text-muted-foreground hover:text-foreground">
+              <button type="button" onClick={clearSignature} className="text-xs text-slate-400 hover:text-white">
                 Clear
               </button>
             </div>
@@ -271,7 +267,7 @@ export function ProofOfDeliveryDialog({ order, open, onOpenChange, onCompleted }
               </>
             )}
           </Button>
-          <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+          <p className="flex items-center justify-center gap-1 text-xs text-slate-400">
             <MapPin className="h-3 w-3" /> Your GPS location is attached automatically.
           </p>
         </div>

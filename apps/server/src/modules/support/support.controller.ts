@@ -18,7 +18,6 @@ function ctxOf(req: Request) {
 
 export const supportController = {
   list: asyncHandler(async (req: Request, res: Response) => {
-    // Agents see the full queue; everyone else only their own tickets.
     const scope = isAgent(req) ? undefined : { requesterId: req.user!.id };
     const { items, meta } = await supportService.list(parseListQuery(req), scope);
     return ok(res, items, SUPPORT_MESSAGES.FETCHED, meta);

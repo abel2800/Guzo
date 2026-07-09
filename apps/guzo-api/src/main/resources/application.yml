@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: guzo-api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/Guzo}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    open-in-view: false
+    properties:
+      hibernate:
+        globally_quoted_identifiers: true
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Java-owned migrations start at V100 so Prisma migrations stay separate.
+    baseline-on-migrate: true
+    baseline-version: 99
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 15MB
+
+server:
+  port: ${PORT:4000}
+  servlet:
+    context-path: /api/v1
+
+guzo:
+  cors-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:3001,http://localhost:8081}
+  upload-dir: ${UPLOAD_DIR:./uploads}
+  socket:
+    enabled: ${SOCKET_ENABLED:true}
+  # Socket.IO runs on a separate port (REST stays on PORT /api/v1).
+  socket-port: ${SOCKET_PORT:4001}
+  jwt:
+    access-secret: ${JWT_ACCESS_SECRET}
+    refresh-secret: ${JWT_REFRESH_SECRET}
+    access-expires-minutes: ${JWT_ACCESS_EXPIRES_MINUTES:15}
+    refresh-expires-days: ${JWT_REFRESH_EXPIRES_DAYS:7}
+
+logging:
+  level:
+    et.guzo: DEBUG

@@ -9,10 +9,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: 'guzo-merchant',
   icon: './assets/icon.png',
   userInterfaceStyle: 'dark',
+  backgroundColor: '#000000',
+  primaryColor: '#22C55E',
   splash: {
-    image: './assets/splash-icon.png',
-    resizeMode: 'contain',
-    backgroundColor: '#050816',
+    image: './assets/splash.png',
+    resizeMode: 'cover',
+    backgroundColor: '#000000',
   },
   ios: {
     supportsTablet: true,
@@ -25,7 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#050816',
+      backgroundColor: '#000000',
     },
     package: 'et.guzo.merchant',
     intentFilters: [
@@ -44,9 +46,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#050816',
-        image: './assets/splash-icon.png',
-        imageWidth: 200,
+        backgroundColor: '#000000',
+        image: './assets/splash.png',
+        resizeMode: 'cover',
       },
     ],
   ],

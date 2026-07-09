@@ -48,6 +48,33 @@ export default function DashboardScreen() {
         </Pressable>
       </View>
 
+      <View style={styles.quickRow}>
+        <Pressable style={styles.quickBtn} onPress={() => router.push('/analytics')}>
+          <View style={styles.quickOutline}>
+            <Ionicons name="bar-chart-outline" size={22} color={colors.primary} />
+          </View>
+          <Text style={styles.quickLabel}>Analytics</Text>
+        </Pressable>
+        <Pressable style={styles.quickBtn} onPress={() => router.push('/customers')}>
+          <View style={styles.quickOutline}>
+            <Ionicons name="people-outline" size={22} color={colors.accent} />
+          </View>
+          <Text style={styles.quickLabel}>Customers</Text>
+        </Pressable>
+        <Pressable style={styles.quickBtn} onPress={() => router.push('/invoices')}>
+          <View style={styles.quickOutline}>
+            <Ionicons name="receipt-outline" size={22} color={colors.primary} />
+          </View>
+          <Text style={styles.quickLabel}>Invoices</Text>
+        </Pressable>
+        <Pressable style={styles.quickBtn} onPress={() => router.push('/api-keys')}>
+          <View style={styles.quickOutline}>
+            <Ionicons name="key-outline" size={22} color={colors.textMuted} />
+          </View>
+          <Text style={styles.quickLabel}>API keys</Text>
+        </Pressable>
+      </View>
+
       <GlassCard glow style={styles.mainStat}>
         <Text style={styles.statLabel}>Total orders</Text>
         <Text style={styles.mainStatValue}>{t?.orders ?? 0}</Text>

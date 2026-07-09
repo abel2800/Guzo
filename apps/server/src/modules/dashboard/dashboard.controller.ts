@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { dashboardService } from './dashboard.service.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { ok } from '../../utils/ApiResponse.js';
+import { ApiError } from '../../utils/ApiError.js';
 
 export const dashboardController = {
   admin: asyncHandler(async (_req: Request, res: Response) => {
@@ -37,5 +38,17 @@ export const dashboardController = {
   driver: asyncHandler(async (req: Request, res: Response) => {
     const data = await dashboardService.driverSummary(req.user!.id);
     return ok(res, data, 'Driver dashboard summary');
+  }),
+
+  operationsTrucks: asyncHandler(async (_req: Request, res: Response) => {
+    const data = await dashboardService.operationsTrucks();
+    return ok(res, data, 'Live trucks');
+  }),
+
+  branch: asyncHandler(async (req: Request, res: Response) => {
+    const branchId = String(req.query.branchId ?? '');
+    if (!branchId) throw ApiError.badRequest('branchId is required');
+    const data = await dashboardService.branchSummary(branchId, req.user!);
+    return ok(res, data, 'Branch dashboard summary');
   }),
 };

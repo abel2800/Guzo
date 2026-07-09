@@ -5,8 +5,8 @@ import type { ParsedListQuery } from '../../utils/pagination.js';
 import { eventBus, DOMAIN_EVENTS } from '../../events/eventBus.js';
 import { emitToOrder, emitToAdmins, emitToUser } from '../../socket/index.js';
 import { SOCKET_EVENTS } from '@delivery/types';
+import { writeActivity } from '../../utils/activity.js';
 
-/** Package + order context returned to the warehouse UI after a scan. */
 const inventoryInclude = {
   package: {
     include: {
@@ -42,11 +42,6 @@ interface DispatchInput {
   note?: string;
 }
 
-/**
- * Warehouse floor operations: receive, sort (assign shelf), and dispatch parcels.
- * Each op keeps Package, WarehouseInventory, Order status and the tracking
- * timeline consistent inside a single transaction, then emits realtime updates.
- */
 export class WarehouseOpsService {
   private async ensureWarehouse(warehouseId: string) {
     const wh = await prisma.warehouse.findUnique({ where: { id: warehouseId } });
@@ -58,7 +53,7 @@ export class WarehouseOpsService {
     const code = trackingNumber.trim();
     const pkg = await prisma.package.findFirst({
       where: { OR: [{ trackingNumber: code }, { barcode: code }] },
-      include: { order: { include: { customer: true } } },
+      include: { order: { include: { customer: true, dropoffAddress: { select: { city: true } } } } },
     });
     if (!pkg) throw ApiError.notFound(`No parcel found for "${code}"`);
     return pkg;
@@ -83,9 +78,31 @@ export class WarehouseOpsService {
     }
   }
 
-  async receive(warehouseId: string, input: ReceiveInput) {
+  private shelfZoneForCity(city: string | null | undefined) {
+    if (!city) return 'Z';
+    const c = city.trim().toLowerCase();
+    if (c.includes('addis')) return 'A';
+    if (c.includes('hawassa')) return 'H';
+    if (c.includes('adama') || c.includes('nazret')) return 'AD';
+    if (c.includes('bahir')) return 'BD';
+    if (c.includes('dire')) return 'DD';
+    if (c.includes('mekelle')) return 'M';
+    if (c.includes('gondar')) return 'G';
+    return c.length >= 2 ? c.slice(0, 2).toUpperCase() : 'Z';
+  }
+
+  async receive(warehouseId: string, input: ReceiveInput, userId?: string) {
     await this.ensureWarehouse(warehouseId);
     const pkg = await this.findPackageByScan(input.trackingNumber);
+
+    let shelfCode = input.shelfCode;
+    let zone = input.zone;
+    if (!shelfCode?.trim()) {
+      const city = pkg.order.dropoffAddress?.city ?? 'General';
+      zone = this.shelfZoneForCity(city);
+      const inStock = await prisma.warehouseInventory.count({ where: { warehouseId, dispatchedAt: null } });
+      shelfCode = `${zone}-${String((inStock % 20) + 1).padStart(2, '0')}`;
+    }
 
     const inventory = await prisma.$transaction(async (tx) => {
       await tx.package.update({
@@ -93,8 +110,7 @@ export class WarehouseOpsService {
         data: { status: 'IN_WAREHOUSE', warehouseId },
       });
 
-      // Only advance an in-flight order; don't move terminal orders backwards.
-      if (!['DELIVERED', 'CANCELLED', 'RETURNED'].includes(pkg.order.status)) {
+            if (!['DELIVERED', 'CANCELLED', 'RETURNED'].includes(pkg.order.status)) {
         await tx.order.update({ where: { id: pkg.orderId }, data: { status: 'AT_WAREHOUSE' } });
       }
 
@@ -107,11 +123,10 @@ export class WarehouseOpsService {
         },
       });
 
-      // Read the inventory row last so the included package/order reflect the updates above.
-      return tx.warehouseInventory.upsert({
+            return tx.warehouseInventory.upsert({
         where: { packageId: pkg.id },
-        create: { warehouseId, packageId: pkg.id, shelfCode: input.shelfCode, zone: input.zone },
-        update: { warehouseId, shelfCode: input.shelfCode, zone: input.zone, receivedAt: new Date(), dispatchedAt: null },
+        create: { warehouseId, packageId: pkg.id, shelfCode, zone },
+        update: { warehouseId, shelfCode, zone, receivedAt: new Date(), dispatchedAt: null },
         include: inventoryInclude,
       });
     });
@@ -123,10 +138,18 @@ export class WarehouseOpsService {
       'AT_WAREHOUSE',
       `Your parcel ${pkg.order.orderNumber} arrived at the warehouse`,
     );
+
+    if (userId) {
+      await writeActivity({
+        userId,
+        action: 'warehouse.receive',
+        metadata: { warehouseId, trackingNumber: input.trackingNumber, shelfCode },
+      });
+    }
     return inventory;
   }
 
-  async sort(warehouseId: string, input: SortInput) {
+  async sort(warehouseId: string, input: SortInput, userId?: string) {
     await this.ensureWarehouse(warehouseId);
     const pkg = await this.findPackageByScan(input.trackingNumber);
 
@@ -149,10 +172,18 @@ export class WarehouseOpsService {
         include: inventoryInclude,
       });
     });
+
+    if (userId) {
+      await writeActivity({
+        userId,
+        action: 'warehouse.sort',
+        metadata: { warehouseId, trackingNumber: input.trackingNumber, shelfCode: input.shelfCode },
+      });
+    }
     return updated;
   }
 
-  async dispatch(warehouseId: string, input: DispatchInput) {
+  async dispatch(warehouseId: string, input: DispatchInput, userId?: string) {
     await this.ensureWarehouse(warehouseId);
     const pkg = await this.findPackageByScan(input.trackingNumber);
 
@@ -186,6 +217,14 @@ export class WarehouseOpsService {
       'OUT_FOR_DELIVERY',
       `Your parcel ${pkg.order.orderNumber} is out for delivery`,
     );
+
+    if (userId) {
+      await writeActivity({
+        userId,
+        action: 'warehouse.dispatch',
+        metadata: { warehouseId, trackingNumber: input.trackingNumber },
+      });
+    }
     return updated;
   }
 
@@ -222,11 +261,11 @@ export class WarehouseOpsService {
   }
 
   async stats(warehouseId: string) {
-    await this.ensureWarehouse(warehouseId);
+    const wh = await this.ensureWarehouse(warehouseId);
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    const [inStock, receivedToday, dispatchedToday, byStatus] = await Promise.all([
+    const [inStock, receivedToday, dispatchedToday, byStatus, shelfGroups] = await Promise.all([
       prisma.warehouseInventory.count({ where: { warehouseId, dispatchedAt: null } }),
       prisma.warehouseInventory.count({ where: { warehouseId, receivedAt: { gte: startOfDay } } }),
       prisma.warehouseInventory.count({ where: { warehouseId, dispatchedAt: { gte: startOfDay } } }),
@@ -235,12 +274,104 @@ export class WarehouseOpsService {
         _count: { _all: true },
         where: { warehouseId },
       }),
+      prisma.warehouseInventory.groupBy({
+        by: ['shelfCode'],
+        where: { warehouseId, dispatchedAt: null, shelfCode: { not: null } },
+        _count: { _all: true },
+      }),
     ]);
 
+    const distinctShelves = shelfGroups.length;
+    const capacity = wh.capacity || 0;
+    const capacityPercent = capacity > 0 ? Math.min(100, (inStock * 100) / capacity) : 0;
+    const shelfUtilization =
+      distinctShelves > 0 ? Math.min(100, (inStock * 100) / (distinctShelves * 10)) : 0;
+
     return {
-      totals: { inStock, receivedToday, dispatchedToday },
+      totals: {
+        inStock,
+        receivedToday,
+        dispatchedToday,
+        capacity,
+        capacityPercent: Math.round(capacityPercent * 10) / 10,
+        distinctShelves,
+        shelfUtilization: Math.round(shelfUtilization * 10) / 10,
+      },
       packagesByStatus: byStatus.map((r) => ({ status: r.status, count: r._count._all })),
     };
+  }
+
+  async inventoryByCity(warehouseId: string) {
+    await this.ensureWarehouse(warehouseId);
+    const items = await prisma.warehouseInventory.findMany({
+      where: { warehouseId, dispatchedAt: null },
+      include: inventoryInclude,
+      orderBy: { receivedAt: 'asc' },
+    });
+    const grouped = new Map<string, unknown[]>();
+    for (const item of items) {
+      const city = item.package.order.dropoffAddress?.city ?? 'Unknown';
+      const list = grouped.get(city) ?? [];
+      list.push(item);
+      grouped.set(city, list);
+    }
+    return Array.from(grouped.entries()).map(([city, parcels]) => ({
+      city,
+      count: parcels.length,
+      parcels,
+    }));
+  }
+
+  async agingReport(warehouseId: string) {
+    await this.ensureWarehouse(warehouseId);
+    const items = await prisma.warehouseInventory.findMany({
+      where: { warehouseId, dispatchedAt: null },
+      include: { package: { select: { trackingNumber: true } } },
+      orderBy: { receivedAt: 'asc' },
+    });
+    const now = Date.now();
+    let under24h = 0;
+    let oneToThreeDays = 0;
+    let threeToSevenDays = 0;
+    let overSevenDays = 0;
+    const stale: Array<{ trackingNumber: string; receivedAt: Date; hoursInStock: number; shelfCode: string | null }> =
+      [];
+    for (const inv of items) {
+      const hours = (now - inv.receivedAt.getTime()) / 3_600_000;
+      if (hours < 24) under24h++;
+      else if (hours < 72) oneToThreeDays++;
+      else if (hours < 168) threeToSevenDays++;
+      else {
+        overSevenDays++;
+        stale.push({
+          trackingNumber: inv.package.trackingNumber,
+          receivedAt: inv.receivedAt,
+          hoursInStock: Math.floor(hours),
+          shelfCode: inv.shelfCode,
+        });
+      }
+    }
+    return {
+      buckets: { under24h, oneToThreeDays, threeToSevenDays, overSevenDays },
+      stale,
+    };
+  }
+
+  async transfer(fromWarehouseId: string, input: { trackingNumber: string; destinationWarehouseId: string }) {
+    await this.ensureWarehouse(fromWarehouseId);
+    await this.ensureWarehouse(input.destinationWarehouseId);
+    const pkg = await this.findPackageByScan(input.trackingNumber);
+    const inv = await prisma.warehouseInventory.findUnique({ where: { packageId: pkg.id } });
+    if (!inv || inv.dispatchedAt) throw ApiError.badRequest('Parcel is not currently in stock at a warehouse');
+    if (inv.warehouseId !== fromWarehouseId) throw ApiError.badRequest('Parcel is not at the source warehouse');
+    await prisma.warehouseInventory.update({
+      where: { packageId: pkg.id },
+      data: { dispatchedAt: new Date() },
+    });
+    return this.receive(input.destinationWarehouseId, {
+      trackingNumber: input.trackingNumber,
+      note: `Cross-warehouse transfer from ${fromWarehouseId}`,
+    });
   }
 }
 

@@ -15,7 +15,7 @@ export function HeroSection() {
   return (
     <View style={styles.wrap}>
       <LinearGradient colors={[...gradients.hero]} style={styles.gradient}>
-        {/* Floating 3D-style orbs */}
+        
         <View style={[styles.orb, styles.orb1]} />
         <View style={[styles.orb, styles.orb2]} />
         <View style={styles.boxIllustration}>

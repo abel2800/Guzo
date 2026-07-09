@@ -7,6 +7,8 @@ export interface LiveTrackingMapProps {
   pickup: AddressLike;
   dropoff: AddressLike;
   driverLocation?: { latitude: number; longitude: number } | null;
+  routeCoordinates?: Array<{ latitude: number; longitude: number }>;
+  routeMeta?: { distanceKm: number; durationMin: number } | null;
   height?: number;
 }
 
@@ -18,33 +20,64 @@ const darkMapStyle = [
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0c4a6e' }] },
 ];
 
-export function LiveTrackingMap({ pickup, dropoff, driverLocation, height = 220 }: LiveTrackingMapProps) {
+function toRegion(points: Array<{ latitude: number; longitude: number }>): Region {
+  const lats = points.map((c) => c.latitude);
+  const lngs = points.map((c) => c.longitude);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+  const pad = 0.012;
+  return {
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLng + maxLng) / 2,
+    latitudeDelta: Math.max(maxLat - minLat + pad, 0.04),
+    longitudeDelta: Math.max(maxLng - minLng + pad, 0.04),
+  };
+}
+
+export function LiveTrackingMap({
+  pickup,
+  dropoff,
+  driverLocation,
+  routeCoordinates,
+  routeMeta,
+  height = 220,
+}: LiveTrackingMapProps) {
   const mapRef = useRef<MapView>(null);
 
   const pickupPt = useMemo(() => resolveMapPoint(pickup, `p-${pickup.line1}`), [pickup]);
   const dropPt = useMemo(() => resolveMapPoint(dropoff, `d-${dropoff.line1}`), [dropoff]);
 
-  const coords = useMemo(() => {
+  const markerPoints = useMemo(() => {
     const pts = [pickupPt, dropPt];
     if (driverLocation) pts.push({ ...driverLocation, title: 'Driver' });
     return pts;
   }, [pickupPt, dropPt, driverLocation]);
 
-  const region = useMemo((): Region => {
-    const lats = coords.map((c) => c.latitude);
-    const lngs = coords.map((c) => c.longitude);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-    const pad = 0.012;
-    return {
-      latitude: (minLat + maxLat) / 2,
-      longitude: (minLng + maxLng) / 2,
-      latitudeDelta: Math.max(maxLat - minLat + pad, 0.04),
-      longitudeDelta: Math.max(maxLng - minLng + pad, 0.04),
-    };
-  }, [coords]);
+  const region = useMemo(() => {
+    const fitPts = routeCoordinates?.length ? routeCoordinates : markerPoints;
+    return toRegion(fitPts);
+  }, [markerPoints, routeCoordinates]);
+
+  const routeLine = useMemo(() => {
+    if (routeCoordinates && routeCoordinates.length > 1) return routeCoordinates;
+    return [
+      { latitude: pickupPt.latitude, longitude: pickupPt.longitude },
+      ...(driverLocation ? [driverLocation] : []),
+      { latitude: dropPt.latitude, longitude: dropPt.longitude },
+    ];
+  }, [routeCoordinates, pickupPt, dropPt, driverLocation]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const fitPts = routeCoordinates?.length ? routeCoordinates : markerPoints;
+    if (fitPts.length < 2) return;
+    mapRef.current.fitToCoordinates(fitPts, {
+      edgePadding: { top: 48, right: 48, bottom: 48, left: 48 },
+      animated: true,
+    });
+  }, [routeCoordinates, markerPoints]);
 
   useEffect(() => {
     if (!mapRef.current || !driverLocation) return;
@@ -58,11 +91,11 @@ export function LiveTrackingMap({ pickup, dropoff, driverLocation, height = 220 
     );
   }, [driverLocation?.latitude, driverLocation?.longitude, region]);
 
-  const routeLine = [
-    { latitude: pickupPt.latitude, longitude: pickupPt.longitude },
-    ...(driverLocation ? [driverLocation] : []),
-    { latitude: dropPt.latitude, longitude: dropPt.longitude },
-  ];
+  const hasRealCoords =
+    pickup.latitude != null &&
+    pickup.longitude != null &&
+    dropoff.latitude != null &&
+    dropoff.longitude != null;
 
   return (
     <View style={[styles.wrap, { height }]}>
@@ -77,15 +110,26 @@ export function LiveTrackingMap({ pickup, dropoff, driverLocation, height = 220 
         showsMyLocationButton={false}
       >
         <Marker coordinate={pickupPt} title="Pickup" pinColor="#22C55E" />
-        <Marker coordinate={dropPt} title="Drop-off" pinColor="#10B981" />
-        {driverLocation && (
-          <Marker coordinate={driverLocation} title="Driver" pinColor="#fbbf24" />
-        )}
-        <Polyline coordinates={routeLine} strokeColor="#22C55E" strokeWidth={3} lineDashPattern={[6, 4]} />
+        <Marker coordinate={dropPt} title="Drop-off" pinColor="#EA580C" />
+        {driverLocation && <Marker coordinate={driverLocation} title="Driver" pinColor="#3B82F6" />}
+        <Polyline coordinates={routeLine} strokeColor="#22C55E" strokeWidth={4} />
       </MapView>
-      {!driverLocation && (
+
+      {!hasRealCoords && (
+        <View style={styles.banner}>
+          <Text style={styles.bannerText}>Resolving addresses on map…</Text>
+        </View>
+      )}
+      {hasRealCoords && !driverLocation && (
         <View style={styles.banner}>
           <Text style={styles.bannerText}>Waiting for driver GPS…</Text>
+        </View>
+      )}
+      {routeMeta && (
+        <View style={styles.metaBanner}>
+          <Text style={styles.metaText}>
+            {routeMeta.distanceKm.toFixed(1)} km · ~{routeMeta.durationMin} min
+          </Text>
         </View>
       )}
     </View>
@@ -110,4 +154,14 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   bannerText: { color: '#CBD5E1', fontSize: 11 },
+  metaBanner: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(5,8,22,0.85)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  metaText: { color: '#22C55E', fontSize: 11, fontWeight: '600' },
 });

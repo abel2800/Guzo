@@ -1,14 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { logger } from '../config/logger.js';
 
-/**
- * In-process domain event bus. Modules publish events (e.g. "order.created")
- * and other modules subscribe, keeping them decoupled.
- *
- * MIGRATION SEAM: replace this single file with a Kafka/RabbitMQ producer +
- * consumer later. The publish/subscribe API stays identical, so business code
- * never changes.
- */
 class DomainEventBus extends EventEmitter {
   publish<T>(event: string, payload: T): void {
     logger.debug(`event published: ${event}`);

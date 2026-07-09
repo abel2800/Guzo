@@ -40,7 +40,76 @@ export function getMerchantSummary(): Promise<MerchantSummary> {
   return apiGet<MerchantSummary>('/dashboard/merchant');
 }
 
-// ---- CSV handling ----
+
+export interface MerchantApiKeyRow {
+  id: string;
+  label: string;
+  keyPrefix: string;
+  isActive: boolean;
+  lastUsedAt?: string | null;
+  createdAt: string;
+}
+
+export interface CreatedApiKey extends MerchantApiKeyRow {
+  apiKey: string;
+}
+
+export interface MerchantWebhookRow {
+  id: string;
+  url: string;
+  events: string;
+  isActive: boolean;
+  createdAt: string;
+  secret?: string;
+}
+
+export interface MerchantCustomerRow {
+  contactName: string | null;
+  contactPhone: string | null;
+  line1: string;
+  city: string;
+  orderCount: number;
+  lastOrderAt: string;
+}
+
+export async function listMerchantApiKeys(): Promise<MerchantApiKeyRow[]> {
+  return apiGet<MerchantApiKeyRow[]>('/merchant-platform/keys');
+}
+
+export async function createMerchantApiKey(label: string): Promise<CreatedApiKey> {
+  const { data } = await api.post<ApiResponse<CreatedApiKey>>('/merchant-platform/keys', { label });
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export async function revokeMerchantApiKey(id: string): Promise<void> {
+  await api.delete(`/merchant-platform/keys/${id}`);
+}
+
+export async function listMerchantWebhooks(): Promise<MerchantWebhookRow[]> {
+  return apiGet<MerchantWebhookRow[]>('/merchant-platform/webhooks');
+}
+
+export async function registerMerchantWebhook(url: string, secret?: string): Promise<MerchantWebhookRow> {
+  const { data } = await api.post<ApiResponse<MerchantWebhookRow>>('/merchant-platform/webhooks', { url, secret });
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export async function setMerchantWebhookActive(id: string, isActive: boolean): Promise<MerchantWebhookRow> {
+  const { data } = await api.patch<ApiResponse<MerchantWebhookRow>>(`/merchant-platform/webhooks/${id}`, { isActive });
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export async function testMerchantWebhook(payload?: unknown): Promise<void> {
+  await api.post('/merchant-platform/webhooks/test', { payload });
+}
+
+export async function listMerchantCustomers(): Promise<MerchantCustomerRow[]> {
+  return apiGet<MerchantCustomerRow[]>('/merchant-platform/customers');
+}
+
 
 export const CSV_COLUMNS = [
   'deliveryType',
@@ -67,7 +136,6 @@ export const CSV_TEMPLATE =
   ].join('\n') +
   '\n';
 
-/** Minimal RFC-4180-ish CSV parser (handles quoted fields, commas, CRLF). */
 export function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
   let field = '';
@@ -106,8 +174,7 @@ export function parseCsv(text: string): string[][] {
     row.push(field);
     rows.push(row);
   }
-  // Drop fully-empty trailing rows.
-  return rows.filter((r) => r.some((c) => c.trim() !== ''));
+    return rows.filter((r) => r.some((c) => c.trim() !== ''));
 }
 
 export interface ParsedRow {
@@ -116,7 +183,6 @@ export interface ParsedRow {
   errors: string[];
 }
 
-/** Parse CSV text into validated order inputs, keyed by the known columns. */
 export function parseOrdersCsv(text: string): ParsedRow[] {
   const rows = parseCsv(text);
   if (rows.length === 0) return [];

@@ -5,10 +5,6 @@ export interface FieldError {
   message: string;
 }
 
-/**
- * Centralized, typed application error. Thrown anywhere in services; caught by
- * the global error middleware which turns it into a consistent JSON envelope.
- */
 export class ApiError extends Error {
   public readonly statusCode: number;
   public readonly errorCode: string;

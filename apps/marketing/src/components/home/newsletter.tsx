@@ -4,10 +4,13 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { subscribeNewsletter } from '@/lib/java-api';
 
 export function Newsletter() {
   const [email, setEmail] = useState('');
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   return (
     <section className="py-24">
@@ -23,16 +26,25 @@ export function Newsletter() {
             <Mail className="mb-4 h-8 w-8 text-guzo-primary" />
             <h2 className="font-display text-3xl font-bold text-white md:text-4xl">Join the waitlist</h2>
             <p className="mt-3 text-guzo-muted">
-              Be first to access GUZO. Collect early access, driver slots, and merchant onboarding invites.
+              Be first to access GUZO. Get early access, driver slots, and merchant onboarding invites.
             </p>
             {done ? (
               <p className="mt-6 font-medium text-guzo-primary">You&apos;re on the list. We&apos;ll be in touch.</p>
             ) : (
               <form
                 className="mt-8 flex flex-col gap-3 sm:flex-row"
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  if (email.includes('@')) setDone(true);
+                  setError(null);
+                  setLoading(true);
+                  try {
+                    await subscribeNewsletter(email);
+                    setDone(true);
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Could not subscribe');
+                  } finally {
+                    setLoading(false);
+                  }
                 }}
               >
                 <input
@@ -43,11 +55,12 @@ export function Newsletter() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-12 flex-1 rounded-full border border-white/15 bg-guzo-bg/80 px-5 text-white placeholder:text-guzo-muted/60 focus:outline-none focus:ring-2 focus:ring-guzo-primary/50"
                 />
-                <Button type="submit" size="lg">
-                  Join early access <ArrowRight className="h-4 w-4" />
+                <Button type="submit" size="lg" disabled={loading}>
+                  {loading ? 'Joining…' : 'Join early access'} <ArrowRight className="h-4 w-4" />
                 </Button>
               </form>
             )}
+            {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
           </div>
         </motion.div>
       </div>

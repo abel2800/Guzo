@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { LeafletMapProps } from './leaflet-map';
 
-// Leaflet touches `window`, so it must only run on the client.
 const LeafletMap = dynamic(() => import('./leaflet-map'), {
   ssr: false,
   loading: () => <Skeleton className="h-full w-full" />,

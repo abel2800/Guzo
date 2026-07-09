@@ -4,10 +4,6 @@ import { ApiError } from '../utils/ApiError.js';
 import { prisma } from '../config/database.js';
 import type { Role } from '@delivery/types';
 
-/**
- * Authentication: validates the Bearer access token and attaches a fully
- * resolved principal (roles + flattened permissions) to req.user.
- */
 export async function authenticate(req: Request, _res: Response, next: NextFunction) {
   try {
     const header = req.headers.authorization;
@@ -17,8 +13,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
     const token = header.slice(7);
     const claims = verifyAccessToken(token);
 
-    // Resolve roles + permissions fresh so revoked access takes effect quickly.
-    const user = await prisma.user.findUnique({
+        const user = await prisma.user.findUnique({
       where: { id: claims.sub },
       include: {
         roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
@@ -48,14 +43,11 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   }
 }
 
-/** Optional auth: attaches user if a valid token is present, never blocks. */
 export async function optionalAuth(req: Request, _res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) return next();
   try {
     await authenticate(req, _res, () => undefined);
-  } catch {
-    /* ignore */
-  }
+  } catch {}
   next();
 }

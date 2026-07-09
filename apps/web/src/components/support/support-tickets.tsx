@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { LifeBuoy, Search, MessageSquare } from 'lucide-react';
+import { LifeBuoy, MessageSquare } from 'lucide-react';
 import {
   listTickets,
   TICKET_STATUS_META,
@@ -12,10 +12,10 @@ import {
 import { TicketThread } from './ticket-thread';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { EmptyPanel, FilterChip, FuturisticHero, SearchField } from '@/components/dashboard/futuristic-primitives';
 
 export function SupportTickets() {
   const [status, setStatus] = useState('');
@@ -33,51 +33,50 @@ export function SupportTickets() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Support Tickets</h1>
-        <p className="text-muted-foreground">Triage and respond to customer tickets.</p>
-      </div>
+      <FuturisticHero
+        eyebrow="Customer care pulse"
+        icon={LifeBuoy}
+        title="Support Tickets"
+        description="Triage, prioritize, and resolve customer issues from a single live support queue built for calm, fast response."
+        stats={[
+          { label: 'Inbox', value: 'Unified' },
+          { label: 'Threads', value: 'Realtime ready' },
+          { label: 'Focus', value: 'High signal' },
+        ]}
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex flex-wrap gap-2">
-          <button
+          <FilterChip
             onClick={() => {
               setStatus('');
               setPage(1);
             }}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-              status === '' ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted'
-            }`}
+            active={status === ''}
           >
             All
-          </button>
+          </FilterChip>
           {TICKET_STATUSES.map((s) => (
-            <button
+            <FilterChip
               key={s}
               onClick={() => {
                 setStatus(s);
                 setPage(1);
               }}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                status === s ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted'
-              }`}
+              active={status === s}
             >
               {TICKET_STATUS_META[s].label}
-            </button>
+            </FilterChip>
           ))}
         </div>
-        <div className="relative max-w-xs flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Search ticket # or subject"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-        </div>
+        <SearchField
+          placeholder="Search ticket # or subject"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+        />
       </div>
 
       <Card>
@@ -89,10 +88,7 @@ export function SupportTickets() {
               ))}
             </div>
           ) : tickets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <LifeBuoy className="h-10 w-10 text-muted-foreground" />
-              <p className="font-semibold">No tickets found</p>
-            </div>
+            <EmptyPanel icon={LifeBuoy} title="No tickets found" />
           ) : (
             <div className="divide-y">
               {tickets.map((t) => {
@@ -102,11 +98,11 @@ export function SupportTickets() {
                   <button
                     key={t.id}
                     onClick={() => setOpenId(t.id)}
-                    className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left transition-colors hover:bg-muted/50"
+                    className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left transition-colors hover:bg-white/5"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-semibold">{t.subject}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="truncate font-semibold text-white">{t.subject}</p>
+                      <p className="text-xs text-slate-400">
                         {t.ticketNumber} · {t.requester.firstName} {t.requester.lastName} ·{' '}
                         <MessageSquare className="inline h-3 w-3" /> {t.messages.length}
                         {t.assignee ? ` · ${t.assignee.firstName}` : ' · Unassigned'}
@@ -126,7 +122,7 @@ export function SupportTickets() {
 
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-400">
             Page {meta.page} of {meta.totalPages} · {meta.total} tickets
           </p>
           <div className="flex gap-2">

@@ -1,5 +1,4 @@
-# Copy downloaded EAS APK files from ./build-artifacts/ into marketing public/downloads/
-# Place files in repo root build-artifacts/ with names like guzo-customer-android.apk
+
 
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot

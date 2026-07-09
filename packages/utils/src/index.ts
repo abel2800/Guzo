@@ -1,13 +1,9 @@
-// ============================================================================
-// Shared isomorphic utilities (safe to import on server and client).
-// ============================================================================
 
-/** Haversine distance in kilometers between two lat/lng points. */
 export function haversineKm(
   a: { lat: number; lng: number },
   b: { lat: number; lng: number },
 ): number {
-  const R = 6371; // earth radius km
+  const R = 6371;
   const dLat = toRad(b.lat - a.lat);
   const dLng = toRad(b.lng - a.lng);
   const lat1 = toRad(a.lat);
@@ -21,14 +17,12 @@ function toRad(deg: number): number {
   return (deg * Math.PI) / 180;
 }
 
-/** Generate a human friendly, time-sortable reference like ORD-2026-AB12CD. */
 export function generateReference(prefix: string): string {
   const year = new Date().getFullYear();
   const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `${prefix}-${year}-${rand}`;
 }
 
-/** Tracking number: TRK- + 10 uppercase alphanumerics. */
 export function generateTrackingNumber(): string {
   let out = '';
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

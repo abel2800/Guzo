@@ -108,6 +108,8 @@ export interface Order {
     deliveredAt?: string | null;
     driver?: {
       id?: string;
+      currentLat?: number | null;
+      currentLng?: number | null;
       user?: { firstName: string; lastName: string; phone?: string | null } | null;
     } | null;
     proofFile?: { storageKey: string; mimeType?: string | null } | null;
@@ -115,7 +117,6 @@ export interface Order {
   } | null;
 }
 
-/** Build a public URL for a stored file from its storageKey (served at /static). */
 const FILE_ORIGIN = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:4000';
 export function fileUrl(storageKey?: string | null): string | undefined {
   if (!storageKey) return undefined;
@@ -166,7 +167,6 @@ export const ORDER_STATUS_META: Record<string, { label: string; variant: 'defaul
   RETURNED: { label: 'Returned', variant: 'destructive' },
 };
 
-/** The happy-path tracking timeline, in order. */
 export const TRACKING_STEPS: Array<{ key: string; label: string }> = [
   { key: 'CONFIRMED', label: 'Order Confirmed' },
   { key: 'ASSIGNED', label: 'Driver Assigned' },

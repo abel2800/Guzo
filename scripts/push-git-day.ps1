@@ -1,5 +1,4 @@
-# Push one day of the 7-day plan to GitHub.
-# Usage: npm run push:day -- -Day 1
+
 
 param(
   [Parameter(Mandatory = $true)]

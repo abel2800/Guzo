@@ -1,21 +1,55 @@
 import { prisma } from '@delivery/database';
+import { branchOpsService } from '../branches/branch-ops.service.js';
 
-/**
- * Aggregate read-model for admin/merchant dashboards. Pure reads, no writes.
- * Heavy queries here are the first candidates for a Redis cache later.
- */
 export class DashboardService {
   async adminSummary() {
-    const [users, orders, drivers, activeDeliveries, revenue, pendingOrders] = await Promise.all([
+    const now = new Date();
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const fourteenDaysAgo = new Date(now);
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+    const [
+      users,
+      orders,
+      drivers,
+      activeDeliveries,
+      revenue,
+      pendingOrders,
+      warehouses,
+      branches,
+      merchants,
+      ordersLast7d,
+      ordersPrev7d,
+      revenueLast7d,
+      revenuePrev7d,
+    ] = await Promise.all([
       prisma.user.count({ where: { deletedAt: null } }),
       prisma.order.count(),
       prisma.driver.count({ where: { approvalStatus: 'APPROVED' } }),
       prisma.delivery.count({ where: { deliveredAt: null, driverId: { not: null } } }),
       prisma.payment.aggregate({ _sum: { amount: true }, where: { status: 'PAID' } }),
       prisma.order.count({ where: { status: 'PENDING_PAYMENT' } }),
+      prisma.warehouse.count({ where: { isActive: true } }),
+      prisma.guzoBranch.count({ where: { isActive: true } }),
+      prisma.merchant.count(),
+      prisma.order.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      prisma.order.count({ where: { createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } } }),
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: { status: 'PAID', paidAt: { gte: sevenDaysAgo } },
+      }),
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: { status: 'PAID', paidAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } },
+      }),
     ]);
 
     const ordersByStatus = await prisma.order.groupBy({ by: ['status'], _count: { _all: true } });
+    const revLast = Number(revenueLast7d._sum.amount ?? 0);
+    const revPrev = Number(revenuePrev7d._sum.amount ?? 0);
+    const orderGrowthPct = ordersPrev7d > 0 ? ((ordersLast7d - ordersPrev7d) / ordersPrev7d) * 100 : ordersLast7d > 0 ? 100 : 0;
+    const revenueGrowthPct = revPrev > 0 ? ((revLast - revPrev) / revPrev) * 100 : revLast > 0 ? 100 : 0;
 
     return {
       totals: {
@@ -25,6 +59,17 @@ export class DashboardService {
         activeDeliveries,
         pendingOrders,
         revenue: Number(revenue._sum.amount ?? 0),
+        warehouses,
+        branches,
+        merchants,
+      },
+      growth: {
+        ordersLast7d,
+        ordersPrev7d,
+        orderGrowthPct: Math.round(orderGrowthPct * 10) / 10,
+        revenueLast7d: revLast,
+        revenuePrev7d: revPrev,
+        revenueGrowthPct: Math.round(revenueGrowthPct * 10) / 10,
       },
       ordersByStatus: ordersByStatus.map((row) => ({ status: row.status, count: row._count._all })),
     };
@@ -71,18 +116,55 @@ export class DashboardService {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    const [warehouses, inStock, receivedToday, dispatchedToday, byStatus] = await Promise.all([
+    const [warehouses, inStock, receivedToday, dispatchedToday, byStatus, capacityAgg, inTransitManifests] =
+      await Promise.all([
       prisma.warehouse.count({ where: { isActive: true } }),
       prisma.warehouseInventory.count({ where: { dispatchedAt: null } }),
       prisma.warehouseInventory.count({ where: { receivedAt: { gte: startOfDay } } }),
       prisma.warehouseInventory.count({ where: { dispatchedAt: { gte: startOfDay } } }),
       prisma.package.groupBy({ by: ['status'], _count: { _all: true } }),
+      prisma.warehouse.aggregate({ _sum: { capacity: true }, where: { isActive: true } }),
+      prisma.transportManifest.count({ where: { status: 'IN_TRANSIT' } }),
     ]);
 
+    const totalCapacity = capacityAgg._sum.capacity ?? 0;
+    const capacityPercent = totalCapacity > 0 ? Math.min(100, (inStock * 100) / totalCapacity) : 0;
+
     return {
-      totals: { warehouses, inStock, receivedToday, dispatchedToday },
+      totals: {
+        warehouses,
+        inStock,
+        receivedToday,
+        dispatchedToday,
+        totalCapacity,
+        capacityPercent: Math.round(capacityPercent * 10) / 10,
+        trucksInTransit: inTransitManifests,
+      },
       packagesByStatus: byStatus.map((r) => ({ status: r.status, count: r._count._all })),
     };
+  }
+
+  async operationsTrucks() {
+    const rows = await prisma.transportManifest.findMany({
+      where: { status: 'IN_TRANSIT' },
+      orderBy: { departedAt: 'desc' },
+      include: {
+        driver: { select: { id: true, driverCode: true, currentLat: true, currentLng: true, lastLocationAt: true } },
+        originWarehouse: { select: { id: true, name: true, city: true, latitude: true, longitude: true } },
+        destinationWarehouse: { select: { id: true, name: true, city: true, latitude: true, longitude: true } },
+        _count: { select: { parcels: true } },
+      },
+    });
+    return rows.map((m) => ({
+      id: m.id,
+      manifestNumber: m.manifestNumber,
+      sealNumber: m.sealNumber,
+      departedAt: m.departedAt,
+      parcelCount: m._count.parcels,
+      origin: m.originWarehouse,
+      destination: m.destinationWarehouse,
+      driver: m.driver,
+    }));
   }
 
   async financeSummary() {
@@ -165,19 +247,54 @@ export class DashboardService {
   async driverSummary(userId: string) {
     const driver = await prisma.driver.findUnique({ where: { userId } });
     if (!driver) return null;
-    const [assigned, completed] = await Promise.all([
-      prisma.delivery.count({ where: { driverId: driver.id, deliveredAt: null } }),
-      prisma.delivery.count({ where: { driverId: driver.id, deliveredAt: { not: null } } }),
-    ]);
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const driverFilter = { delivery: { driverId: driver.id } };
+
+    const [activeDeliveries, completedDeliveries, todayPickups, todayDeliveries, intercityTrips, availableJobs] =
+      await Promise.all([
+        prisma.delivery.count({ where: { driverId: driver.id, deliveredAt: null } }),
+        prisma.delivery.count({ where: { driverId: driver.id, deliveredAt: { not: null } } }),
+        prisma.order.count({
+          where: {
+            ...driverFilter,
+            status: { in: ['ASSIGNED', 'PICKED_UP'] },
+            updatedAt: { gte: startOfDay },
+          },
+        }),
+        prisma.order.count({
+          where: {
+            ...driverFilter,
+            status: 'DELIVERED',
+            deliveredAt: { gte: startOfDay },
+          },
+        }),
+        prisma.transportManifest.count({
+          where: { driverId: driver.id, status: { in: ['DRAFT', 'SEALED', 'IN_TRANSIT'] } },
+        }),
+        prisma.order.count({ where: { status: 'CONFIRMED', delivery: null } }),
+      ]);
+
     return {
       driverCode: driver.driverCode,
       status: driver.status,
       isAvailable: driver.isAvailable,
       earningsBalance: Number(driver.earningsBalance),
       rating: Number(driver.rating),
-      activeDeliveries: assigned,
-      completedDeliveries: completed,
+      activeDeliveries,
+      completedDeliveries,
+      today: {
+        pickups: todayPickups,
+        deliveries: todayDeliveries,
+        intercity: intercityTrips,
+        available: availableJobs,
+      },
     };
+  }
+
+  async branchSummary(branchId: string, user: { id: string; roles: string[] }) {
+    return branchOpsService.stats(branchId, user);
   }
 }
 

@@ -1,9 +1,5 @@
 import { prisma } from '@delivery/database';
 
-/**
- * Report builders. Return plain JSON now; the same shapes can be streamed to
- * CSV/PDF later. Date range filtering keeps queries bounded.
- */
 export class ReportsService {
   private range(from?: string, to?: string) {
     const gte = from ? new Date(from) : new Date(Date.now() - 30 * 86_400_000);

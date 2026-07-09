@@ -47,11 +47,6 @@ export class PaymentService {
     await this.repo.delete(id);
   }
 
-  /**
-   * Issue a (full or partial) refund via the payment provider abstraction and
-   * persist the new payment/invoice state. Refund amount defaults to the full
-   * remaining balance.
-   */
   async refund(id: string, dto: RefundPaymentDto) {
     const payment = await prisma.payment.findUnique({ where: { id } });
     if (!payment) throw ApiError.notFound('Payment not found');
@@ -87,7 +82,6 @@ export class PaymentService {
       },
     });
 
-    // Void the invoice when the order is fully refunded.
     if (fullyRefunded) {
       await prisma.invoice.updateMany({ where: { orderId: payment.orderId }, data: { status: 'VOID' } });
     }

@@ -9,11 +9,6 @@ export interface PushMessage {
   data?: Record<string, unknown>;
 }
 
-/**
- * Push notification abstraction.
- * - console: log only (local dev)
- * - expo: send via Expo Push API to registered device tokens
- */
 class PushProvider {
   async send(message: PushMessage): Promise<void> {
     if (env.push.driver === 'console') {

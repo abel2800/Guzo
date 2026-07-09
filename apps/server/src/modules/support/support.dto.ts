@@ -3,7 +3,6 @@ export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 export interface CreateSupportTicketDto {
   subject: string;
-  /** First message body describing the issue. */
   message?: string;
   category?: string;
   priority?: TicketPriority;
@@ -19,6 +18,5 @@ export interface UpdateSupportTicketDto {
 
 export interface AddTicketMessageDto {
   body: string;
-  /** Internal notes are only visible to agents. */
   isInternal?: boolean;
 }

@@ -3,7 +3,7 @@ const path = require('path');
 
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, '../..');
-const mapsStub = path.resolve(projectRoot, 'lib/maps.web.tsx');
+const mapsStub = path.resolve(workspaceRoot, 'packages/mobile-ui/src/maps.web.tsx');
 
 const config = getDefaultConfig(projectRoot);
 config.watchFolders = [

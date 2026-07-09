@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { FilterChip } from '@/components/dashboard/futuristic-primitives';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -66,39 +67,51 @@ export default function LoginPage() {
 
   function quickFill(email: string) {
     setValue('email', email);
-    setValue('password', 'Password123!');
   }
 
   return (
-    <main className="grid min-h-screen lg:grid-cols-2">
-      {/* Brand panel */}
-      <div className="relative hidden flex-col justify-between bg-gradient-to-br from-guzo-600 via-guzo-500 to-orange-400 p-12 text-white lg:flex">
-        <GuzoLogo className="[&_span]:text-white [&_div]:bg-white/20" />
-        <div className="space-y-4">
-          <h2 className="text-4xl font-extrabold leading-tight">Moving Ethiopia Forward.</h2>
-          <p className="max-w-md text-white/90">
+    <main className="auth-shell grid min-h-screen lg:grid-cols-2">
+      <div className="auth-orb -left-20 top-20 h-64 w-64 bg-guzo-primary/20" />
+      <div className="auth-orb bottom-0 right-1/4 h-72 w-72 bg-emerald-500/10" />
+
+      
+      <div className="relative hidden flex-col justify-between border-r border-white/10 bg-white/[0.03] p-12 lg:flex">
+        <div className="dashboard-grid absolute inset-0 opacity-40" />
+        <GuzoLogo />
+        <div className="relative space-y-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-guzo-primary/25 bg-guzo-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-guzo-primary">
+            Enterprise logistics
+          </div>
+          <h2 className="text-4xl font-extrabold leading-tight text-white md:text-5xl">
+            Moving Ethiopia
+            <span className="block text-guzo-primary">Forward.</span>
+          </h2>
+          <p className="max-w-md text-slate-300">
             One platform for customers, drivers, merchants, warehouses and operations — real-time
             tracking, smart routing and enterprise control.
           </p>
         </div>
-        <p className="text-sm text-white/70">© {new Date().getFullYear()} GUZO Logistics</p>
+        <p className="relative text-sm text-slate-500" suppressHydrationWarning>
+          © {new Date().getFullYear()} GUZO Logistics
+        </p>
       </div>
 
-      {/* Form panel */}
-      <div className="flex items-center justify-center bg-background p-6">
+      
+      <div className="relative flex items-center justify-center p-6">
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
           <div className="mb-8 lg:hidden">
             <GuzoLogo />
           </div>
-          <Card>
+          <Card className="border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
             <CardContent className="space-y-6 p-8">
-              <div className="space-y-1">
-                <h1 className="text-2xl font-bold">Sign in</h1>
-                <p className="text-sm text-muted-foreground">Access your GUZO dashboard</p>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-guzo-primary">Welcome back</p>
+                <h1 className="text-2xl font-bold text-white">Sign in</h1>
+                <p className="text-sm text-slate-400">Access your GUZO operations dashboard</p>
               </div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -117,26 +130,20 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              <div className="space-y-2">
-                <p className="text-center text-xs text-muted-foreground">
-                  Demo accounts (password: Password123!)
-                </p>
+              <div className="space-y-3">
+                <p className="text-center text-xs text-slate-400">Quick-fill demo emails (use your local seed password)</p>
                 <div className="flex flex-wrap justify-center gap-1.5">
                   {DEMO.map(([label, email]) => (
-                    <button
-                      key={email}
-                      onClick={() => quickFill(email)}
-                      className="rounded-full border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                    >
+                    <FilterChip key={email} type="button" onClick={() => quickFill(email)}>
                       {label}
-                    </button>
+                    </FilterChip>
                   ))}
                 </div>
               </div>
 
-              <p className="text-center text-sm text-muted-foreground">
+              <p className="text-center text-sm text-slate-400">
                 No account?{' '}
-                <Link href="/register" className="font-medium text-primary hover:underline">
+                <Link href="/register" className="font-medium text-guzo-primary hover:underline">
                   Create one
                 </Link>
               </p>

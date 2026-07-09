@@ -7,5 +7,4 @@ export const USER_MESSAGES = {
   ROLES_UPDATED: 'User roles updated',
 } as const;
 
-/** Fields a list query is allowed to sort by (whitelist prevents injection). */
 export const USER_SORTABLE_FIELDS = ['createdAt', 'email', 'firstName', 'lastName', 'status'] as const;

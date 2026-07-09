@@ -16,6 +16,7 @@
   "peerDependencies": {
     "expo-local-authentication": ">=14",
     "expo-secure-store": ">=14",
+    "react": ">=19",
     "react-native": ">=0.76"
   },
   "devDependencies": {

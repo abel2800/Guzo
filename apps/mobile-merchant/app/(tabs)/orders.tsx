@@ -1,5 +1,6 @@
-import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { listOrders, ORDER_STATUS_LABELS } from '@guzo/mobile-shared';
@@ -7,6 +8,7 @@ import { GlassCard, colors, designStyles, spacing } from '@guzo/mobile-ui';
 
 export default function OrdersScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['merchant-orders'],
     queryFn: () => listOrders({ limit: 50 }),
@@ -31,7 +33,8 @@ export default function OrdersScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <GlassCard style={styles.card}>
+          <Pressable onPress={() => router.push(`/order/${item.id}`)}>
+            <GlassCard style={styles.card}>
             <View style={styles.cardTop}>
               <Text style={styles.ref}>{item.orderNumber}</Text>
               <View style={styles.statusBadge}>
@@ -40,7 +43,8 @@ export default function OrdersScreen() {
             </View>
             <Text style={styles.route}>{item.pickupAddress.city} → {item.dropoffAddress.city}</Text>
             <Text style={styles.amount}>{item.currency} {Number(item.totalAmount).toLocaleString()}</Text>
-          </GlassCard>
+            </GlassCard>
+          </Pressable>
         )}
       />
     </View>

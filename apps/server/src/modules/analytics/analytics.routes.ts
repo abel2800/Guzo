@@ -9,5 +9,7 @@ router.use(authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'SUPPORT', 'FINANCE',
 router.get('/orders-over-time', analyticsController.ordersOverTime);
 router.get('/revenue-by-type', analyticsController.revenueByDeliveryType);
 router.get('/top-drivers', analyticsController.topDrivers);
+router.get('/operations-metrics', analyticsController.operationsMetrics);
+router.get('/satisfaction', analyticsController.satisfactionSummary);
 
 export default router;

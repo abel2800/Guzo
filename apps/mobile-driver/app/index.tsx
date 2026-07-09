@@ -1,11 +1,10 @@
 import { Redirect } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { GuzoSplashLoading } from '@guzo/mobile-ui';
 import { useAuth } from '@/lib/auth';
-import { theme } from '@/lib/theme';
 
 export default function Index() {
   const { user, loading } = useAuth();
-  if (loading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.bg }}><ActivityIndicator color={theme.primary} size="large" /></View>;
+  if (loading) return <GuzoSplashLoading splashSource={require('@/assets/splash.png')} />;
   if (!user?.roles.includes('DRIVER')) return <Redirect href="/login" />;
-  return <Redirect href="/(tabs)/jobs" />;
+  return <Redirect href={'/(tabs)/home' as '/'} />;
 }

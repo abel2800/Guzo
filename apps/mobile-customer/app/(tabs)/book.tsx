@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Platform, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { createOrder, quoteOrder, type DeliveryType } from '@guzo/mobile-shared';
-import { StepIndicator, GradientButton, GlassCard } from '@guzo/mobile-ui';
+import { createOrder, quoteOrder, geocodeAddress, lookupReceiver, useTrackingMapData, type DeliveryType, type PaymentMethod, type PickupMethod } from '@guzo/mobile-shared';
+import { StepIndicator, GradientButton, GlassCard, LiveTrackingMap } from '@guzo/mobile-ui';
 import { colors, designStyles, radius, spacing } from '@/lib/design';
 
 const STEPS = ['Pickup', 'Drop-off', 'Package', 'Confirm'];
@@ -23,12 +23,22 @@ export default function BookScreen() {
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('STANDARD');
   const [pickupLine1, setPickupLine1] = useState('');
   const [pickupCity, setPickupCity] = useState('Addis Ababa');
+  const [pickupLat, setPickupLat] = useState<number | undefined>();
+  const [pickupLng, setPickupLng] = useState<number | undefined>();
   const [pickupPhone, setPickupPhone] = useState('');
   const [pickupName, setPickupName] = useState('');
   const [dropLine1, setDropLine1] = useState('');
   const [dropCity, setDropCity] = useState('Addis Ababa');
+  const [dropLat, setDropLat] = useState<number | undefined>();
+  const [dropLng, setDropLng] = useState<number | undefined>();
   const [dropPhone, setDropPhone] = useState('');
-  const [dropName, setDropName] = useState('');
+  const [dropGuzoId, setDropGuzoId] = useState('');
+  const [receiverHint, setReceiverHint] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('FAKE');
+  const [pickupMethod, setPickupMethod] = useState<PickupMethod>('COMPANY_PICKUP');
+  const [originBranchId, setOriginBranchId] = useState('');
+  const [isFragile, setIsFragile] = useState(false);
+  const [declaredValue, setDeclaredValue] = useState('');
   const [weight, setWeight] = useState('1');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
@@ -38,14 +48,63 @@ export default function BookScreen() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
+  const geocodeTimers = useRef<{ pickup?: ReturnType<typeof setTimeout>; dropoff?: ReturnType<typeof setTimeout> }>({});
+
   const input = {
     deliveryType: deliveryType === 'SCHEDULED' ? 'SCHEDULED' as const : deliveryType,
-    pickup: { line1: pickupLine1, city: pickupCity, contactName: pickupName, contactPhone: pickupPhone },
-    dropoff: { line1: dropLine1, city: dropCity, contactName: dropName, contactPhone: dropPhone },
-    package: { weightKg: parseFloat(weight) || 1, description },
+    pickup: {
+      line1: pickupLine1,
+      city: pickupCity,
+      contactName: pickupName,
+      contactPhone: pickupPhone,
+      latitude: pickupLat,
+      longitude: pickupLng,
+    },
+    dropoff: {
+      line1: dropLine1,
+      city: dropCity,
+      contactName: dropName,
+      contactPhone: dropPhone,
+      latitude: dropLat,
+      longitude: dropLng,
+    },
+    package: { weightKg: parseFloat(weight) || 1, description, isFragile },
+    paymentMethod,
+    pickupMethod,
+    receiverPhone: dropPhone || undefined,
+    receiverGuzoId: dropGuzoId || undefined,
+    originBranchId: pickupMethod === 'DROP_AT_BRANCH' ? originBranchId || undefined : undefined,
+    hasInsurance: !!declaredValue,
+    insuranceAmount: declaredValue ? parseFloat(declaredValue) : undefined,
     notes,
     ...(deliveryType === 'SCHEDULED' ? { scheduledPickupAt: scheduledAt.toISOString() } : {}),
   };
+
+  useEffect(() => {
+    clearTimeout(geocodeTimers.current.pickup);
+    if (!pickupLine1.trim() || !pickupCity.trim() || (pickupLat && pickupLng)) return;
+    geocodeTimers.current.pickup = setTimeout(async () => {
+      const hit = await geocodeAddress(pickupLine1, pickupCity);
+      if (hit) {
+        setPickupLat(hit.lat);
+        setPickupLng(hit.lng);
+      }
+    }, 700);
+    return () => clearTimeout(geocodeTimers.current.pickup);
+  }, [pickupLine1, pickupCity, pickupLat, pickupLng]);
+
+  useEffect(() => {
+    clearTimeout(geocodeTimers.current.dropoff);
+    if (!dropLine1.trim() || !dropCity.trim() || (dropLat && dropLng)) return;
+    geocodeTimers.current.dropoff = setTimeout(async () => {
+      const hit = await geocodeAddress(dropLine1, dropCity);
+      if (hit) {
+        setDropLat(hit.lat);
+        setDropLng(hit.lng);
+      }
+    }, 700);
+    return () => clearTimeout(geocodeTimers.current.dropoff);
+  }, [dropLine1, dropCity, dropLat, dropLng]);
 
   async function useMyLocation(target: 'pickup' | 'dropoff') {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -57,9 +116,28 @@ export default function BookScreen() {
     if (target === 'pickup') {
       setPickupLine1(line);
       setPickupCity(city);
+      setPickupLat(loc.coords.latitude);
+      setPickupLng(loc.coords.longitude);
     } else {
       setDropLine1(line);
       setDropCity(city);
+      setDropLat(loc.coords.latitude);
+      setDropLng(loc.coords.longitude);
+    }
+  }
+
+  async function onReceiverLookup() {
+    if (!dropPhone && !dropGuzoId) return;
+    try {
+      const hit = await lookupReceiver({ phone: dropPhone || undefined, guzoId: dropGuzoId || undefined });
+      if (hit.found) {
+        setReceiverHint(`${hit.firstName ?? ''} ${hit.lastName ?? ''}`.trim() || 'Receiver found');
+        if (hit.guzoId && !dropGuzoId) setDropGuzoId(hit.guzoId);
+      } else {
+        setReceiverHint('New receiver — parcel will be linked when they register');
+      }
+    } catch {
+      setReceiverHint('');
     }
   }
 
@@ -101,6 +179,11 @@ export default function BookScreen() {
     (step === 3 && weight) ||
     step === 4;
 
+  const mapData = useTrackingMapData(
+    { line1: pickupLine1, city: pickupCity, latitude: pickupLat, longitude: pickupLng },
+    { line1: dropLine1, city: dropCity, latitude: dropLat, longitude: dropLng },
+  );
+
   return (
     <View style={[designStyles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -121,8 +204,8 @@ export default function BookScreen() {
               <Ionicons name="navigate" size={18} color={colors.primary} />
               <Text style={styles.locationBtnText}>Use current location</Text>
             </Pressable>
-            <Field label="Street address" value={pickupLine1} onChange={setPickupLine1} placeholder="Bole Road, near…" />
-            <Field label="City" value={pickupCity} onChange={setPickupCity} />
+            <Field label="Street address" value={pickupLine1} onChange={(v) => { setPickupLine1(v); setPickupLat(undefined); setPickupLng(undefined); }} placeholder="Bole Road, near…" />
+            <Field label="City" value={pickupCity} onChange={(v) => { setPickupCity(v); setPickupLat(undefined); setPickupLng(undefined); }} />
             <Field label="Contact name" value={pickupName} onChange={setPickupName} />
             <Field label="Phone" value={pickupPhone} onChange={setPickupPhone} keyboard="phone-pad" />
           </GlassCard>
@@ -135,10 +218,27 @@ export default function BookScreen() {
               <Ionicons name="navigate" size={18} color={colors.accent} />
               <Text style={styles.locationBtnText}>Use current location</Text>
             </Pressable>
-            <Field label="Street address" value={dropLine1} onChange={setDropLine1} placeholder="Kazanchis, building…" />
-            <Field label="City" value={dropCity} onChange={setDropCity} />
+            <Field label="Street address" value={dropLine1} onChange={(v) => { setDropLine1(v); setDropLat(undefined); setDropLng(undefined); }} placeholder="Kazanchis, building…" />
+            <Field label="City" value={dropCity} onChange={(v) => { setDropCity(v); setDropLat(undefined); setDropLng(undefined); }} />
+            {(dropLat && dropLng) || dropLine1 ? (
+              <View style={{ marginTop: 12 }}>
+                <LiveTrackingMap
+                  pickup={mapData.pickup}
+                  dropoff={mapData.dropoff}
+                  routeCoordinates={mapData.routeCoordinates}
+                  routeMeta={mapData.routeMeta}
+                  height={180}
+                />
+              </View>
+            ) : null}
             <Field label="Recipient name" value={dropName} onChange={setDropName} />
             <Field label="Phone" value={dropPhone} onChange={setDropPhone} keyboard="phone-pad" />
+            <Field label="Receiver Guzo ID" value={dropGuzoId} onChange={setDropGuzoId} placeholder="GZ-284651" />
+            <Pressable style={styles.locationBtn} onPress={onReceiverLookup}>
+              <Ionicons name="person-search-outline" size={18} color={colors.primary} />
+              <Text style={styles.locationBtnText}>Detect receiver</Text>
+            </Pressable>
+            {receiverHint ? <Text style={{ color: colors.primary, marginBottom: 8, fontSize: 13 }}>{receiverHint}</Text> : null}
           </GlassCard>
         )}
 
@@ -180,6 +280,21 @@ export default function BookScreen() {
             )}
             <Field label="Weight (kg)" value={weight} onChange={setWeight} keyboard="decimal-pad" />
             <Field label="Description" value={description} onChange={setDescription} placeholder="What's inside?" />
+            <Field label="Declared value (ETB)" value={declaredValue} onChange={setDeclaredValue} keyboard="decimal-pad" placeholder="Optional insurance" />
+            <Pressable style={styles.typeChip} onPress={() => setIsFragile(!isFragile)}>
+              <Ionicons name={isFragile ? 'checkbox' : 'square-outline'} size={18} color={colors.primary} />
+              <Text style={styles.typeChipText}>Fragile parcel</Text>
+            </Pressable>
+            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Pickup method</Text>
+            <View style={styles.typeRow}>
+              {(['COMPANY_PICKUP', 'DROP_AT_BRANCH'] as PickupMethod[]).map((m) => (
+                <Pressable key={m} onPress={() => setPickupMethod(m)} style={[styles.typeChip, pickupMethod === m && styles.typeChipActive]}>
+                  <Text style={[styles.typeChipText, pickupMethod === m && styles.typeChipTextActive]}>
+                    {m === 'COMPANY_PICKUP' ? 'Company pickup' : 'Drop at branch'}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
             <Field label="Notes for driver" value={notes} onChange={setNotes} placeholder="Optional" />
           </GlassCard>
         )}
@@ -189,7 +304,24 @@ export default function BookScreen() {
             <Text style={styles.stepTitle}>Review & confirm</Text>
             <SummaryRow icon="location" label="From" value={`${pickupLine1}, ${pickupCity}`} />
             <SummaryRow icon="flag" label="To" value={`${dropLine1}, ${dropCity}`} />
-            <SummaryRow icon="cube" label="Package" value={`${weight} kg · ${deliveryType}`} />
+            <SummaryRow icon="cube" label="Package" value={`${weight} kg · ${deliveryType}${isFragile ? ' · fragile' : ''}`} />
+            <Text style={styles.fieldLabel}>Payment</Text>
+            <View style={[styles.typeRow, { marginBottom: 12 }]}>
+              {(['FAKE', 'CASH_ON_DELIVERY', 'TELEBIRR', 'CBE', 'CHAPA'] as PaymentMethod[]).map((m) => (
+                <Pressable key={m} onPress={() => setPaymentMethod(m)} style={[styles.typeChip, paymentMethod === m && styles.typeChipActive]}>
+                  <Text style={[styles.typeChipText, paymentMethod === m && styles.typeChipTextActive]}>{m.replace(/_/g, ' ')}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={{ marginTop: 12, marginBottom: 8 }}>
+              <LiveTrackingMap
+                pickup={mapData.pickup}
+                dropoff={mapData.dropoff}
+                routeCoordinates={mapData.routeCoordinates}
+                routeMeta={mapData.routeMeta}
+                height={180}
+              />
+            </View>
             {quote ? (
               <View style={styles.quoteBox}>
                 <Text style={styles.quoteLabel}>Estimated price</Text>

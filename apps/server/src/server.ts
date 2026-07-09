@@ -15,8 +15,7 @@ async function bootstrap() {
   const app = createApp();
   const httpServer = createServer(app);
 
-  // Realtime + domain event wiring.
-  initSocket(httpServer);
+    initSocket(httpServer);
   registerSubscribers();
   startJobs();
 
@@ -38,9 +37,7 @@ async function bootstrap() {
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('unhandledRejection', (reason) => logger.error(`Unhandled rejection: ${String(reason)}`));
   process.on('uncaughtException', (err: NodeJS.ErrnoException) => {
-    // Broken pipe (closed terminal) is not fatal and must not be logged in a
-    // loop — logging it would write to the same broken stream and recurse.
-    if (err.code === 'EPIPE') return;
+            if (err.code === 'EPIPE') return;
     logger.error(`Uncaught exception: ${err.stack ?? err.message}`);
     void shutdown('uncaughtException');
   });

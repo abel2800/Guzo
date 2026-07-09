@@ -12,7 +12,6 @@ import { authorize } from '../../middlewares/rbac.middleware.js';
 
 const router = Router();
 
-// All user management requires an authenticated admin/support principal.
 router.use(authenticate);
 
 router.get('/', authorize('ADMIN', 'SUPPORT'), usersController.list);

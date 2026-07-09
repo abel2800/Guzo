@@ -3,7 +3,7 @@ import animate from 'tailwindcss-animate';
 
 const config: Config = {
   darkMode: ['class'],
-  content: ['./src/**/*.{ts,tsx}'],
+  content: ['./src*.{ts,tsx}'],
   theme: {
     container: {
       center: true,
@@ -45,8 +45,12 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // GUZO brand scale
-        guzo: {
+                guzo: {
+          bg: '#050816',
+          card: '#0F172A',
+          primary: '#22C55E',
+          accent: '#10B981',
+          muted: '#CBD5E1',
           50: '#fff7ed',
           100: '#ffedd5',
           200: '#fed7aa',
@@ -65,6 +69,10 @@ const config: Config = {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
       },
       keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
         'accordion-down': {
           from: { height: '0' },
           to: { height: 'var(--radix-accordion-content-height)' },
@@ -75,8 +83,16 @@ const config: Config = {
         },
       },
       animation: {
+        float: 'float 6s ease-in-out infinite',
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+      backgroundImage: {
+        'hero-glow':
+          'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(34,197,94,0.25), transparent)',
+        'grid-fade': 'linear-gradient(to bottom, transparent, #050816 92%)',
+        'guzo-mesh':
+          'radial-gradient(circle at 20% 20%, rgba(34,197,94,0.16), transparent 25%), radial-gradient(circle at 80% 10%, rgba(16,185,129,0.12), transparent 22%), radial-gradient(circle at 50% 70%, rgba(59,130,246,0.10), transparent 28%)',
       },
     },
   },

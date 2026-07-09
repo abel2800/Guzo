@@ -3,6 +3,7 @@ import { authService } from './auth.service.js';
 import { AUTH_MESSAGES } from './auth.constants.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { ok, created } from '../../utils/ApiResponse.js';
+import { ApiError } from '../../utils/ApiError.js';
 
 function ctx(req: Request) {
   return { ipAddress: req.ip, userAgent: req.headers['user-agent'] };
@@ -32,6 +33,34 @@ export const authController = {
   me: asyncHandler(async (req: Request, res: Response) => {
     const user = await authService.getMe(req.user!.id);
     return ok(res, user, 'Current user');
+  }),
+
+  updateProfile: asyncHandler(async (req: Request, res: Response) => {
+    const user = await authService.updateProfile(req.user!.id, req.body);
+    return ok(res, user, AUTH_MESSAGES.PROFILE_UPDATED);
+  }),
+
+  updateLocation: asyncHandler(async (req: Request, res: Response) => {
+    const user = await authService.updateLocation(req.user!.id, req.body);
+    return ok(res, user, AUTH_MESSAGES.PROFILE_UPDATED);
+  }),
+
+  changePassword: asyncHandler(async (req: Request, res: Response) => {
+    const result = await authService.changePassword(req.user!.id, req.body);
+    return ok(res, null, result.message);
+  }),
+
+  uploadAvatar: asyncHandler(async (req: Request, res: Response) => {
+    const file = req.file;
+    if (!file) throw ApiError.badRequest('Avatar image is required');
+    const user = await authService.uploadAvatar(req.user!.id, {
+      path: file.path,
+      filename: file.filename,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+    });
+    return ok(res, user, AUTH_MESSAGES.AVATAR_UPDATED);
   }),
 
   forgotPassword: asyncHandler(async (req: Request, res: Response) => {

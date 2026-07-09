@@ -5,12 +5,6 @@ import { ApiError } from '../utils/ApiError.js';
 import { env, logger } from '../config/index.js';
 import { HTTP_STATUS, ERROR_CODES } from '../constants/index.js';
 
-/**
- * Single, centralized error handler. Every thrown/forwarded error ends here and
- * is normalized into the standard error envelope. Prisma + validation errors
- * are translated into friendly HTTP responses.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function errorMiddleware(err: unknown, req: Request, res: Response, _next: NextFunction) {
   let apiError: ApiError;
 

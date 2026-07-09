@@ -28,8 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const accessToken = useAuthStore((s) => s.accessToken);
   const setUser = useAuthStore((s) => s.setUser);
 
-  // Always re-validate the session from the server (roles can change).
-  const me = useQuery({
+    const me = useQuery({
     queryKey: ['me'],
     enabled: hydrated && !!accessToken,
     queryFn: async () => {
@@ -73,22 +72,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r bg-background p-4 lg:block">
+    <div className="dashboard-shell relative min-h-screen overflow-hidden">
+      <div className="dashboard-orb left-0 top-0 h-72 w-72 bg-guzo-primary/15" />
+      <div className="dashboard-orb right-0 top-24 h-80 w-80 bg-emerald-400/10" />
+      <div className="dashboard-grid pointer-events-none absolute inset-0 opacity-40" />
+      
+      <aside className="glass fixed inset-y-4 left-4 z-40 hidden w-72 rounded-[28px] p-5 lg:block">
         {SidebarBody}
       </aside>
 
-      <div className="lg:pl-64">
-        {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
+      <div className="relative z-10 lg:pl-[19rem]">
+        
+        <header className="glass sticky top-4 z-30 mx-4 mt-4 flex h-16 items-center gap-3 rounded-2xl px-4 md:mx-6 lg:ml-0 lg:mr-6">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72">
+            <SheetContent side="left" className="w-72 border-white/10 bg-[#09101f]/95 text-white">
               <SheetTitle className="sr-only">Navigation</SheetTitle>
               {SidebarBody}
             </SheetContent>
@@ -102,7 +104,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <UserMenu />
         </header>
 
-        <main className="p-4 md:p-6">{children}</main>
+        <main className="relative p-4 md:p-6 lg:pr-6">{children}</main>
       </div>
     </div>
   );

@@ -1,27 +1,34 @@
 import { Hero } from '@/components/home/hero';
 import { Stats } from '@/components/home/stats';
+import { WhatIsGuzo } from '@/components/home/what-is-guzo';
+import { WhyChooseGuzo } from '@/components/home/why-choose-guzo';
 import { LiveMap } from '@/components/home/live-map';
-import { HowItWorks } from '@/components/home/how-it-works';
-import { Services } from '@/components/home/services';
+import { PlatformShowcase } from '@/components/home/platform-showcase';
+import { TrackingTimeline } from '@/components/home/tracking-timeline';
 import { Technology } from '@/components/home/technology';
-import { Testimonials } from '@/components/home/testimonials';
-import { Partners } from '@/components/home/partners';
+import { BuiltForEveryone } from '@/components/home/built-for-everyone';
+import { BusinessAndSecurity } from '@/components/home/business-security';
+import { VisionSection } from '@/components/home/vision-section';
 import { FAQ } from '@/components/home/faq';
-import { Newsletter } from '@/components/home/newsletter';
+import { DownloadCta, FinalCta } from '@/components/home/cta-sections';
 
 export default function HomePage() {
   return (
     <>
       <Hero />
       <Stats />
+      <WhatIsGuzo />
+      <WhyChooseGuzo />
       <LiveMap />
-      <HowItWorks />
-      <Services />
+      <PlatformShowcase />
+      <TrackingTimeline />
       <Technology />
-      <Testimonials />
-      <Partners />
+      <BuiltForEveryone />
+      <BusinessAndSecurity />
+      <VisionSection />
       <FAQ />
-      <Newsletter />
+      <DownloadCta />
+      <FinalCta />
     </>
   );
 }

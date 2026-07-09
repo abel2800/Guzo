@@ -33,13 +33,45 @@ export interface InventoryItem {
 }
 
 export interface WarehouseStats {
-  totals: { inStock: number; receivedToday: number; dispatchedToday: number };
+  totals: {
+    inStock: number;
+    receivedToday: number;
+    dispatchedToday: number;
+    capacity?: number;
+    capacityPercent?: number;
+    distinctShelves?: number;
+    shelfUtilization?: number;
+  };
   packagesByStatus: Array<{ status: string; count: number }>;
 }
 
 export interface WarehouseSummary {
-  totals: { warehouses: number; inStock: number; receivedToday: number; dispatchedToday: number };
+  totals: {
+    warehouses: number;
+    inStock: number;
+    receivedToday: number;
+    dispatchedToday: number;
+    totalCapacity?: number;
+    capacityPercent?: number;
+    trucksInTransit?: number;
+  };
   packagesByStatus: Array<{ status: string; count: number }>;
+}
+
+export interface CityGroup {
+  city: string;
+  count: number;
+  parcels: InventoryItem[];
+}
+
+export interface AgingReport {
+  buckets: {
+    under24h: number;
+    oneToThreeDays: number;
+    threeToSevenDays: number;
+    overSevenDays: number;
+  };
+  stale: Array<{ trackingNumber: string; receivedAt: string; hoursInStock: number; shelfCode?: string | null }>;
 }
 
 export function listWarehouses(): Promise<WarehouseRow[]> {
@@ -92,6 +124,39 @@ export async function dispatchParcel(
   const { data } = await api.post<ApiResponse<InventoryItem>>(`/warehouses/${warehouseId}/dispatch`, input);
   if (!data.success) throw new Error(data.message);
   return data.data;
+}
+
+export async function getInventoryByCity(warehouseId: string): Promise<CityGroup[]> {
+  return apiGet<CityGroup[]>(`/warehouses/${warehouseId}/inventory/by-city`);
+}
+
+export async function getAgingReport(warehouseId: string): Promise<AgingReport> {
+  return apiGet<AgingReport>(`/warehouses/${warehouseId}/aging`);
+}
+
+export async function transferParcel(
+  warehouseId: string,
+  input: { trackingNumber: string; destinationWarehouseId: string },
+): Promise<InventoryItem> {
+  const { data } = await api.post<ApiResponse<InventoryItem>>(`/warehouses/${warehouseId}/transfer`, input);
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export function printWarehouseLabel(trackingNumber: string, shelfCode?: string | null, city?: string) {
+  const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(trackingNumber)}`;
+  const html = `<!DOCTYPE html><html><head><title>Label ${trackingNumber}</title>
+<style>body{font-family:Arial,sans-serif;padding:20px} .box{border:2px dashed #22c55e;padding:16px;border-radius:8px}
+.code{font-size:22px;font-weight:bold;font-family:monospace} .meta{margin-top:8px;font-size:13px}</style></head>
+<body><div class="box">
+<div class="code">${trackingNumber}</div>
+<div class="meta">${city ? `Destination: ${city}<br/>` : ''}${shelfCode ? `Shelf: ${shelfCode}` : ''}</div>
+<img src="${qrImg}" alt="QR" width="120" height="120" style="margin-top:12px" />
+</div><script>window.onload=()=>window.print()</script></body></html>`;
+  const w = window.open('', '_blank', 'width=420,height=480');
+  if (!w) return;
+  w.document.write(html);
+  w.document.close();
 }
 
 export const PACKAGE_STATUS_META: Record<string, { label: string; variant: 'default' | 'secondary' | 'success' | 'destructive' | 'outline' }> = {

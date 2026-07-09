@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { MapPin, Package, CreditCard, Check, Loader2, Navigation } from 'lucide-react';
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { FuturisticHero } from '@/components/dashboard/futuristic-primitives';
 import {
   createOrder,
   quoteOrder,
@@ -21,6 +22,7 @@ import {
   type PackageInput,
   type PriceBreakdown,
 } from '@/lib/orders';
+import { fetchRoute, geocodeAddress } from '@/lib/maps';
 
 const STEPS = [
   { title: 'Route', icon: MapPin },
@@ -55,6 +57,41 @@ export function BookShipment() {
       ? { lat: dropoff.latitude, lng: dropoff.longitude, color: '#ea580c', label: 'Dropoff' }
       : null,
   ].filter(Boolean) as Array<{ lat: number; lng: number; color: string; label: string }>;
+
+  const routeKey = markers.length === 2 ? `${markers[0].lat},${markers[0].lng}|${markers[1].lat},${markers[1].lng}` : '';
+  const { data: routeData } = useQuery({
+    queryKey: ['book-route', routeKey],
+    queryFn: () =>
+      fetchRoute(
+        { lat: markers[0].lat, lng: markers[0].lng },
+        { lat: markers[1].lat, lng: markers[1].lng },
+      ),
+    enabled: markers.length === 2,
+    staleTime: 60_000,
+  });
+  const route = routeData?.coordinates;
+
+  const geocodeTimers = useRef<{ pickup?: number; dropoff?: number }>({});
+
+  useEffect(() => {
+    window.clearTimeout(geocodeTimers.current.pickup);
+    if (!pickup.line1.trim() || !pickup.city.trim() || (pickup.latitude && pickup.longitude)) return;
+    geocodeTimers.current.pickup = window.setTimeout(async () => {
+      const hit = await geocodeAddress(pickup.line1, pickup.city);
+      if (hit) setPickup((p) => ({ ...p, latitude: hit.lat, longitude: hit.lng }));
+    }, 700);
+    return () => window.clearTimeout(geocodeTimers.current.pickup);
+  }, [pickup.line1, pickup.city, pickup.latitude, pickup.longitude]);
+
+  useEffect(() => {
+    window.clearTimeout(geocodeTimers.current.dropoff);
+    if (!dropoff.line1.trim() || !dropoff.city.trim() || (dropoff.latitude && dropoff.longitude)) return;
+    geocodeTimers.current.dropoff = window.setTimeout(async () => {
+      const hit = await geocodeAddress(dropoff.line1, dropoff.city);
+      if (hit) setDropoff((p) => ({ ...p, latitude: hit.lat, longitude: hit.lng }));
+    }, 700);
+    return () => window.clearTimeout(geocodeTimers.current.dropoff);
+  }, [dropoff.line1, dropoff.city, dropoff.latitude, dropoff.longitude]);
 
   function handleMapClick(latlng: { lat: number; lng: number }) {
     const coords = { latitude: +latlng.lat.toFixed(6), longitude: +latlng.lng.toFixed(6) };
@@ -102,12 +139,19 @@ export function BookShipment() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Book a Shipment</h1>
-        <p className="text-muted-foreground">Pick your route, describe the parcel, and pay.</p>
-      </div>
+      <FuturisticHero
+        eyebrow="Customer booking experience"
+        icon={Package}
+        title="Book a Shipment"
+        description="Design your route, configure the parcel, and confirm payment through a polished premium booking flow with live map support."
+        stats={[
+          { label: 'Flow', value: '3-step wizard' },
+          { label: 'Maps', value: 'Live route selection' },
+          { label: 'Pricing', value: 'Realtime quote' },
+        ]}
+      />
 
-      {/* Stepper */}
+      <div className="glass rounded-2xl p-4">
       <div className="flex items-center gap-2">
         {STEPS.map((s, i) => {
           const Icon = s.icon;
@@ -118,20 +162,21 @@ export function BookShipment() {
               <div
                 className={cn(
                   'flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition-colors',
-                  done && 'border-primary bg-primary text-primary-foreground',
-                  active && 'border-primary text-primary',
-                  !done && !active && 'text-muted-foreground',
+                  done && 'border-guzo-primary bg-guzo-primary text-black',
+                  active && 'border-guzo-primary text-guzo-primary',
+                  !done && !active && 'border-white/10 text-slate-400',
                 )}
               >
                 {done ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
               </div>
-              <span className={cn('hidden text-sm font-medium sm:block', active ? 'text-foreground' : 'text-muted-foreground')}>
+              <span className={cn('hidden text-sm font-medium sm:block', active ? 'text-white' : 'text-slate-400')}>
                 {s.title}
               </span>
-              {i < STEPS.length - 1 && <div className="mx-2 h-px flex-1 bg-border" />}
+              {i < STEPS.length - 1 && <div className="mx-2 h-px flex-1 bg-white/10" />}
             </div>
           );
         })}
+      </div>
       </div>
 
       <motion.div key={step} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}>
@@ -165,8 +210,13 @@ export function BookShipment() {
             </Card>
             <Card className="overflow-hidden">
               <div className="h-[420px] w-full">
-                <Map markers={markers} onMapClick={handleMapClick} />
+                <Map markers={markers} route={route} onMapClick={handleMapClick} />
               </div>
+              {routeData && (
+                <div className="border-t border-white/10 px-4 py-2 text-xs text-slate-400">
+                  Route: {routeData.distanceKm.toFixed(1)} km · ~{routeData.durationMin} min drive
+                </div>
+              )}
             </Card>
           </div>
         )}
@@ -184,13 +234,15 @@ export function BookShipment() {
                     <button
                       key={d.value}
                       onClick={() => setDeliveryType(d.value)}
-                      className={cn(
-                        'rounded-xl border p-4 text-left transition-colors',
-                        deliveryType === d.value ? 'border-primary bg-accent' : 'hover:bg-muted',
+                    className={cn(
+                        'rounded-2xl border p-4 text-left transition-colors',
+                        deliveryType === d.value
+                          ? 'border-guzo-primary/40 bg-guzo-primary/10 shadow-[0_0_30px_rgba(34,197,94,0.12)]'
+                          : 'border-white/10 bg-white/5 hover:bg-white/[0.08]',
                       )}
                     >
-                      <p className="font-semibold">{d.label}</p>
-                      <p className="text-xs text-muted-foreground">{d.desc}</p>
+                      <p className="font-semibold text-white">{d.label}</p>
+                      <p className="text-xs text-slate-400">{d.desc}</p>
                     </button>
                   ))}
                 </div>
@@ -247,10 +299,10 @@ export function BookShipment() {
                 />
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
                 <div>
-                  <p className="text-sm font-medium">Fragile</p>
-                  <p className="text-xs text-muted-foreground">Handle with care</p>
+                  <p className="text-sm font-medium text-white">Fragile</p>
+                  <p className="text-xs text-slate-400">Handle with care</p>
                 </div>
                 <input
                   type="checkbox"
@@ -292,7 +344,7 @@ export function BookShipment() {
                     {quote.surge > 0 && <Row label="Surge" value={`ETB ${quote.surge}`} />}
                     {quote.discount > 0 && <Row label="Discount" value={`- ETB ${quote.discount}`} accent />}
                     <Row label="Tax" value={`ETB ${quote.tax}`} />
-                    <div className="my-2 h-px bg-border" />
+                    <div className="my-2 h-px bg-white/10" />
                     <div className="flex items-center justify-between text-base font-bold">
                       <span>Total</span>
                       <span>
@@ -320,7 +372,7 @@ export function BookShipment() {
                 <SummaryLine icon={Navigation} label="To" value={`${dropoff.line1}, ${dropoff.city}`} color="#ea580c" />
                 <SummaryLine icon={Package} label="Parcel" value={`${pkg.weightKg} kg · ${deliveryType}`} />
                 <div className="h-40 overflow-hidden rounded-lg">
-                  <Map markers={markers} />
+                  <Map markers={markers} route={route} />
                 </div>
                 <Button
                   className="w-full"
@@ -336,7 +388,7 @@ export function BookShipment() {
                     <>Pay {quote ? `${quote.currency} ${quote.totalAmount}` : ''} & Book</>
                   )}
                 </Button>
-                <p className="text-center text-xs text-muted-foreground">
+                <p className="text-center text-xs text-slate-400">
                   Uses the sandbox payment provider — no real charge.
                 </p>
               </CardContent>
@@ -345,7 +397,6 @@ export function BookShipment() {
         )}
       </motion.div>
 
-      {/* Nav */}
       <div className="flex justify-between">
         <Button variant="outline" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
           Back

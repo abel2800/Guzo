@@ -7,9 +7,7 @@ function createPaymentProvider(): PaymentProvider {
     case 'fake':
     default:
       return new FakePaymentProvider();
-    // case 'stripe': return new StripeProvider();
-    // case 'chapa': return new ChapaProvider();
-    // case 'telebirr': return new TelebirrProvider();
+
   }
 }
 

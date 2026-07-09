@@ -1,11 +1,5 @@
 import { prisma } from '@delivery/database';
 
-/**
- * Global search across core entities. Uses PostgreSQL ILIKE today.
- *
- * MIGRATION SEAM: swap the implementation for Elasticsearch/OpenSearch later;
- * the `search()` signature stays identical so callers don't change.
- */
 export class SearchService {
   async search(q: string, limit = 5) {
     if (!q || q.length < 2) return { orders: [], users: [], packages: [] };

@@ -5,7 +5,7 @@ import { connectDatabase, disconnectDatabase } from '../src/config/database.js';
 import type { Application } from 'express';
 
 let app: Application;
-const DEMO_PASSWORD = 'Password123!';
+const DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD ?? process.env.TEST_DEMO_PASSWORD;
 
 beforeAll(async () => {
   await connectDatabase();

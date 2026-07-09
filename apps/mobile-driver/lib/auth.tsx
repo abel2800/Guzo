@@ -88,9 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const rt = await tokenStorage.getRefreshToken();
         try {
           if (rt) await apiLogout(rt);
-        } catch {
-          /* ignore */
-        }
+        } catch {}
         await tokenStorage.clear();
         await clearBiometricPrefs(APP_SCOPE);
         disconnectSocket();

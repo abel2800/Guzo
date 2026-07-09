@@ -14,9 +14,15 @@ import { initials } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  EmptyPanel,
+  FilterChip,
+  FuturisticHero,
+  PaginationBar,
+  SearchField,
+} from '@/components/dashboard/futuristic-primitives';
 
 const APPROVAL_FILTERS = ['', 'PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'];
 const LIST_KEY = 'admin-drivers';
@@ -64,9 +70,18 @@ export function AdminDrivers() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Drivers</h1>
-          <p className="text-muted-foreground">Approve applicants and manage your delivery fleet.</p>
+        <div className="flex-1">
+          <FuturisticHero
+            eyebrow="Fleet operations"
+            icon={Truck}
+            title="Drivers"
+            description="Approve applicants, monitor fleet performance, and keep your delivery network mission-ready."
+            stats={[
+              { label: 'Approval', value: 'Workflow' },
+              { label: 'Rating', value: 'Performance' },
+              { label: 'Fleet', value: 'Live roster' },
+            ]}
+          />
         </div>
         <form
           className="flex gap-2"
@@ -76,7 +91,7 @@ export function AdminDrivers() {
             setPage(1);
           }}
         >
-          <Input
+          <SearchField
             placeholder="Search driver code"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
@@ -90,18 +105,16 @@ export function AdminDrivers() {
 
       <div className="flex flex-wrap gap-2">
         {APPROVAL_FILTERS.map((s) => (
-          <button
+          <FilterChip
             key={s || 'all'}
             onClick={() => {
               setApprovalStatus(s);
               setPage(1);
             }}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-              approvalStatus === s ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted'
-            }`}
+            active={approvalStatus === s}
           >
             {s ? DRIVER_APPROVAL_META[s]?.label ?? s : 'All'}
-          </button>
+          </FilterChip>
         ))}
       </div>
 
@@ -114,13 +127,10 @@ export function AdminDrivers() {
               ))}
             </div>
           ) : drivers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <Truck className="h-10 w-10 text-muted-foreground" />
-              <p className="font-semibold">No drivers found</p>
-            </div>
+            <EmptyPanel icon={Truck} title="No drivers found" />
           ) : (
-            <div className="divide-y">
-              <div className="hidden grid-cols-12 gap-4 px-6 py-3 text-xs font-medium uppercase text-muted-foreground md:grid">
+            <div className="dashboard-divide">
+              <div className="hidden grid-cols-12 gap-4 px-6 py-3 text-xs font-medium uppercase text-slate-400 md:grid">
                 <div className="col-span-4">Driver</div>
                 <div className="col-span-2">Code</div>
                 <div className="col-span-2">Deliveries</div>
@@ -144,14 +154,14 @@ export function AdminDrivers() {
                       </Avatar>
                       <div className="min-w-0">
                         <p className="truncate font-semibold">{name}</p>
-                        <p className="truncate text-xs text-muted-foreground">{d.user?.phone ?? d.user?.email ?? '—'}</p>
+                        <p className="truncate text-xs text-slate-400">{d.user?.phone ?? d.user?.email ?? '—'}</p>
                       </div>
                     </div>
                     <div className="hidden font-mono text-xs md:col-span-2 md:block">{d.driverCode}</div>
                     <div className="hidden items-center gap-1 md:col-span-2 md:flex">
                       {d.totalDeliveries ?? 0}
                       {d.rating != null && Number(d.rating) > 0 && (
-                        <span className="ml-2 flex items-center gap-0.5 text-xs text-muted-foreground">
+                        <span className="ml-2 flex items-center gap-0.5 text-xs text-slate-400">
                           <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {Number(d.rating).toFixed(1)}
                         </span>
                       )}
@@ -181,20 +191,17 @@ export function AdminDrivers() {
         </CardContent>
       </Card>
 
-      {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {meta.page} of {meta.totalPages} · {meta.total} drivers
-          </p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={!meta.hasPrev} onClick={() => setPage((p) => p - 1)}>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" disabled={!meta.hasNext} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
+      {meta && (
+        <PaginationBar
+          page={meta.page}
+          totalPages={meta.totalPages}
+          total={meta.total}
+          unit="drivers"
+          hasPrev={meta.hasPrev}
+          hasNext={meta.hasNext}
+          onPrev={() => setPage((p) => p - 1)}
+          onNext={() => setPage((p) => p + 1)}
+        />
       )}
     </div>
   );

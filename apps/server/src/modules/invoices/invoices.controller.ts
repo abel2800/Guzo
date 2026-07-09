@@ -10,10 +10,17 @@ const STATUSES = ['DRAFT', 'ISSUED', 'PAID', 'OVERDUE', 'VOID'] as const;
 
 export const invoicesController = {
   list: asyncHandler(async (req: Request, res: Response) => {
-    const isCustomer = req.user!.roles.includes(ROLES.CUSTOMER as never);
-    const scope = isCustomer && !req.user!.roles.some((r) => r === ROLES.ADMIN || r === ROLES.FINANCE)
-      ? { customerUserId: req.user!.id }
-      : undefined;
+    const roles = req.user!.roles;
+    const isCustomer = roles.includes(ROLES.CUSTOMER as never);
+    const isMerchant = roles.includes(ROLES.MERCHANT as never);
+    const isStaff = roles.some((r) =>
+      ([ROLES.ADMIN, ROLES.FINANCE, ROLES.SUPPORT, ROLES.OPERATIONS_MANAGER] as string[]).includes(r),
+    );
+
+    let scope: { customerUserId?: string; merchantUserId?: string } | undefined;
+    if (isMerchant && !isStaff) scope = { merchantUserId: req.user!.id };
+    else if (isCustomer && !isStaff) scope = { customerUserId: req.user!.id };
+
     const { items, meta } = await invoicesService.list(parseListQuery(req), scope);
     return ok(res, items, 'Invoices fetched', meta);
   }),

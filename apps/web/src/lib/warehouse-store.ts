@@ -6,7 +6,6 @@ interface WarehouseState {
   setSelected: (id: string) => void;
 }
 
-/** Remembers which warehouse the operator is working from across sections. */
 export const useWarehouseStore = create<WarehouseState>()(
   persist(
     (set) => ({

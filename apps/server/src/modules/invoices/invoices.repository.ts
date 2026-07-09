@@ -17,6 +17,7 @@ export interface InvoiceListParams {
   search?: string;
   status?: string;
   customerId?: string;
+  merchantId?: string;
   sortBy?: string;
   sortOrder: 'asc' | 'desc';
 }
@@ -26,6 +27,7 @@ export class InvoiceRepository {
     const where: Prisma.InvoiceWhereInput = {
       ...(params.status ? { status: params.status as Prisma.EnumInvoiceStatusFilter['equals'] } : {}),
       ...(params.customerId ? { order: { customerId: params.customerId } } : {}),
+      ...(params.merchantId ? { order: { merchantId: params.merchantId } } : {}),
       ...(params.search
         ? {
             OR: [

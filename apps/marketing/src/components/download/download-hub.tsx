@@ -29,7 +29,7 @@ export function DownloadHub() {
 
   return (
     <div className="space-y-8">
-      {/* App picker */}
+      
       <div className="flex flex-wrap justify-center gap-2">
         {APPS.map((id) => (
           <button
@@ -47,7 +47,7 @@ export function DownloadHub() {
         ))}
       </div>
 
-      {/* Platform toggle */}
+      
       <div className="mx-auto flex max-w-xs rounded-full border border-white/10 bg-guzo-card/60 p-1">
         <button
           type="button"
@@ -71,7 +71,7 @@ export function DownloadHub() {
         </button>
       </div>
 
-      {/* Selected app card */}
+      
       <div
         className={`mx-auto max-w-lg rounded-3xl border border-white/10 bg-gradient-to-br ${meta.accent} p-8 text-center backdrop-blur`}
       >
@@ -120,10 +120,10 @@ export function DownloadHub() {
         </div>
 
         <p className="mt-4 text-xs text-guzo-muted">{installNote}</p>
-        <p className="mt-2 text-xs text-guzo-muted/60">Deep link: {meta.scheme}://</p>
+        <p className="mt-2 text-xs text-guzo-muted/60">Deep link: {meta.scheme}:
       </div>
 
-      {/* Dev preview */}
+      
       <div className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-guzo-card/40 p-6">
         <div className="flex items-start gap-4">
           <MonitorSmartphone className="mt-1 h-8 w-8 shrink-0 text-guzo-primary" />
@@ -147,7 +147,7 @@ export function DownloadHub() {
 
       <p className="text-center text-sm text-guzo-muted">
         Store listings go live at public launch.{' '}
-        <Link href="/#newsletter" className="text-guzo-primary hover:underline">
+        <Link href="/contact" className="text-guzo-primary hover:underline">
           Join the waitlist
         </Link>{' '}
         for early access.

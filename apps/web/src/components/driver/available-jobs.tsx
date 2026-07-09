@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyPanel, FuturisticHero } from '@/components/dashboard/futuristic-primitives';
 
 export function DriverAvailable() {
   const queryClient = useQueryClient();
@@ -38,10 +39,17 @@ export function DriverAvailable() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Available Jobs</h1>
-        <p className="text-muted-foreground">Confirmed shipments waiting for a driver. Accept one to start.</p>
-      </div>
+      <FuturisticHero
+        eyebrow="Driver dispatch feed"
+        icon={Package}
+        title="Available Jobs"
+        description="Confirmed shipments waiting for a driver. Claim a route, start the mission, and move straight into live delivery mode."
+        stats={[
+          { label: 'Feed', value: 'Realtime' },
+          { label: 'Refresh', value: '20s sync' },
+          { label: 'Mode', value: 'Accept & go' },
+        ]}
+      />
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -51,39 +59,42 @@ export function DriverAvailable() {
         </div>
       ) : jobs.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center gap-3 py-20 text-center text-muted-foreground">
-            <Inbox className="h-10 w-10" />
-            <p className="font-semibold text-foreground">No jobs available right now</p>
-            <p className="text-sm">New confirmed orders will appear here automatically.</p>
+          <CardContent>
+            <EmptyPanel
+              icon={Inbox}
+              title="No jobs available right now"
+              description="New confirmed orders will appear here automatically."
+            />
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {jobs.map((o) => (
-            <Card key={o.id}>
+            <Card key={o.id} className="overflow-hidden">
               <CardContent className="space-y-4 p-5">
+                <div className="dashboard-orb -right-8 top-2 h-20 w-20 bg-guzo-primary/10" />
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-guzo-primary/15 text-guzo-primary">
                       <Package className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="font-semibold">{o.orderNumber}</p>
-                      <p className="text-xs text-muted-foreground">{o.deliveryType}</p>
+                      <p className="font-semibold text-white">{o.orderNumber}</p>
+                      <p className="text-xs text-slate-400">{o.deliveryType}</p>
                     </div>
                   </div>
-                  <Badge variant="secondary">{o.currency} {o.totalAmount}</Badge>
+                  <Badge className="border-white/10 bg-white/10 text-white">{o.currency} {o.totalAmount}</Badge>
                 </div>
 
                 <div className="space-y-1.5 text-sm">
-                  <p className="flex items-center gap-2">
+                  <p className="flex items-center gap-2 text-slate-200">
                     <MapPin className="h-4 w-4 text-emerald-600" /> {o.pickupAddress?.city} · {o.pickupAddress?.line1}
                   </p>
-                  <p className="flex items-center gap-2">
+                  <p className="flex items-center gap-2 text-slate-200">
                     <MapPin className="h-4 w-4 text-orange-600" /> {o.dropoffAddress?.city} · {o.dropoffAddress?.line1}
                   </p>
                   {o.distanceKm != null && (
-                    <p className="flex items-center gap-2 text-muted-foreground">
+                    <p className="flex items-center gap-2 text-slate-400">
                       <Weight className="h-4 w-4" /> {o.packages?.[0]?.weightKg ?? '—'} kg · {o.distanceKm} km
                     </p>
                   )}

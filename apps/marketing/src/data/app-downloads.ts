@@ -2,15 +2,11 @@ export type AppId = 'customer' | 'driver' | 'merchant';
 export type PlatformId = 'android' | 'ios';
 
 export interface DownloadArtifact {
-  /** Path under /downloads/ on the marketing site */
-  file: string;
+    file: string;
   version: string;
-  /** Set true after EAS build + copy script places the file in public/downloads */
-  available: boolean;
-  /** Optional EAS build page URL */
-  buildUrl?: string;
-  /** iOS TestFlight or App Store link */
-  storeUrl?: string;
+    available: boolean;
+    buildUrl?: string;
+    storeUrl?: string;
   sizeLabel?: string;
 }
 
@@ -38,7 +34,6 @@ export const APP_META: Record<
   },
 };
 
-/** Update `available: true` and copy APK/IPA into apps/marketing/public/downloads/ after building. */
 export const DOWNLOADS: Record<AppId, Record<PlatformId, DownloadArtifact>> = {
   customer: {
     android: {

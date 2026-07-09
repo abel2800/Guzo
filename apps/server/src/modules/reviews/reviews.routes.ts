@@ -9,6 +9,8 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', authorize('ADMIN', 'SUPPORT'), reviewsController.list);
+router.get('/pending', authorize('CUSTOMER'), reviewsController.pending);
+router.post('/orders/:orderId', authorize('CUSTOMER'), reviewsController.createForOrder);
 router.get('/:id', authorize('ADMIN', 'SUPPORT'), validate(idParamValidator), reviewsController.getById);
 router.post('/', authorize('ADMIN'), validate(createReviewValidator), reviewsController.create);
 router.patch('/:id', authorize('ADMIN'), validate(updateReviewValidator), reviewsController.update);

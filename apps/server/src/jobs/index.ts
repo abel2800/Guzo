@@ -1,16 +1,9 @@
 import { logger } from '../config/logger.js';
 
-/**
- * Background jobs. Locally we run lightweight setInterval-based jobs in-process.
- *
- * MIGRATION SEAM: move these to BullMQ (Redis) or a dedicated worker process
- * later. The registration API stays the same.
- */
 type Job = { name: string; everyMs: number; run: () => Promise<void> | void };
 
 const jobs: Job[] = [
-  // Example: clean up expired refresh tokens once per hour.
-  {
+    {
     name: 'cleanup-expired-tokens',
     everyMs: 60 * 60 * 1000,
     run: async () => {

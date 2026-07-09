@@ -1,4 +1,3 @@
-/** Data Transfer Objects: the validated shapes that cross the controller->service boundary. */
 
 export interface RegisterDto {
   email: string;
@@ -25,6 +24,28 @@ export interface ForgotPasswordDto {
 export interface ResetPasswordDto {
   token: string;
   password: string;
+}
+
+export interface UpdateProfileDto {
+  firstName?: string;
+  lastName?: string;
+  phone?: string | null;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | 'UNSPECIFIED';
+}
+
+export interface ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface UpdateProfileLocationDto {
+  label?: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
 }
 
 export interface RequestContext {

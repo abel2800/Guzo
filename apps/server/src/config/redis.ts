@@ -1,16 +1,7 @@
 import { env } from './env.js';
 import { logger } from './logger.js';
 
-/**
- * Redis is OPTIONAL. The platform runs fully on PostgreSQL alone.
- * When REDIS_ENABLED=true and `ioredis` is installed, we connect lazily.
- * Everything that uses caching/pub-sub should depend on `getRedis()` and
- * gracefully fall back when it returns null. This is the seam that lets you
- * later add Redis clusters / BullMQ / Socket.IO adapter without touching
- * business logic.
- */
 
-// Loosely typed to avoid a hard dependency on ioredis types.
 type RedisLike = {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ...args: unknown[]): Promise<unknown>;

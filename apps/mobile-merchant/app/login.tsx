@@ -11,13 +11,13 @@ import {
 } from '@guzo/mobile-shared';
 import { tokenStorage } from '@/lib/storage';
 import { useAuth } from '@/lib/auth';
-import { GradientButton, GlassCard } from '@guzo/mobile-ui';
+import { GradientButton, GlassCard, GuzoBrandLogo } from '@guzo/mobile-ui';
 import { colors, gradients, radius, spacing } from '@/lib/design';
 
 export default function LoginScreen() {
   const { signIn, signInWithBiometrics } = useAuth();
   const [email, setEmail] = useState('merchant@delivery.local');
-  const [password, setPassword] = useState('Password123!');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [showBio, setShowBio] = useState(false);
@@ -63,10 +63,7 @@ export default function LoginScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.brandBlock}>
-            <LinearGradient colors={[...gradients.primary]} style={styles.logo}>
-              <Ionicons name="storefront" size={36} color={colors.bg} />
-            </LinearGradient>
-            <Text style={styles.brand}>GUZO</Text>
+            <GuzoBrandLogo source={require('@/assets/guzo-mark.png')} width={240} height={160} />
             <Text style={styles.tagline}>Merchant — ship at scale</Text>
           </View>
 

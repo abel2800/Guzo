@@ -2,7 +2,6 @@ import { api } from './api';
 import type { ApiResponse } from '@delivery/types';
 import type { Order, OrderStatus } from './orders';
 
-/** A driver row as returned by GET /drivers (admin/ops only). */
 export interface DriverRow {
   id: string;
   driverCode: string;
@@ -35,17 +34,14 @@ async function fetchOrders(params: OrderListParams) {
   return { items: data.data, meta: data.meta };
 }
 
-/** Admin/ops: every order in the system. */
 export function listAllOrders(params: OrderListParams = {}) {
   return fetchOrders(params);
 }
 
-/** Driver: unclaimed confirmed jobs available to accept. */
 export function listAvailableJobs(params: Omit<OrderListParams, 'scope'> = {}) {
   return fetchOrders({ ...params, scope: 'available' });
 }
 
-/** Driver: orders assigned to the authenticated driver. */
 export function listMyDeliveries(params: Omit<OrderListParams, 'scope'> = {}) {
   return fetchOrders(params);
 }
@@ -77,7 +73,6 @@ export interface ProofOfDeliveryInput {
   longitude?: number;
 }
 
-/** Upload proof-of-delivery (multipart) and complete the order. */
 export async function submitProofOfDelivery(orderId: string, input: ProofOfDeliveryInput): Promise<Order> {
   const form = new FormData();
   form.append('photo', input.photo, 'pod-photo.jpg');
@@ -87,8 +82,7 @@ export async function submitProofOfDelivery(orderId: string, input: ProofOfDeliv
   if (input.latitude != null) form.append('latitude', String(input.latitude));
   if (input.longitude != null) form.append('longitude', String(input.longitude));
 
-  // Pass Content-Type undefined so the browser sets the multipart boundary.
-  const { data } = await api.post<ApiResponse<Order>>(`/orders/${orderId}/pod`, form, {
+    const { data } = await api.post<ApiResponse<Order>>(`/orders/${orderId}/pod`, form, {
     headers: { 'Content-Type': undefined },
   });
   if (!data.success) throw new Error(data.message);
@@ -105,18 +99,85 @@ export async function updateOrderStatus(
   return data.data;
 }
 
-/**
- * The forward-only status path a driver walks an order through, and the next
- * action label for each. Terminal/branch states are omitted.
- */
+export async function markDeliveryFailed(orderId: string, note?: string): Promise<Order> {
+  const { data } = await api.post<ApiResponse<Order>>(`/orders/${orderId}/failed`, { note });
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export async function reattemptDelivery(orderId: string): Promise<Order> {
+  const { data } = await api.post<ApiResponse<Order>>(`/orders/${orderId}/reattempt`, {});
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export async function handoffAtBranch(
+  orderId: string,
+  input: { branchId: string; trackingNumber: string },
+): Promise<Order> {
+  const { data } = await api.post<ApiResponse<Order>>(`/orders/${orderId}/branch-handoff`, input);
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export interface PickupProofInput {
+  photo: Blob;
+  signature?: Blob | null;
+  note?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export async function submitPickupProof(orderId: string, input: PickupProofInput): Promise<Order> {
+  const form = new FormData();
+  form.append('photo', input.photo, 'pickup-photo.jpg');
+  if (input.signature) form.append('signature', input.signature, 'pickup-signature.png');
+  if (input.note) form.append('note', input.note);
+  if (input.latitude != null) form.append('latitude', String(input.latitude));
+  if (input.longitude != null) form.append('longitude', String(input.longitude));
+  const { data } = await api.post<ApiResponse<Order>>(`/orders/${orderId}/pickup-proof`, form, {
+    headers: { 'Content-Type': undefined },
+  });
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export interface DriverEarnings {
+  balance: number;
+  totalDeliveries: number;
+  transactions: Array<{
+    id: string;
+    amount: number;
+    balanceAfter: number;
+    currency: string;
+    reference?: string | null;
+    description?: string | null;
+    createdAt: string;
+  }>;
+}
+
+export async function getDriverEarnings(): Promise<DriverEarnings> {
+  const { data } = await api.get<ApiResponse<DriverEarnings>>('/drivers/me/earnings');
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
 export const DRIVER_NEXT_STATUS: Partial<Record<OrderStatus, { next: OrderStatus; label: string }>> = {
   ASSIGNED: { next: 'PICKED_UP', label: 'Mark picked up' },
   PICKED_UP: { next: 'IN_TRANSIT', label: 'Start transit' },
   IN_TRANSIT: { next: 'OUT_FOR_DELIVERY', label: 'Out for delivery' },
   OUT_FOR_DELIVERY: { next: 'DELIVERED', label: 'Mark delivered' },
+  FAILED: { next: 'OUT_FOR_DELIVERY', label: 'Reattempt delivery' },
 };
 
-/** Statuses an admin/ops user can set manually from the order drawer. */
+export const DRIVER_ALT_STATUS: Partial<Record<OrderStatus, Array<{ next: OrderStatus; label: string }>>> = {
+  PICKED_UP: [
+    { next: 'AT_BRANCH', label: 'Drop at branch' },
+    { next: 'AT_WAREHOUSE', label: 'Deliver to warehouse' },
+  ],
+  IN_TRANSIT: [{ next: 'AT_WAREHOUSE', label: 'Arrive at warehouse' }],
+  OUT_FOR_DELIVERY: [{ next: 'FAILED', label: 'Mark failed delivery' }],
+};
 export const ADMIN_STATUS_OPTIONS: OrderStatus[] = [
   'CONFIRMED',
   'ASSIGNED',

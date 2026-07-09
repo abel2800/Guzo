@@ -8,7 +8,6 @@ interface DriverStatusPayload {
   isAvailable: boolean;
 }
 
-/** Driver online/availability presence, broadcast to admins live dashboard. */
 export function registerPresenceHandlers(io: Server, socket: Socket) {
   socket.on(SOCKET_EVENTS.DRIVER_STATUS, (payload: DriverStatusPayload) => {
     io.to(rooms.admins()).emit(SOCKET_EVENTS.DRIVER_STATUS, payload);

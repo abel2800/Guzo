@@ -71,6 +71,13 @@ enum VehicleStatus {
   MAINTENANCE
 }
 
+enum VehicleLogType {
+  FUEL
+  MAINTENANCE
+  MILEAGE
+  INSPECTION
+}
+
 enum OrderStatus {
   DRAFT
   PENDING_PAYMENT
@@ -79,11 +86,20 @@ enum OrderStatus {
   PICKED_UP
   IN_TRANSIT
   AT_WAREHOUSE
+  AT_BRANCH
+  AT_DESTINATION_BRANCH
+  READY_FOR_PICKUP
   OUT_FOR_DELIVERY
   DELIVERED
   FAILED
   CANCELLED
   RETURNED
+}
+
+enum PickupMethod {
+  COMPANY_PICKUP
+  DROP_AT_BRANCH
+  BRANCH_PICKUP
 }
 
 enum DeliveryType {
@@ -97,11 +113,13 @@ enum DeliveryType {
 enum PackageStatus {
   CREATED
   AT_ORIGIN
+  AT_BRANCH
   IN_WAREHOUSE
   SORTED
   DISPATCHED
   IN_TRANSIT
   OUT_FOR_DELIVERY
+  READY_FOR_PICKUP
   DELIVERED
   LOST
   DAMAGED
@@ -113,6 +131,7 @@ enum TrackingEventType {
   PAYMENT_CONFIRMED
   DRIVER_ASSIGNED
   PICKED_UP
+  ARRIVED_AT_BRANCH
   ARRIVED_AT_WAREHOUSE
   SORTED
   DISPATCHED
@@ -142,6 +161,9 @@ enum PaymentMethod {
   MOBILE_MONEY
   BANK_TRANSFER
   FAKE
+  TELEBIRR
+  CBE
+  CHAPA
 }
 
 enum InvoiceStatus {
@@ -200,6 +222,14 @@ enum ReviewTargetType {
   ORDER
   MERCHANT
   PLATFORM
+}
+
+enum InsuranceClaimStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  PAID
 }
 
 enum FileCategory {
@@ -366,6 +396,8 @@ model Customer {
   companyName  String?
   walletBalance Decimal @default(0) @db.Decimal(14, 2)
   loyaltyPoints Int     @default(0)
+  referralCode  String?  @unique
+  referredById  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -402,8 +434,10 @@ model Driver {
   vehicles      Vehicle[]
   deliveries    Delivery[]
   locationPings GpsLocation[]
+  vehicleLogs   VehicleLog[]
   assignedWarehouseId String?
   assignedWarehouse Warehouse? @relation("WarehouseDrivers", fields: [assignedWarehouseId], references: [id])
+  manifests         TransportManifest[]
 
   @@index([status])
   @@index([approvalStatus])
@@ -427,6 +461,7 @@ model Merchant {
   user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   orders  Order[]      @relation("MerchantOrders")
   apiKeys MerchantApiKey[]
+  webhooks MerchantWebhook[]
   addressId String?
   address Address?     @relation("MerchantAddress", fields: [addressId], references: [id])
 
@@ -448,6 +483,39 @@ model MerchantApiKey {
 
   @@index([merchantId])
   @@map("merchant_api_keys")
+}
+
+model MerchantWebhook {
+  id         String   @id
+  merchantId String
+  url        String
+  secret     String
+  events     String   @default("parcel.status_changed")
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([merchantId])
+  @@map("guzo_merchant_webhooks")
+}
+
+model WebhookDelivery {
+  id          String    @id
+  webhookId   String
+  eventType   String
+  payload     String
+  status      String    @default("PENDING")
+  attempts    Int       @default(0)
+  lastError   String?
+  createdAt   DateTime  @default(now())
+  deliveredAt DateTime?
+
+  webhook MerchantWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@map("guzo_webhook_deliveries")
 }
 
 // ============================================================================
@@ -506,6 +574,8 @@ model Warehouse {
   inventory WarehouseInventory[]
   drivers   Driver[]             @relation("WarehouseDrivers")
   packages  Package[]            @relation("PackageWarehouse")
+  originManifests      TransportManifest[] @relation("ManifestOrigin")
+  destinationManifests TransportManifest[] @relation("ManifestDest")
 
   @@map("warehouses")
 }
@@ -529,6 +599,56 @@ model WarehouseInventory {
   @@map("warehouse_inventory")
 }
 
+enum ManifestStatus {
+  DRAFT
+  SEALED
+  IN_TRANSIT
+  ARRIVED
+  UNLOADED
+  CANCELLED
+}
+
+model TransportManifest {
+  id                     String         @id @default(cuid())
+  manifestNumber         String         @unique
+  originWarehouseId      String?
+  destinationWarehouseId String?
+  driverId               String?
+  vehicleId              String?
+  sealNumber             String?
+  status                 ManifestStatus @default(DRAFT)
+  departedAt             DateTime?
+  arrivedAt              DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  originWarehouse      Warehouse? @relation("ManifestOrigin", fields: [originWarehouseId], references: [id])
+  destinationWarehouse Warehouse? @relation("ManifestDest", fields: [destinationWarehouseId], references: [id])
+  driver               Driver?    @relation(fields: [driverId], references: [id])
+  parcels              ManifestParcel[]
+
+  @@index([originWarehouseId])
+  @@index([destinationWarehouseId])
+  @@index([status])
+  @@map("transport_manifests")
+}
+
+model ManifestParcel {
+  id              String    @id @default(cuid())
+  manifestId      String
+  packageId       String
+  scannedByUserId String?
+  scannedAt       DateTime  @default(now())
+  unloadedAt      DateTime?
+
+  manifest TransportManifest @relation(fields: [manifestId], references: [id], onDelete: Cascade)
+  package  Package           @relation(fields: [packageId], references: [id])
+
+  @@unique([manifestId, packageId])
+  @@index([packageId])
+  @@map("manifest_parcels")
+}
+
 // ============================================================================
 // VEHICLES
 // ============================================================================
@@ -547,9 +667,31 @@ model Vehicle {
   updatedAt    DateTime      @updatedAt
 
   driver Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  logs   VehicleLog[]
 
   @@index([driverId])
   @@map("vehicles")
+}
+
+model VehicleLog {
+  id         String         @id @default(cuid())
+  vehicleId  String
+  driverId   String
+  type       VehicleLogType
+  odometerKm Decimal?       @db.Decimal(10, 2)
+  amount     Decimal?       @db.Decimal(12, 2)
+  currency   String         @default("ETB")
+  note       String?
+  metadata   Json?
+  loggedAt   DateTime       @default(now())
+  createdAt  DateTime       @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver  Driver  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([driverId])
+  @@map("vehicle_logs")
 }
 
 // ============================================================================
@@ -582,6 +724,14 @@ model Order {
   estimatedDeliveryAt DateTime?
   deliveredAt        DateTime?
   notes              String?
+  pickupMethod       PickupMethod?
+  hasInsurance       Boolean       @default(false)
+  insuranceAmount    Decimal?      @db.Decimal(12, 2)
+  receiverUserId     String?
+  receiverGuzoId     String?
+  receiverPhone      String?
+  originBranchId     String?
+  destinationBranchId String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   cancelledAt        DateTime?
@@ -598,6 +748,7 @@ model Order {
   invoice        Invoice?
   reviews        Review[]
   couponUsage    CouponUsage?
+  insuranceClaim InsuranceClaim?
 
   @@index([customerId])
   @@index([merchantId])
@@ -621,16 +772,20 @@ model Package {
   status          PackageStatus @default(CREATED)
   barcode         String?       @unique
   qrCode          String?
+  pickupPin       String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
   warehouse          Warehouse?          @relation("PackageWarehouse", fields: [warehouseId], references: [id])
   warehouseInventory WarehouseInventory?
+  branchInventory    GuzoBranchInventory?
+  manifestParcels    ManifestParcel[]
   files              File[]              @relation("PackageFiles")
 
   @@index([orderId])
   @@index([status])
+  @@index([pickupPin])
   @@map("packages")
 }
 
@@ -726,6 +881,19 @@ model PricingRule {
   updatedAt     DateTime     @updatedAt
 
   @@map("pricing_rules")
+}
+
+model CityPricingZone {
+  id         String   @id @default(cuid())
+  city       String   @unique
+  zoneName   String
+  multiplier Decimal  @default(1) @db.Decimal(5, 2)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([city])
+  @@map("city_pricing_zones")
 }
 
 model Coupon {
@@ -892,6 +1060,24 @@ model Review {
   @@map("reviews")
 }
 
+model InsuranceClaim {
+  id             String               @id @default(cuid())
+  orderId        String               @unique
+  customerId     String
+  status         InsuranceClaimStatus @default(SUBMITTED)
+  description    String?
+  amountClaimed  Decimal?             @db.Decimal(12, 2)
+  resolutionNote String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([status])
+  @@map("insurance_claims")
+}
+
 // ============================================================================
 // SUPPORT TICKETS
 // ============================================================================
@@ -1021,4 +1207,65 @@ model ActivityLog {
   @@index([userId])
   @@index([createdAt])
   @@map("activity_logs")
+}
+
+// ============================================================================
+// BRANCH NETWORK (shared with Java guzo-api — guzo_* tables)
+// ============================================================================
+
+model GuzoBranch {
+  id           String   @id
+  code         String   @unique
+  name         String
+  line1        String
+  city         String
+  state        String?
+  country      String   @default("ET")
+  latitude     Float?
+  longitude    Float?
+  phone        String?
+  openingHours String?
+  queueLevel   Int      @default(0)
+  warehouseId  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  staff     GuzoBranchStaff[]
+  inventory GuzoBranchInventory[]
+
+  @@index([city])
+  @@map("guzo_branches")
+}
+
+model GuzoBranchStaff {
+  userId     String
+  branchId   String
+  assignedAt DateTime @default(now())
+
+  branch GuzoBranch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([userId, branchId])
+  @@map("guzo_branch_staff")
+}
+
+model GuzoBranchInventory {
+  id               String    @id
+  branchId         String
+  packageId        String    @unique
+  shelfCode        String?
+  zone             String?
+  receivedAt       DateTime
+  pickedUpAt       DateTime?
+  photoFileId      String?
+  measuredWeightKg Decimal?  @db.Decimal(10, 2)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  branch  GuzoBranch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  package Package    @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+  @@index([branchId, shelfCode])
+  @@map("guzo_branch_inventory")
 }

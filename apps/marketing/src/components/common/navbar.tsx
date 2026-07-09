@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react';
 import { SITE } from '@/constants/site';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { WEB_APP_URL } from '@/lib/config';
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -41,7 +42,7 @@ export function Navbar() {
 
         <div className="hidden items-center gap-3 md:flex">
           <Button variant="ghost" asChild>
-            <Link href="http://localhost:3000/login">Login</Link>
+            <Link href={`${WEB_APP_URL}/login`}>Login</Link>
           </Button>
           <Button asChild>
             <Link href="/download">Download App</Link>

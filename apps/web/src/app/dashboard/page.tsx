@@ -6,7 +6,6 @@ import { useAuthStore } from '@/lib/auth-store';
 import { primarySlugForRoles } from '@/lib/roles';
 import { Skeleton } from '@/components/ui/skeleton';
 
-/** Entry point after login: routes the user to their role-specific dashboard. */
 export default function DashboardIndex() {
   const router = useRouter();
   const hydrated = useAuthStore((s) => s.hydrated);

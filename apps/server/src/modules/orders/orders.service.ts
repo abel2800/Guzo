@@ -7,12 +7,16 @@ import { buildMeta, type PaginationMeta } from '../../utils/ApiResponse.js';
 import type { ParsedListQuery } from '../../utils/pagination.js';
 import { generateReference, generateTrackingNumber } from '@delivery/utils';
 import { osrmProvider } from '../../providers/maps/osrm.provider.js';
+import { resolveAddressCoords } from '../../providers/maps/resolve-address.js';
 import { paymentProvider } from '../../providers/payment/index.js';
 import { storage } from '../../providers/storage/index.js';
 import { UPLOAD_FOLDERS } from '../../constants/index.js';
 import { eventBus, DOMAIN_EVENTS } from '../../events/eventBus.js';
 import { emitToOrder, emitToAdmins, emitToUser } from '../../socket/index.js';
 import { SOCKET_EVENTS } from '@delivery/types';
+import { dispatchMerchantEvent } from '../merchant-platform/webhook-dispatcher.js';
+import { loyaltyService } from '../loyalty/loyalty.service.js';
+import { writeActivity } from '../../utils/activity.js';
 
 export interface CreateOrderContext {
   userId: string;
@@ -20,7 +24,6 @@ export interface CreateOrderContext {
   isMerchant?: boolean;
 }
 
-/** Subset of a Multer disk file used by the proof-of-delivery flow. */
 export interface PodFile {
   path: string;
   filename: string;
@@ -44,24 +47,18 @@ export class OrdersService {
   ): Promise<{ items: unknown[]; meta: PaginationMeta }> {
     const sortBy = ORDER_SORTABLE_FIELDS.includes(query.sortBy as never) ? query.sortBy : 'createdAt';
 
-    // Resolve the owning customer when scoping a non-admin request to their own orders.
-    // Merchants are scoped by merchantId instead, so skip customer resolution for them.
     let customerId = scope?.customerId ?? query.filters.customerId;
     if (!customerId && scope?.customerUserId && !scope.merchantUserId) {
       const customer = await this.repo.customerByUserId(scope.customerUserId);
-      // Sentinel guarantees an empty result if the user has no customer profile,
-      // rather than leaking every order in the system.
       customerId = customer?.id ?? '__no_customer__';
     }
 
-    // Scope to the authenticated driver's assigned deliveries.
     let driverId: string | undefined;
     if (scope?.driverUserId && !scope.unassigned) {
       const driver = await this.repo.driverByUserId(scope.driverUserId);
       driverId = driver?.id ?? '__no_driver__';
     }
 
-    // Scope to the authenticated merchant's own shipments.
     let merchantId = query.filters.merchantId;
     if (scope?.merchantUserId) {
       const merchant = await this.repo.merchantByUserId(scope.merchantUserId);
@@ -83,12 +80,6 @@ export class OrdersService {
     return { items, meta: buildMeta(query.page, query.limit, total) };
   }
 
-  /**
-   * Finalize a delivery with proof: persist the captured photo (+ optional
-   * signature) as File rows, attach them to the delivery, record the recipient,
-   * then transition the order to DELIVERED (reusing the standard status flow so
-   * tracking/socket/notifications stay consistent).
-   */
   async completeWithProof(
     orderId: string,
     userId: string,
@@ -122,12 +113,184 @@ export class OrdersService {
       deliveredAt: new Date(),
     });
 
+    await writeActivity({
+      userId,
+      action: 'driver.pod',
+      metadata: { orderId, orderNumber: order.orderNumber, hasSignature: !!signatureRow },
+    });
+
     return this.updateStatus(orderId, {
       status: 'DELIVERED',
       note: input.note ?? (input.recipientName ? `Delivered to ${input.recipientName}` : 'Delivered'),
       latitude: input.latitude,
       longitude: input.longitude,
     });
+  }
+
+  async confirmPickupWithProof(
+    orderId: string,
+    userId: string,
+    input: {
+      photo: PodFile;
+      signature?: PodFile;
+      note?: string;
+      latitude?: number;
+      longitude?: number;
+    },
+  ) {
+    const driver = await this.repo.driverByUserId(userId);
+    if (!driver) throw ApiError.badRequest('Authenticated user is not a driver');
+
+    const order = await this.getById(orderId);
+    if (!order.delivery || order.delivery.driverId !== driver.id) {
+      throw ApiError.forbidden('This delivery is not assigned to you');
+    }
+    if (!['ASSIGNED', 'CONFIRMED'].includes(order.status)) {
+      throw ApiError.badRequest(`Cannot confirm pickup when order is ${order.status}`);
+    }
+
+    const photoRow = await this.saveProofFile(userId, input.photo, 'PROOF_OF_DELIVERY');
+    if (input.signature) await this.saveProofFile(userId, input.signature, 'SIGNATURE');
+
+    const pkg = order.packages?.[0];
+    if (pkg) {
+      await this.repo.client.file.update({
+        where: { id: photoRow.id },
+        data: { packageId: pkg.id, category: 'PARCEL_IMAGE' },
+      });
+    }
+
+    await writeActivity({
+      userId,
+      action: 'driver.pickup_proof',
+      metadata: { orderId, orderNumber: order.orderNumber, hasSignature: !!input.signature },
+    });
+
+    return this.updateStatus(orderId, {
+      status: 'PICKED_UP',
+      note: input.note ?? 'Picked up with photo proof',
+      latitude: input.latitude,
+      longitude: input.longitude,
+    });
+  }
+
+  async branchHandoff(
+    orderId: string,
+    userId: string,
+    input: { branchId: string; trackingNumber: string },
+  ) {
+    const driver = await this.repo.driverByUserId(userId);
+    if (!driver) throw ApiError.badRequest('Authenticated user is not a driver');
+
+    const order = await this.getById(orderId);
+    if (!order.delivery || order.delivery.driverId !== driver.id) {
+      throw ApiError.forbidden('This delivery is not assigned to you');
+    }
+
+    const pkg = order.packages?.find(
+      (p) => p.trackingNumber === input.trackingNumber.trim() || p.barcode === input.trackingNumber.trim(),
+    );
+    if (!pkg) throw ApiError.badRequest('Tracking number does not match this order');
+
+    const branch = await this.repo.client.guzoBranch.findUnique({ where: { id: input.branchId } });
+    if (!branch) throw ApiError.notFound('Branch not found');
+
+    await this.repo.client.package.update({
+      where: { id: pkg.id },
+      data: { status: 'AT_BRANCH' },
+    });
+
+    await writeActivity({
+      userId,
+      action: 'driver.branch_handoff',
+      metadata: { orderId, branchId: input.branchId, trackingNumber: input.trackingNumber },
+    });
+
+    return this.updateStatus(orderId, {
+      status: 'AT_BRANCH',
+      note: `Dropped at branch ${branch.name} (${branch.code})`,
+    });
+  }
+
+  async markFailed(orderId: string, userId: string, note?: string) {
+    const driver = await this.repo.driverByUserId(userId);
+    if (!driver) throw ApiError.badRequest('Authenticated user is not a driver');
+
+    const order = await this.getById(orderId);
+    if (!order.delivery || order.delivery.driverId !== driver.id) {
+      throw ApiError.forbidden('This delivery is not assigned to you');
+    }
+    if (order.status !== 'OUT_FOR_DELIVERY') {
+      throw ApiError.badRequest('Only out-for-delivery orders can be marked failed');
+    }
+
+    await writeActivity({
+      userId,
+      action: 'driver.delivery_failed',
+      metadata: { orderId, orderNumber: order.orderNumber, note },
+    });
+
+    return this.updateStatus(orderId, {
+      status: 'FAILED',
+      note: note ?? 'Delivery attempt failed',
+    });
+  }
+
+  async reattemptDelivery(orderId: string, userId: string) {
+    const driver = await this.repo.driverByUserId(userId);
+    if (!driver) throw ApiError.badRequest('Authenticated user is not a driver');
+
+    const order = await this.getById(orderId);
+    if (!order.delivery || order.delivery.driverId !== driver.id) {
+      throw ApiError.forbidden('This delivery is not assigned to you');
+    }
+    if (order.status !== 'FAILED') {
+      throw ApiError.badRequest('Only failed deliveries can be reattempted');
+    }
+
+    await writeActivity({
+      userId,
+      action: 'driver.delivery_reattempt',
+      metadata: { orderId, orderNumber: order.orderNumber },
+    });
+
+    return this.updateStatus(orderId, {
+      status: 'OUT_FOR_DELIVERY',
+      note: 'Driver reattempting delivery',
+    });
+  }
+
+  private async creditDriverEarnings(orderId: string, order: Awaited<ReturnType<typeof this.getById>>) {
+    const driverId = order.delivery?.driverId;
+    if (!driverId) return;
+
+    const driver = await this.repo.client.driver.findUnique({ where: { id: driverId } });
+    if (!driver) return;
+
+    const payout = Math.round(Number(order.totalAmount) * 0.15 * 100) / 100;
+    if (payout <= 0) return;
+
+    const newBalance = Number(driver.earningsBalance) + payout;
+    await this.repo.client.$transaction([
+      this.repo.client.driver.update({
+        where: { id: driverId },
+        data: {
+          earningsBalance: { increment: payout },
+          totalDeliveries: { increment: 1 },
+        },
+      }),
+      this.repo.client.walletTransaction.create({
+        data: {
+          userId: driver.userId,
+          type: 'CREDIT',
+          amount: payout,
+          balanceAfter: newBalance,
+          currency: order.currency ?? 'ETB',
+          reference: order.orderNumber,
+          description: 'Delivery earnings',
+        },
+      }),
+    ]);
   }
 
   private async saveProofFile(userId: string, file: PodFile, category: 'PROOF_OF_DELIVERY' | 'SIGNATURE') {
@@ -148,7 +311,6 @@ export class OrdersService {
     });
   }
 
-  /** A driver claims an available (confirmed, unassigned) order. */
   async accept(orderId: string, userId: string) {
     const driver = await this.repo.driverByUserId(userId);
     if (!driver) throw ApiError.badRequest('Authenticated user is not a driver');
@@ -159,7 +321,13 @@ export class OrdersService {
       throw ApiError.badRequest(`Only confirmed orders can be accepted (order is ${order.status})`);
     }
 
-    return this.assignDriver(orderId, { driverId: driver.id });
+    const result = await this.assignDriver(orderId, { driverId: driver.id });
+    await writeActivity({
+      userId,
+      action: 'driver.accept_job',
+      metadata: { orderId, driverId: driver.id },
+    });
+    return result;
   }
 
   async getById(id: string) {
@@ -168,7 +336,6 @@ export class OrdersService {
     return order;
   }
 
-  /** Public tracking lookup by tracking number or order number. */
   async track(reference: string) {
     const byOrder = await this.repo.findByNumber(reference);
     if (byOrder) return byOrder;
@@ -177,9 +344,16 @@ export class OrdersService {
     return this.getById(pkg.orderId);
   }
 
+  async createForMerchantId(merchantId: string, dto: CreateOrderDto) {
+    const merchant = await this.repo.client.merchant.findUnique({
+      where: { id: merchantId },
+      select: { userId: true },
+    });
+    if (!merchant) throw ApiError.notFound('Merchant not found');
+    return this.create({ ...dto, merchantId }, { userId: merchant.userId, isAdmin: false, isMerchant: true });
+  }
+
   async create(dto: CreateOrderDto, ctx: CreateOrderContext) {
-    // Merchants ship on behalf of recipients: tag the order with the merchant
-    // and derive/attach a "house" customer profile so schema invariants hold.
     let merchantId = dto.merchantId;
     if (ctx.isMerchant && !ctx.isAdmin) {
       const merchant = await this.repo.merchantByUserId(ctx.userId);
@@ -187,7 +361,6 @@ export class OrdersService {
       merchantId = merchant.id;
     }
 
-    // Resolve the owning customer.
     let customerId = dto.customerId;
     if (!customerId || !ctx.isAdmin) {
       let customer = await this.repo.customerByUserId(ctx.userId);
@@ -199,12 +372,14 @@ export class OrdersService {
     const deliveryType = dto.deliveryType ?? 'STANDARD';
     const price = await this.quote(dto, deliveryType);
 
+    const pickupCoords = await resolveAddressCoords(dto.pickup);
+    const dropoffCoords = await resolveAddressCoords(dto.dropoff);
+
     const orderNumber = generateReference('ORD');
     const trackingNumber = generateTrackingNumber();
     const invoiceNumber = generateReference('INV');
     const paymentReference = generateReference('PAY');
 
-    // Charge via the (fake) payment provider before persisting the paid state.
     const charge = await paymentProvider.charge({
       amount: price.totalAmount,
       currency: price.currency,
@@ -241,8 +416,8 @@ export class OrdersService {
           state: dto.pickup.state,
           postalCode: dto.pickup.postalCode,
           country: dto.pickup.country ?? 'ET',
-          latitude: dto.pickup.latitude,
-          longitude: dto.pickup.longitude,
+          latitude: dto.pickup.latitude ?? pickupCoords?.lat,
+          longitude: dto.pickup.longitude ?? pickupCoords?.lng,
         },
       },
       dropoffAddress: {
@@ -256,8 +431,8 @@ export class OrdersService {
           state: dto.dropoff.state,
           postalCode: dto.dropoff.postalCode,
           country: dto.dropoff.country ?? 'ET',
-          latitude: dto.dropoff.latitude,
-          longitude: dto.dropoff.longitude,
+          latitude: dto.dropoff.latitude ?? dropoffCoords?.lat,
+          longitude: dto.dropoff.longitude ?? dropoffCoords?.lng,
         },
       },
       packages: {
@@ -321,11 +496,6 @@ export class OrdersService {
     return order;
   }
 
-  /**
-   * Create many orders in one request (merchant bulk shipment). Each row is
-   * processed independently so a single bad row doesn't abort the batch; the
-   * caller receives a per-row success/error breakdown.
-   */
   async createBulk(rows: CreateOrderDto[], ctx: CreateOrderContext) {
     const results: Array<{
       index: number;
@@ -356,7 +526,6 @@ export class OrdersService {
     return { total: rows.length, created, failed: rows.length - created, results };
   }
 
-  /** Price preview without persisting - used by the "get a quote" endpoint. */
   async quote(dto: CreateOrderDto, deliveryType = dto.deliveryType ?? 'STANDARD'): Promise<PriceBreakdown> {
     const rule = await this.repo.activePricingRule(deliveryType);
     const baseFee = Number(rule?.baseFee ?? 50);
@@ -368,11 +537,10 @@ export class OrdersService {
     const currency = rule?.currency ?? 'ETB';
 
     let distanceKm = 0;
-    if (dto.pickup.latitude && dto.pickup.longitude && dto.dropoff.latitude && dto.dropoff.longitude) {
-      const route = await osrmProvider.route(
-        { lat: dto.pickup.latitude, lng: dto.pickup.longitude },
-        { lat: dto.dropoff.latitude, lng: dto.dropoff.longitude },
-      );
+    const pickupCoords = await resolveAddressCoords(dto.pickup);
+    const dropoffCoords = await resolveAddressCoords(dto.dropoff);
+    if (pickupCoords && dropoffCoords) {
+      const route = await osrmProvider.route(pickupCoords, dropoffCoords);
       distanceKm = route.distanceKm;
     }
 
@@ -401,7 +569,7 @@ export class OrdersService {
     let discount = 0;
     if (coupon.type === 'PERCENTAGE') discount = (subtotal * Number(coupon.value)) / 100;
     else if (coupon.type === 'FIXED') discount = Number(coupon.value);
-    else discount = subtotal; // FREE_SHIPPING (simplified)
+    else discount = subtotal;
 
     if (coupon.maxDiscount) discount = Math.min(discount, Number(coupon.maxDiscount));
     return round(Math.min(discount, subtotal));
@@ -409,6 +577,7 @@ export class OrdersService {
 
   async updateStatus(id: string, dto: UpdateOrderStatusDto) {
     const order = await this.getById(id);
+    const wasDelivered = order.status === 'DELIVERED';
     const updated = await this.repo.updateStatus(id, dto.status, {
       ...(dto.status === 'DELIVERED' ? { deliveredAt: new Date() } : {}),
       ...(dto.status === 'CANCELLED' ? { cancelledAt: new Date() } : {}),
@@ -423,6 +592,11 @@ export class OrdersService {
       longitude: dto.longitude,
     });
 
+    if (dto.status === 'DELIVERED' && !wasDelivered) {
+      await this.creditDriverEarnings(id, order);
+      await loyaltyService.awardDeliveryPoints(order.customerId);
+    }
+
     eventBus.publish(DOMAIN_EVENTS.ORDER_STATUS_CHANGED, { orderId: id, status: dto.status });
     emitToOrder(id, SOCKET_EVENTS.ORDER_STATUS, { orderId: id, status: dto.status });
     emitToUser(order.customer.userId, SOCKET_EVENTS.NOTIFICATION_NEW, {
@@ -430,6 +604,16 @@ export class OrdersService {
       title: 'Order update',
       body: `Your order ${order.orderNumber} is now ${dto.status}`,
     });
+
+    if (order.merchantId) {
+      void dispatchMerchantEvent(order.merchantId, 'parcel.status_changed', {
+        orderId: id,
+        orderNumber: order.orderNumber,
+        status: dto.status,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
     return updated;
   }
 
@@ -457,13 +641,15 @@ function round(n: number): number {
 }
 
 function mapStatusToEvent(status: string) {
-  const map: Record<string, 'DRIVER_ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'ARRIVED_AT_WAREHOUSE' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'RETURNED' | 'EXCEPTION'> = {
+  const map: Record<string, 'DRIVER_ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'ARRIVED_AT_WAREHOUSE' | 'ARRIVED_AT_BRANCH' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'RETURNED' | 'EXCEPTION' | 'DELIVERY_ATTEMPTED'> = {
     ASSIGNED: 'DRIVER_ASSIGNED',
     PICKED_UP: 'PICKED_UP',
     IN_TRANSIT: 'IN_TRANSIT',
     AT_WAREHOUSE: 'ARRIVED_AT_WAREHOUSE',
+    AT_BRANCH: 'ARRIVED_AT_BRANCH',
     OUT_FOR_DELIVERY: 'OUT_FOR_DELIVERY',
     DELIVERED: 'DELIVERED',
+    FAILED: 'DELIVERY_ATTEMPTED',
     CANCELLED: 'CANCELLED',
     RETURNED: 'RETURNED',
   };

@@ -1,5 +1,20 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
+const SPLASH = {
+  image: './assets/splash.png' as const,
+  resizeMode: 'cover' as const,
+  backgroundColor: '#000000',
+};
+
+const SPLASH_PLUGIN = [
+  'expo-splash-screen',
+  {
+    backgroundColor: '#000000',
+    image: './assets/splash.png',
+    resizeMode: 'cover',
+  },
+] as const;
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'GUZO Driver',
@@ -9,11 +24,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: 'guzo-driver',
   icon: './assets/icon.png',
   userInterfaceStyle: 'dark',
-  splash: {
-    image: './assets/splash-icon.png',
-    resizeMode: 'contain',
-    backgroundColor: '#050816',
-  },
+  backgroundColor: '#000000',
+  primaryColor: '#22C55E',
+  splash: SPLASH,
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'et.guzo.driver',
@@ -25,7 +38,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#050816',
+      backgroundColor: '#000000',
     },
     package: 'et.guzo.driver',
     config: {
@@ -43,6 +56,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-router',
+    'expo-camera',
     'expo-secure-store',
     'expo-notifications',
     'expo-local-authentication',
@@ -53,14 +67,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         locationAlwaysAndWhenInUsePermission: 'GUZO tracks your location during active deliveries.',
       },
     ],
-    [
-      'expo-splash-screen',
-      {
-        backgroundColor: '#050816',
-        image: './assets/splash-icon.png',
-        imageWidth: 200,
-      },
-    ],
+    SPLASH_PLUGIN,
   ],
   experiments: {
     typedRoutes: true,

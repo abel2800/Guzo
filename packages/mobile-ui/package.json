@@ -12,6 +12,7 @@
     "@expo/vector-icons": ">=15",
     "@react-navigation/bottom-tabs": ">=6",
     "expo-blur": ">=15",
+    "expo-camera": ">=17",
     "expo-linear-gradient": ">=15",
     "react": ">=19",
     "react-native": ">=0.81",

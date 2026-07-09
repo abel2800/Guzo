@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { EmptyPanel, FuturisticHero } from '@/components/dashboard/futuristic-primitives';
 
 export function BulkUpload() {
   const queryClient = useQueryClient();
@@ -75,9 +76,18 @@ export function BulkUpload() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Bulk Upload</h1>
-          <p className="text-muted-foreground">Import a CSV to create many shipments at once.</p>
+        <div className="flex-1">
+          <FuturisticHero
+            eyebrow="Merchant scale ops"
+            icon={Boxes}
+            title="Bulk Upload"
+            description="Import a CSV to create many shipments at once with validation preview before submission."
+            stats={[
+              { label: 'Format', value: 'CSV import' },
+              { label: 'Preview', value: 'Row validation' },
+              { label: 'Speed', value: 'Batch create' },
+            ]}
+          />
         </div>
         <Button variant="outline" onClick={downloadTemplate}>
           <Download className="h-4 w-4" /> Download template
@@ -86,20 +96,20 @@ export function BulkUpload() {
 
       {!rows.length && !summary && (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Boxes className="h-7 w-7" />
-            </div>
-            <div>
-              <p className="font-semibold">Upload your shipments CSV</p>
-              <p className="text-sm text-muted-foreground">
-                Columns: deliveryType, pickup*, dropoff*, weightKg, description
-              </p>
-            </div>
-            <Button onClick={() => fileRef.current?.click()}>
-              <Upload className="h-4 w-4" /> Choose CSV file
-            </Button>
-            <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={onFile} />
+          <CardContent className="p-0">
+            <EmptyPanel
+              icon={Boxes}
+              title="Upload your shipments CSV"
+              description="Columns: deliveryType, pickup*, dropoff*, weightKg, description"
+              action={
+                <>
+                  <Button onClick={() => fileRef.current?.click()}>
+                    <Upload className="h-4 w-4" /> Choose CSV file
+                  </Button>
+                  <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={onFile} />
+                </>
+              }
+            />
           </CardContent>
         </Card>
       )}
@@ -119,7 +129,7 @@ export function BulkUpload() {
             <CardContent className="p-0">
               <div className="max-h-[420px] overflow-auto">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-muted/80 text-xs uppercase text-muted-foreground backdrop-blur">
+                  <thead className="sticky top-0 bg-black/40 text-xs uppercase text-slate-400 backdrop-blur">
                     <tr>
                       <th className="px-4 py-2 text-left">#</th>
                       <th className="px-4 py-2 text-left">Type</th>
@@ -129,14 +139,14 @@ export function BulkUpload() {
                       <th className="px-4 py-2 text-left">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="dashboard-divide">
                     {rows.map((r, i) => (
                       <tr key={i} className={r.input ? '' : 'bg-destructive/5'}>
-                        <td className="px-4 py-2 text-muted-foreground">{i + 1}</td>
-                        <td className="px-4 py-2">{r.raw.deliveryType || 'STANDARD'}</td>
-                        <td className="px-4 py-2">{r.raw.pickupCity} · {r.raw.pickupLine1}</td>
-                        <td className="px-4 py-2">{r.raw.dropoffCity} · {r.raw.dropoffLine1}</td>
-                        <td className="px-4 py-2">{r.raw.weightKg}</td>
+                        <td className="px-4 py-2 text-slate-400">{i + 1}</td>
+                        <td className="px-4 py-2 text-slate-300">{r.raw.deliveryType || 'STANDARD'}</td>
+                        <td className="px-4 py-2 text-slate-300">{r.raw.pickupCity} · {r.raw.pickupLine1}</td>
+                        <td className="px-4 py-2 text-slate-300">{r.raw.dropoffCity} · {r.raw.dropoffLine1}</td>
+                        <td className="px-4 py-2 text-slate-300">{r.raw.weightKg}</td>
                         <td className="px-4 py-2">
                           {r.input ? (
                             <span className="flex items-center gap-1 text-emerald-600">
@@ -183,14 +193,14 @@ export function BulkUpload() {
             </div>
             <div className="max-h-72 space-y-1 overflow-auto">
               {summary.results.map((r) => (
-                <div key={r.index} className="flex items-center gap-2 rounded border px-3 py-1.5 text-sm">
+                <div key={r.index} className="flex items-center gap-2 rounded border border-white/10 px-3 py-1.5 text-sm">
                   {r.success ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                   ) : (
                     <XCircle className="h-4 w-4 text-destructive" />
                   )}
-                  <span className="text-muted-foreground">Row {r.index + 1}</span>
-                  <span className="font-medium">{r.success ? r.orderNumber : r.error}</span>
+                  <span className="text-slate-400">Row {r.index + 1}</span>
+                  <span className="font-medium text-white">{r.success ? r.orderNumber : r.error}</span>
                 </div>
               ))}
             </div>

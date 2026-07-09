@@ -1,53 +1,67 @@
 @import 'leaflet/dist/leaflet.css';
 
+/* Leaflet map fixes for dashboard cards */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  z-index: 0;
+  font-family: inherit;
+  background: #0f172a;
+}
+
+.guzo-pin {
+  background: transparent !important;
+  border: none !important;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 24 95% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 24 95% 96%;
-    --accent-foreground: 24 80% 30%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 24 95% 53%;
-    --radius: 0.75rem;
-  }
-
-  .dark {
-    --background: 222 47% 7%;
+    --background: 224 53% 7%;
     --foreground: 210 40% 98%;
-    --card: 222 47% 10%;
+    --card: 217 47% 12%;
     --card-foreground: 210 40% 98%;
-    --popover: 222 47% 10%;
+    --popover: 217 47% 10%;
     --popover-foreground: 210 40% 98%;
-    --primary: 24 95% 53%;
+    --primary: 142 71% 45%;
     --primary-foreground: 0 0% 100%;
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted-foreground: 215 20% 75%;
+    --accent: 217 33% 20%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 33% 22%;
+    --input: 217 33% 18%;
+    --ring: 142 71% 45%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 224 53% 7%;
+    --foreground: 210 40% 98%;
+    --card: 217 47% 12%;
+    --card-foreground: 210 40% 98%;
+    --popover: 217 47% 10%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 142 71% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 75%;
     --accent: 217 33% 20%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 45%;
     --destructive-foreground: 0 0% 98%;
-    --border: 217 33% 20%;
-    --input: 217 33% 22%;
-    --ring: 24 95% 53%;
+    --border: 217 33% 22%;
+    --input: 217 33% 18%;
+    --ring: 142 71% 45%;
   }
 }
 
@@ -57,10 +71,113 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    background-image:
+      radial-gradient(circle at 18% 18%, rgba(34, 197, 94, 0.16), transparent 24%),
+      radial-gradient(circle at 82% 8%, rgba(16, 185, 129, 0.12), transparent 22%),
+      radial-gradient(circle at 50% 72%, rgba(59, 130, 246, 0.08), transparent 26%);
+    background-attachment: fixed;
   }
 }
 
-/* Subtle glassmorphism helper used across dashboards */
-.glass {
-  @apply border border-white/10 bg-white/60 backdrop-blur-xl dark:bg-white/5;
+/* Shared GUZO glass styles for the dashboard experience */
+@layer components {
+  .glass {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px);
+  }
+
+  .dashboard-shell {
+    min-height: 100vh;
+    background-color: #050816;
+    color: #fff;
+  }
+
+  .dashboard-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size: 36px 36px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 92%);
+  }
+
+  .dashboard-card {
+    @apply rounded-2xl text-card-foreground backdrop-blur-xl;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  }
+
+  .dashboard-hero {
+    @apply relative overflow-hidden backdrop-blur-xl md:p-8;
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 1.5rem;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  }
+
+  .dashboard-hero::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background:
+      radial-gradient(circle at top left, rgba(34, 197, 94, 0.22), transparent 30%),
+      radial-gradient(circle at top right, rgba(16, 185, 129, 0.16), transparent 24%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .dashboard-hero > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .dashboard-orb {
+    @apply pointer-events-none absolute rounded-full blur-3xl;
+  }
+
+  .dashboard-divide > * + * {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .dashboard-list-row {
+    @apply transition-colors;
+  }
+
+  .dashboard-list-row:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .dashboard-table-head {
+    @apply hidden gap-4 px-6 py-3 text-xs font-medium uppercase tracking-wider text-slate-400 md:grid;
+  }
+
+  .dashboard-select {
+    @apply flex h-10 w-full rounded-md px-3 py-2 text-sm text-white outline-none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .dashboard-select:focus-visible {
+    outline: 2px solid rgba(34, 197, 94, 0.4);
+    outline-offset: 2px;
+  }
+
+  .dashboard-select option {
+    background-color: #050816;
+    color: #fff;
+  }
+
+  .auth-shell {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    background-color: #050816;
+    color: #fff;
+  }
+
+  .auth-orb {
+    @apply pointer-events-none absolute rounded-full blur-3xl;
+  }
 }

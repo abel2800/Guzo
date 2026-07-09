@@ -5,7 +5,20 @@ let socket: Socket | null = null;
 let getTokenFn: (() => Promise<string | null>) | null = null;
 
 export function socketUrlFromApi(apiBaseUrl: string): string {
-  return apiBaseUrl.replace(/\/api\/v\d+\/?$/, '');
+  if (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_SOCKET_URL) {
+    return process.env.EXPO_PUBLIC_SOCKET_URL;
+  }
+  const base = apiBaseUrl.replace(/\/api\/v\d+\/?$/, '');
+  try {
+    const url = new URL(base);
+    const socketPort = process.env?.EXPO_PUBLIC_SOCKET_PORT ?? '4001';
+    if (url.port === '4000' || url.port === '') {
+      url.port = socketPort;
+    }
+    return url.origin;
+  } catch {
+    return base;
+  }
 }
 
 export async function connectSocket(socketUrl: string, getToken: () => Promise<string | null>): Promise<Socket> {

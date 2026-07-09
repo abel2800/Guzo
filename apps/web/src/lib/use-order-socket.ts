@@ -14,10 +14,6 @@ interface OrderSocketHandlers {
   onTracking?: (payload: DriverLocationPayload) => void;
 }
 
-/**
- * Subscribe to a single order's realtime room. Handlers are kept in a ref so the
- * subscription only re-runs when the order id changes, not on every render.
- */
 export function useOrderSocket(orderId: string | undefined, handlers: OrderSocketHandlers) {
   const ref = useRef(handlers);
   ref.current = handlers;
@@ -44,7 +40,6 @@ export function useOrderSocket(orderId: string | undefined, handlers: OrderSocke
   }, [orderId]);
 }
 
-/** Emit a driver GPS ping for an order (driver app). */
 export function emitDriverLocation(payload: DriverLocationPayload) {
   getSocket().emit(SOCKET_EVENTS.DRIVER_LOCATION, payload);
 }

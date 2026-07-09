@@ -13,14 +13,22 @@ import {
   ShieldCheck,
   Bell,
   Star,
+  Gift,
   LifeBuoy,
   Warehouse,
   Receipt,
+  Store,
   Tags,
   KeyRound,
   ScrollText,
   Navigation,
   ClipboardList,
+  Car,
+  AlertTriangle,
+  Clock,
+  ArrowRightLeft,
+  UserPlus,
+  Activity,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -34,20 +42,19 @@ export type RoleSlug =
   | 'merchant'
   | 'customer'
   | 'support'
-  | 'finance';
+  | 'finance'
+  | 'branch';
 
 export interface NavItem {
   title: string;
-  href: string; // relative section, '' = overview
-  icon: LucideIcon;
+  href: string;   icon: LucideIcon;
 }
 
 export interface RoleConfig {
   slug: RoleSlug;
   role: Role;
   label: string;
-  /** Endpoint used by the overview page (may be role-specific). */
-  overviewEndpoint: string;
+    overviewEndpoint: string;
   nav: NavItem[];
 }
 
@@ -62,13 +69,13 @@ export const ROLE_TO_SLUG: Record<Role, RoleSlug> = {
   CUSTOMER: 'customer',
   SUPPORT: 'support',
   FINANCE: 'finance',
+  BRANCH_STAFF: 'branch',
 };
 
 export const SLUG_TO_ROLE = Object.fromEntries(
   Object.entries(ROLE_TO_SLUG).map(([role, slug]) => [slug, role as Role]),
 ) as Record<RoleSlug, Role>;
 
-/** When a user has multiple roles, pick the highest-priority dashboard. */
 const ROLE_PRIORITY: Role[] = [
   'SUPER_ADMIN',
   'ADMIN',
@@ -76,6 +83,7 @@ const ROLE_PRIORITY: Role[] = [
   'FINANCE',
   'WAREHOUSE_MANAGER',
   'WAREHOUSE_STAFF',
+  'BRANCH_STAFF',
   'SUPPORT',
   'MERCHANT',
   'DRIVER',
@@ -104,13 +112,17 @@ export const ROLE_CONFIG: Record<RoleSlug, RoleConfig> = {
       { title: 'Drivers', href: 'drivers', icon: Truck },
       { title: 'Merchants', href: 'merchants', icon: Boxes },
       { title: 'Customers', href: 'customers', icon: Users },
+      { title: 'Branches', href: 'branches', icon: MapPin },
       { title: 'Warehouses', href: 'warehouses', icon: Warehouse },
       { title: 'Orders', href: 'orders', icon: Package },
       { title: 'Tracking', href: 'tracking', icon: MapPin },
+      { title: 'Control tower', href: 'control-tower', icon: Navigation },
+      { title: 'Exceptions', href: 'exceptions', icon: AlertTriangle },
       { title: 'Payments', href: 'payments', icon: Wallet },
       { title: 'Pricing', href: 'pricing', icon: Tags },
       { title: 'Coupons', href: 'coupons', icon: Tags },
       { title: 'Audit Logs', href: 'audit-logs', icon: ScrollText },
+      { title: 'Activity Logs', href: 'activity-logs', icon: Activity },
       { title: 'Settings', href: 'settings', icon: Settings },
     ],
   },
@@ -126,10 +138,16 @@ export const ROLE_CONFIG: Record<RoleSlug, RoleConfig> = {
       { title: 'Drivers', href: 'drivers', icon: Truck },
       { title: 'Merchants', href: 'merchants', icon: Boxes },
       { title: 'Customers', href: 'customers', icon: Users },
+      { title: 'Branches', href: 'branches', icon: MapPin },
+      { title: 'Warehouses', href: 'warehouses', icon: Warehouse },
       { title: 'Tracking', href: 'tracking', icon: MapPin },
+      { title: 'Control tower', href: 'control-tower', icon: Navigation },
+      { title: 'Exceptions', href: 'exceptions', icon: AlertTriangle },
+      { title: 'Payments', href: 'payments', icon: Wallet },
       { title: 'Support Tickets', href: 'support', icon: LifeBuoy },
       { title: 'Reports', href: 'reports', icon: FileText },
       { title: 'Analytics', href: 'analytics', icon: BarChart3 },
+      { title: 'Activity Logs', href: 'activity-logs', icon: Activity },
       { title: 'Settings', href: 'settings', icon: Settings },
     ],
   },
@@ -143,10 +161,15 @@ export const ROLE_CONFIG: Record<RoleSlug, RoleConfig> = {
       { title: 'Orders', href: 'orders', icon: Package },
       { title: 'Drivers', href: 'drivers', icon: Truck },
       { title: 'Tracking', href: 'tracking', icon: MapPin },
+      { title: 'Control tower', href: 'control-tower', icon: Navigation },
+      { title: 'Exceptions', href: 'exceptions', icon: AlertTriangle },
+      { title: 'Live trucks', href: 'trucks', icon: Truck },
       { title: 'Warehouses', href: 'warehouses', icon: Warehouse },
-      { title: 'Vehicles', href: 'vehicles', icon: Truck },
+      { title: 'Branches', href: 'branches', icon: MapPin },
+      { title: 'Vehicles', href: 'vehicles', icon: Car },
       { title: 'Reports', href: 'reports', icon: FileText },
       { title: 'Analytics', href: 'analytics', icon: BarChart3 },
+      { title: 'Settings', href: 'settings', icon: Settings },
     ],
   },
   'warehouse-manager': {
@@ -157,11 +180,15 @@ export const ROLE_CONFIG: Record<RoleSlug, RoleConfig> = {
     nav: [
       overview(LayoutDashboard),
       { title: 'Incoming', href: 'incoming', icon: Boxes },
-      { title: 'Outgoing', href: 'outgoing', icon: Truck },
-      { title: 'Inventory', href: 'inventory', icon: ClipboardList },
-      { title: 'Storage', href: 'storage', icon: Warehouse },
+      { title: 'Sorting', href: 'sorting', icon: ClipboardList },
+      { title: 'Manifests', href: 'manifests', icon: Truck },
+      { title: 'Inventory', href: 'inventory', icon: Warehouse },
+      { title: 'Aging', href: 'aging', icon: Clock },
+      { title: 'Transfer', href: 'transfer', icon: ArrowRightLeft },
+      { title: 'Live trucks', href: 'trucks', icon: Truck },
       { title: 'Employees', href: 'employees', icon: Users },
       { title: 'Reports', href: 'reports', icon: FileText },
+      { title: 'Settings', href: 'settings', icon: Settings },
     ],
   },
   warehouse: {
@@ -173,9 +200,12 @@ export const ROLE_CONFIG: Record<RoleSlug, RoleConfig> = {
       overview(LayoutDashboard),
       { title: 'Incoming Parcels', href: 'incoming', icon: Boxes },
       { title: 'Sorting', href: 'sorting', icon: ClipboardList },
-      { title: 'Scanning', href: 'scanning', icon: Package },
+      { title: 'Manifests', href: 'manifests', icon: Truck },
       { title: 'Dispatch', href: 'dispatch', icon: Truck },
       { title: 'Inventory', href: 'inventory', icon: Warehouse },
+      { title: 'Aging', href: 'aging', icon: Clock },
+      { title: 'Transfer', href: 'transfer', icon: ArrowRightLeft },
+      { title: 'Settings', href: 'settings', icon: Settings },
     ],
   },
   driver: {
@@ -188,9 +218,12 @@ export const ROLE_CONFIG: Record<RoleSlug, RoleConfig> = {
       { title: 'Available', href: 'available', icon: Package },
       { title: 'Accepted', href: 'accepted', icon: ClipboardList },
       { title: 'Navigation', href: 'navigation', icon: Navigation },
+      { title: 'Manifests', href: 'manifests', icon: Truck },
+      { title: 'Vehicle', href: 'vehicle', icon: Car },
       { title: 'Proof of Delivery', href: 'pod', icon: FileText },
       { title: 'Earnings', href: 'earnings', icon: Wallet },
       { title: 'History', href: 'history', icon: ScrollText },
+      { title: 'Settings', href: 'settings', icon: Settings },
     ],
   },
   merchant: {
@@ -200,6 +233,7 @@ export const ROLE_CONFIG: Record<RoleSlug, RoleConfig> = {
     overviewEndpoint: '/dashboard/merchant',
     nav: [
       overview(LayoutDashboard),
+      { title: 'Create shipment', href: 'create', icon: Package },
       { title: 'Orders', href: 'orders', icon: Package },
       { title: 'Bulk Upload', href: 'bulk-upload', icon: Boxes },
       { title: 'Customers', href: 'customers', icon: Users },
@@ -223,7 +257,10 @@ export const ROLE_CONFIG: Record<RoleSlug, RoleConfig> = {
       { title: 'Wallet', href: 'wallet', icon: Wallet },
       { title: 'Invoices', href: 'invoices', icon: Receipt },
       { title: 'Reviews', href: 'reviews', icon: Star },
+      { title: 'Loyalty', href: 'loyalty', icon: Gift },
+      { title: 'Insurance', href: 'insurance', icon: ShieldCheck },
       { title: 'Support', href: 'support', icon: LifeBuoy },
+      { title: 'Settings', href: 'settings', icon: Settings },
     ],
   },
   support: {
@@ -238,6 +275,7 @@ export const ROLE_CONFIG: Record<RoleSlug, RoleConfig> = {
       { title: 'Refund Requests', href: 'refunds', icon: Receipt },
       { title: 'Notifications', href: 'notifications', icon: Bell },
       { title: 'Knowledge Base', href: 'kb', icon: FileText },
+      { title: 'Settings', href: 'settings', icon: Settings },
     ],
   },
   finance: {
@@ -253,6 +291,22 @@ export const ROLE_CONFIG: Record<RoleSlug, RoleConfig> = {
       { title: 'Revenue', href: 'revenue', icon: BarChart3 },
       { title: 'Taxes', href: 'taxes', icon: FileText },
       { title: 'Reports', href: 'reports', icon: FileText },
+      { title: 'Settings', href: 'settings', icon: Settings },
+    ],
+  },
+  branch: {
+    slug: 'branch',
+    role: 'BRANCH_STAFF',
+    label: 'Branch',
+    overviewEndpoint: '/dashboard/branch',
+    nav: [
+      overview(LayoutDashboard),
+      { title: 'Counter', href: 'counter', icon: Store },
+      { title: 'Register', href: 'register', icon: UserPlus },
+      { title: 'Shelf', href: 'shelf', icon: Boxes },
+      { title: 'Inventory', href: 'inventory', icon: Package },
+      { title: 'Exceptions', href: 'exceptions', icon: AlertTriangle },
+      { title: 'Settings', href: 'settings', icon: Settings },
     ],
   },
 };

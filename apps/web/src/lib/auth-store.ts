@@ -15,10 +15,6 @@ interface AuthState {
   clear: () => void;
 }
 
-/**
- * Single source of truth for auth on the client. Persisted to localStorage so a
- * refresh keeps the session. The axios client reads tokens from here.
- */
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({

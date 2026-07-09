@@ -47,7 +47,6 @@ function qs(params: Record<string, unknown>) {
   return s.toString();
 }
 
-// ---- Users ----
 export async function listUsers(params: { page?: number; limit?: number; search?: string; status?: string } = {}) {
   const { data } = await api.get<ApiResponse<AdminUser[]>>(`/users?${qs(params)}`);
   if (!data.success) throw new Error(data.message);
@@ -76,7 +75,6 @@ export async function listRoles(): Promise<RoleRow[]> {
   return data.data;
 }
 
-// ---- Drivers ----
 export async function listDriversPaged(
   params: { page?: number; limit?: number; search?: string; approvalStatus?: string } = {},
 ) {

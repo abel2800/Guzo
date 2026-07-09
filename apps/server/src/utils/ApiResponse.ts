@@ -11,7 +11,6 @@ export interface PaginationMeta {
   unreadCount?: number;
 }
 
-/** Build standard pagination metadata. */
 export function buildMeta(page: number, limit: number, total: number): PaginationMeta {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   return {
@@ -24,7 +23,6 @@ export function buildMeta(page: number, limit: number, total: number): Paginatio
   };
 }
 
-/** Consistent success envelope helper. */
 export function ok<T>(res: Response, data: T, message = 'Success', meta?: PaginationMeta) {
   return res.status(HTTP_STATUS.OK).json({ success: true, message, data, ...(meta ? { meta } : {}) });
 }

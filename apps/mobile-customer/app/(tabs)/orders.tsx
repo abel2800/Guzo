@@ -1,23 +1,67 @@
-import { View, Text, FlatList, RefreshControl, Pressable, StyleSheet } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, SectionList, RefreshControl, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { listOrders, ORDER_STATUS_LABELS, fetchWithCache, cacheOrdersList } from '@guzo/mobile-shared';
-import { OfflineBanner } from '@guzo/mobile-ui';
-import { GlassCard } from '@guzo/mobile-ui';
+import {
+  listOrders,
+  ORDER_STATUS_LABELS,
+  PARCEL_BUCKETS,
+  groupOrdersByBucket,
+  fetchWithCache,
+  cacheOrdersList,
+  type ParcelBucketKey,
+} from '@guzo/mobile-shared';
+import { OfflineBanner, GlassCard } from '@guzo/mobile-ui';
 import { colors, designStyles, radius, spacing } from '@/lib/design';
+
+const ACTIVE_BUCKETS: ParcelBucketKey[] = [
+  'waiting', 'pickedUp', 'atBranch', 'inTransit', 'atWarehouse', 'atDestinationBranch', 'readyForPickup',
+];
+
+const FILTER_MAP: Record<string, ParcelBucketKey[] | 'incoming' | 'all'> = {
+  active: ACTIVE_BUCKETS,
+  incoming: 'incoming',
+  ready: ['readyForPickup', 'atDestinationBranch'],
+  delivered: ['delivered'],
+  draft: ['draft'],
+  all: 'all',
+};
 
 export default function OrdersScreen() {
   const insets = useSafeAreaInsets();
+  const { filter } = useLocalSearchParams<{ filter?: string }>();
+  const [tab, setTab] = useState<'sent' | 'incoming'>('sent');
+
+  useEffect(() => {
+    if (filter === 'incoming') setTab('incoming');
+  }, [filter]);
+
   const { data, isLoading, refetch, isRefetching, isError } = useQuery({
-    queryKey: ['my-orders'],
+    queryKey: ['my-orders', tab],
     queryFn: async () => {
-      const { data: result, fromCache } = await fetchWithCache('orders:my:50', () => listOrders({ limit: 50 }));
+      const scope = tab === 'incoming' ? 'incoming' : undefined;
+      const { data: result, fromCache } = await fetchWithCache(`orders:my:${tab}:50`, () =>
+        listOrders({ limit: 50, scope }),
+      );
       if (!fromCache) await cacheOrdersList(result.items);
       return result;
     },
   });
+
+  const sections = useMemo(() => {
+    const orders = data?.items ?? [];
+    const bucketFilter = filter ? FILTER_MAP[filter] : undefined;
+    if (bucketFilter === 'incoming') {
+      return [{ title: 'Incoming parcels', data: orders }];
+    }
+    const grouped = groupOrdersByBucket(orders);
+    return PARCEL_BUCKETS.filter((b) => {
+      if (bucketFilter && bucketFilter !== 'all' && !bucketFilter.includes(b.key)) return false;
+      return grouped[b.key].length > 0;
+    }).map((b) => ({ title: b.label, data: grouped[b.key] }));
+  }, [data?.items, filter]);
 
   return (
     <View style={[designStyles.screen, { paddingTop: insets.top }]}>
@@ -26,22 +70,27 @@ export default function OrdersScreen() {
         <Pressable onPress={() => router.back()} style={styles.back}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={styles.title}>Order history</Text>
+        <Text style={styles.title}>My parcels</Text>
         <View style={styles.back} />
       </View>
-      <FlatList
-        contentContainerStyle={[designStyles.screenPad, { paddingTop: spacing.sm }]}
-        data={data?.items ?? []}
+
+      <View style={styles.tabs}>
+        <TabChip label="Sent" active={tab === 'sent'} onPress={() => setTab('sent')} />
+        <TabChip label="Incoming" active={tab === 'incoming'} onPress={() => setTab('incoming')} />
+      </View>
+
+      <SectionList
+        sections={sections}
         keyExtractor={(o) => o.id}
+        contentContainerStyle={[designStyles.screenPad, { paddingTop: spacing.sm }]}
         refreshControl={<RefreshControl refreshing={isLoading || isRefetching} onRefresh={refetch} tintColor={colors.primary} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="cube-outline" size={48} color={colors.textDim} />
-            <Text style={styles.emptyText}>
-              {isError ? 'Unable to load — pull to retry' : 'No orders yet'}
-            </Text>
+            <Text style={styles.emptyText}>{isError ? 'Unable to load — pull to retry' : 'No parcels in this group'}</Text>
           </View>
         }
+        renderSectionHeader={({ section: { title } }) => <Text style={styles.groupTitle}>{title}</Text>}
         renderItem={({ item }) => (
           <Pressable onPress={() => router.push(`/order/${item.id}`)}>
             <GlassCard style={styles.card}>
@@ -56,7 +105,7 @@ export default function OrdersScreen() {
                 <Text style={styles.routeText}>{item.pickupAddress.city} → {item.dropoffAddress.city}</Text>
               </View>
               <Text style={styles.meta}>
-                {item.currency} {Number(item.totalAmount).toLocaleString()} · {item.deliveryType}
+                {item.currency} {Number(item.totalAmount).toLocaleString()} · {item.packages[0]?.trackingNumber ?? '—'}
               </Text>
             </GlassCard>
           </Pressable>
@@ -66,10 +115,24 @@ export default function OrdersScreen() {
   );
 }
 
+function TabChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={[styles.tab, active && styles.tabActive]}>
+      <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: 12 },
   back: { width: 40 },
   title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.text },
+  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: spacing.lg, marginBottom: 8 },
+  tab: { flex: 1, paddingVertical: 8, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
+  tabActive: { backgroundColor: 'rgba(34,197,94,0.15)', borderColor: colors.primary },
+  tabText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
+  tabTextActive: { color: colors.primary },
+  groupTitle: { color: colors.textMuted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginTop: 16, marginBottom: 8 },
   card: { marginBottom: 12 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   ref: { color: colors.text, fontWeight: '800', fontSize: 16 },

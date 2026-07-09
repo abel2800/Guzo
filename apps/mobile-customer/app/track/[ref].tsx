@@ -4,10 +4,6 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { trackOrder } from '@guzo/mobile-shared';
 import { theme } from '@/lib/theme';
 
-/**
- * Deep link entry: guzo-customer://track/GZ-28491
- * Resolves public tracking ref → navigates to order detail.
- */
 export default function TrackDeepLinkScreen() {
   const { ref } = useLocalSearchParams<{ ref: string }>();
   const [error, setError] = useState('');

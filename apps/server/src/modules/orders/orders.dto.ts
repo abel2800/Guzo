@@ -22,8 +22,7 @@ export interface PackageInput {
 }
 
 export interface CreateOrderDto {
-  /** Only honored for admins; otherwise derived from the authenticated user. */
-  customerId?: string;
+    customerId?: string;
   merchantId?: string;
   deliveryType?: 'STANDARD' | 'EXPRESS' | 'SAME_DAY' | 'SCHEDULED' | 'INTERNATIONAL';
   pickup: AddressInput;
@@ -41,6 +40,9 @@ export interface UpdateOrderStatusDto {
     | 'PICKED_UP'
     | 'IN_TRANSIT'
     | 'AT_WAREHOUSE'
+    | 'AT_BRANCH'
+    | 'AT_DESTINATION_BRANCH'
+    | 'READY_FOR_PICKUP'
     | 'OUT_FOR_DELIVERY'
     | 'DELIVERED'
     | 'FAILED'

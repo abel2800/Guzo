@@ -11,13 +11,13 @@ import {
 } from '@guzo/mobile-shared';
 import { tokenStorage } from '@/lib/storage';
 import { useAuth } from '@/lib/auth';
-import { GradientButton, GlassCard } from '@guzo/mobile-ui';
+import { GradientButton, GlassCard, GuzoBrandLogo } from '@guzo/mobile-ui';
 import { colors, gradients, radius, spacing } from '@/lib/design';
 
 export default function LoginScreen() {
   const { signIn, signInWithBiometrics } = useAuth();
   const [email, setEmail] = useState('driver@delivery.local');
-  const [password, setPassword] = useState('Password123!');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [showBio, setShowBio] = useState(false);
@@ -63,10 +63,7 @@ export default function LoginScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.brandBlock}>
-            <LinearGradient colors={[...gradients.primary]} style={styles.logo}>
-              <Ionicons name="car-sport" size={36} color={colors.bg} />
-            </LinearGradient>
-            <Text style={styles.brand}>GUZO</Text>
+            <GuzoBrandLogo source={require('@/assets/guzo-mark.png')} width={240} height={160} />
             <Text style={styles.tagline}>Driver — earn on every delivery</Text>
           </View>
 
@@ -97,8 +94,6 @@ const styles = StyleSheet.create({
   bg: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: spacing.lg, minHeight: '100%' },
   brandBlock: { alignItems: 'center', marginBottom: 32 },
-  logo: { width: 72, height: 72, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  brand: { fontSize: 40, fontWeight: '900', color: colors.text, letterSpacing: 2 },
   tagline: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
   formCard: { marginTop: 8 },
   bioBtn: { alignItems: 'center', paddingVertical: 16, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.border },

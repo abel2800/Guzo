@@ -14,8 +14,7 @@ export default function SectionPage() {
   const section = params.section as string;
   const config = ROLE_CONFIG[slug];
 
-  // Fully-built feature for this role/section, if one is registered.
-  const Feature = SECTION_REGISTRY[`${slug}/${section}`];
+    const Feature = SECTION_REGISTRY[`${slug}/${section}`];
   if (Feature) return <Feature />;
 
   const item = config?.nav.find((n) => n.href === section);
@@ -24,25 +23,31 @@ export default function SectionPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Icon className="h-5 w-5" />
+      <div className="dashboard-hero">
+        <div className="dashboard-orb -right-6 top-0 h-24 w-24 bg-guzo-primary/20" />
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-guzo-primary/15 text-guzo-primary shadow-[0_0_30px_rgba(34,197,94,0.18)]">
+              <Icon className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-guzo-primary">{config?.label} experience</p>
+              <h1 className="text-3xl font-bold capitalize tracking-tight text-white">{title}</h1>
+              <p className="text-sm text-slate-300">{config?.label} module</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold capitalize tracking-tight">{title}</h1>
-            <p className="text-sm text-muted-foreground">{config?.label} module</p>
-          </div>
+          <Badge variant="secondary" className="w-fit border-white/10 bg-white/10 text-white">
+            Coming next phase
+          </Badge>
         </div>
-        <Badge variant="secondary">Coming next phase</Badge>
       </div>
 
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         <Card>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-            <Construction className="h-10 w-10 text-muted-foreground" />
-            <p className="text-lg font-semibold capitalize">{title}</p>
-            <p className="max-w-md text-sm text-muted-foreground">
+            <Construction className="h-10 w-10 text-slate-400" />
+            <p className="text-lg font-semibold capitalize text-white">{title}</p>
+            <p className="max-w-md text-sm text-slate-300">
               This module is scaffolded and routed. Its full UI (tables, filters, forms, charts and
               real-time data) will be built in the next phase. The backend endpoints already exist.
             </p>

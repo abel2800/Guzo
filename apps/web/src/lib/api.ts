@@ -6,7 +6,6 @@ import { useAuthStore, authSelectors } from './auth-store';
 
 const baseURL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
-/** Shared axios client with transparent refresh-token rotation. */
 export const api: AxiosInstance = axios.create({
   baseURL,
   headers: { 'Content-Type': 'application/json' },
@@ -57,7 +56,6 @@ api.interceptors.response.use(
   },
 );
 
-/** Small helper to unwrap the standard success envelope. */
 export async function apiGet<T>(url: string): Promise<T> {
   const { data } = await api.get<ApiResponse<T>>(url);
   if (!data.success) throw new Error(data.message);

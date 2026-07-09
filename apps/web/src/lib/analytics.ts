@@ -60,3 +60,30 @@ export function getOrdersReport(from?: string, to?: string): Promise<OrdersRepor
 export function getDeliveriesReport(from?: string, to?: string): Promise<DeliveriesReport> {
   return apiGet<DeliveriesReport>(`/reports/deliveries${qs({ from, to })}`);
 }
+
+export interface OperationsMetrics {
+  rangeDays: number;
+  delivered: number;
+  failedDeliveries: number;
+  lostPackages: number;
+  lateDeliveries: number;
+  latePct: number;
+  failPct: number;
+  avgDeliveryHours: number;
+  branchRankings: Array<{ branchId: string; name: string; city: string; pickups: number; queueLevel: number }>;
+}
+
+export interface SatisfactionSummary {
+  rangeDays: number;
+  averageRating: number;
+  totalReviews: number;
+  distribution: Array<{ rating: number; count: number }>;
+}
+
+export function getOperationsMetrics(days = 30): Promise<OperationsMetrics> {
+  return apiGet<OperationsMetrics>(`/analytics/operations-metrics?days=${days}`);
+}
+
+export function getSatisfactionSummary(days = 90): Promise<SatisfactionSummary> {
+  return apiGet<SatisfactionSummary>(`/analytics/satisfaction?days=${days}`);
+}

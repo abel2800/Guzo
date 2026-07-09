@@ -33,12 +33,10 @@ export const warehousesController = {
     return noContent(res);
   }),
 
-  // ---- Floor operations ----
-
   receive: asyncHandler(async (req: Request, res: Response) => {
     const { trackingNumber, shelfCode, zone, note } = req.body ?? {};
     if (!trackingNumber) throw ApiError.badRequest('trackingNumber is required');
-    const inv = await warehouseOpsService.receive(req.params.id, { trackingNumber, shelfCode, zone, note });
+    const inv = await warehouseOpsService.receive(req.params.id, { trackingNumber, shelfCode, zone, note }, req.user?.id);
     return created(res, inv, 'Parcel received');
   }),
 
@@ -46,14 +44,14 @@ export const warehousesController = {
     const { trackingNumber, shelfCode, zone } = req.body ?? {};
     if (!trackingNumber) throw ApiError.badRequest('trackingNumber is required');
     if (!shelfCode) throw ApiError.badRequest('shelfCode is required');
-    const inv = await warehouseOpsService.sort(req.params.id, { trackingNumber, shelfCode, zone });
+    const inv = await warehouseOpsService.sort(req.params.id, { trackingNumber, shelfCode, zone }, req.user?.id);
     return ok(res, inv, 'Parcel sorted');
   }),
 
   dispatch: asyncHandler(async (req: Request, res: Response) => {
     const { trackingNumber, note } = req.body ?? {};
     if (!trackingNumber) throw ApiError.badRequest('trackingNumber is required');
-    const inv = await warehouseOpsService.dispatch(req.params.id, { trackingNumber, note });
+    const inv = await warehouseOpsService.dispatch(req.params.id, { trackingNumber, note }, req.user?.id);
     return ok(res, inv, 'Parcel dispatched');
   }),
 
@@ -67,5 +65,23 @@ export const warehousesController = {
   stats: asyncHandler(async (req: Request, res: Response) => {
     const data = await warehouseOpsService.stats(req.params.id);
     return ok(res, data, 'Warehouse stats');
+  }),
+
+  inventoryByCity: asyncHandler(async (req: Request, res: Response) => {
+    const data = await warehouseOpsService.inventoryByCity(req.params.id);
+    return ok(res, data, 'Inventory by city');
+  }),
+
+  aging: asyncHandler(async (req: Request, res: Response) => {
+    const data = await warehouseOpsService.agingReport(req.params.id);
+    return ok(res, data, 'Aging report');
+  }),
+
+  transfer: asyncHandler(async (req: Request, res: Response) => {
+    const { trackingNumber, destinationWarehouseId } = req.body ?? {};
+    if (!trackingNumber) throw ApiError.badRequest('trackingNumber is required');
+    if (!destinationWarehouseId) throw ApiError.badRequest('destinationWarehouseId is required');
+    const inv = await warehouseOpsService.transfer(req.params.id, { trackingNumber, destinationWarehouseId });
+    return ok(res, inv, 'Parcel transferred');
   }),
 };

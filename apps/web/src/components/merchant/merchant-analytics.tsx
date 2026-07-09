@@ -17,6 +17,7 @@ import { getMerchantSummary } from '@/lib/merchant';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyPanel, FuturisticHero } from '@/components/dashboard/futuristic-primitives';
 
 const PIE_COLORS = ['#f97316', '#2563eb', '#16a34a', '#a855f7', '#eab308', '#ef4444', '#0ea5e9'];
 
@@ -28,10 +29,17 @@ export function MerchantAnalytics() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-        <p className="text-muted-foreground">Performance across your shipments.</p>
-      </div>
+      <FuturisticHero
+        eyebrow="Merchant intelligence"
+        icon={Package}
+        title="Analytics"
+        description="Performance across your shipments with status breakdowns and revenue signals."
+        stats={[
+          { label: 'Orders', value: 'Full funnel' },
+          { label: 'Transit', value: 'Live count' },
+          { label: 'Revenue', value: 'ETB totals' },
+        ]}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total Orders" value={totals?.orders ?? 0} icon={Package} loading={isLoading} />
@@ -63,9 +71,7 @@ export function MerchantAnalytics() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-                No orders yet.
-              </div>
+              <EmptyPanel icon={Package} title="No orders yet" />
             )}
           </CardContent>
         </Card>
@@ -89,7 +95,7 @@ export function MerchantAnalytics() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">No data.</div>
+              <EmptyPanel icon={Package} title="No data" />
             )}
           </CardContent>
         </Card>

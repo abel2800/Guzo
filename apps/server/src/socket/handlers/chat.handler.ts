@@ -8,7 +8,6 @@ interface ChatPayload {
   message: string;
 }
 
-/** Simple 1:1 / order-scoped chat (customer <-> driver <-> support). */
 export function registerChatHandlers(io: Server, socket: Socket) {
   socket.on(SOCKET_EVENTS.CHAT_MESSAGE, (payload: ChatPayload) => {
     const fromUserId = socket.data.userId as string;

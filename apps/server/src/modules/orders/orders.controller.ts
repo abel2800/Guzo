@@ -27,11 +27,7 @@ function isMerchant(req: Request) {
 
 export const ordersController = {
   list: asyncHandler(async (req: Request, res: Response) => {
-    // Resolve the read scope from the caller's role:
-    //  - admins/ops see everything,
-    //  - drivers see either their assigned deliveries or the pool of available jobs,
-    //  - everyone else is scoped to the orders owned by their customer profile.
-    let scope: Parameters<typeof ordersService.list>[1];
+                    let scope: Parameters<typeof ordersService.list>[1];
     if (isAdmin(req)) {
       scope = undefined;
     } else if (isDriver(req)) {
@@ -115,6 +111,43 @@ export const ordersController = {
       longitude: toNum(req.body.longitude),
     });
     return ok(res, order, ORDER_MESSAGES.STATUS_UPDATED);
+  }),
+
+  submitPickupProof: asyncHandler(async (req: Request, res: Response) => {
+    const files = req.files as Record<string, Express.Multer.File[]> | undefined;
+    const photo = files?.photo?.[0];
+    if (!photo) throw ApiError.badRequest('A pickup photo is required');
+    const signature = files?.signature?.[0];
+    const toNum = (v: unknown) => (v !== undefined && v !== '' ? Number(v) : undefined);
+    const order = await ordersService.confirmPickupWithProof(req.params.id, req.user!.id, {
+      photo,
+      signature,
+      note: typeof req.body.note === 'string' ? req.body.note : undefined,
+      latitude: toNum(req.body.latitude),
+      longitude: toNum(req.body.longitude),
+    });
+    return ok(res, order, 'Pickup confirmed');
+  }),
+
+  branchHandoff: asyncHandler(async (req: Request, res: Response) => {
+    const { branchId, trackingNumber } = req.body ?? {};
+    if (!branchId || !trackingNumber) throw ApiError.badRequest('branchId and trackingNumber are required');
+    const order = await ordersService.branchHandoff(req.params.id, req.user!.id, { branchId, trackingNumber });
+    return ok(res, order, 'Dropped at branch');
+  }),
+
+  markFailed: asyncHandler(async (req: Request, res: Response) => {
+    const order = await ordersService.markFailed(
+      req.params.id,
+      req.user!.id,
+      typeof req.body?.note === 'string' ? req.body.note : undefined,
+    );
+    return ok(res, order, 'Delivery marked failed');
+  }),
+
+  reattempt: asyncHandler(async (req: Request, res: Response) => {
+    const order = await ordersService.reattemptDelivery(req.params.id, req.user!.id);
+    return ok(res, order, 'Delivery reattempt started');
   }),
 
   cancel: asyncHandler(async (req: Request, res: Response) => {

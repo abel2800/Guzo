@@ -1,6 +1,4 @@
-# Creates 7 local commits (one per day) for a gradual week-long push to GitHub.
-# Run once: npm run git:setup-week
-# Then each day: npm run push:day -- -Day 1  (through -Day 7)
+
 
 param(
   [string]$StartDate = (Get-Date -Format 'yyyy-MM-dd')
@@ -169,7 +167,6 @@ foreach ($d in $days) {
 Remove-Item Env:GIT_AUTHOR_DATE -ErrorAction SilentlyContinue
 Remove-Item Env:GIT_COMMITTER_DATE -ErrorAction SilentlyContinue
 
-# Stage anything left (should be nothing except ignored files)
 $left = git status --porcelain
 if ($left) {
   Write-Warning "Uncommitted files remain (check .gitignore):"

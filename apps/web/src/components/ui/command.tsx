@@ -23,7 +23,7 @@ function CommandDialog({ children, open, onOpenChange }: { children: React.React
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-[20%] z-50 w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border bg-popover shadow-2xl">
+        <Dialog.Content className="fixed left-1/2 top-[20%] z-50 w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border border-white/10 bg-guzo-bg/95 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
           <Dialog.Title className="sr-only">Command Menu</Dialog.Title>
           <Command className="[&_[cmdk-input-wrapper]]:border-b">{children}</Command>
         </Dialog.Content>
@@ -36,12 +36,12 @@ const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
-  <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
+  <div className="flex items-center border-b border-white/10 px-3" cmdk-input-wrapper="">
     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
     <CommandPrimitive.Input
       ref={ref}
       className={cn(
-        'flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
+        'flex h-11 w-full rounded-md bg-transparent py-3 text-sm text-white outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       {...props}
@@ -83,7 +83,7 @@ const CommandItem = React.forwardRef<
   <CommandPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg]:size-4',
+      'relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-2 text-sm text-slate-200 outline-none data-[selected=true]:bg-white/10 data-[selected=true]:text-white [&_svg]:size-4',
       className,
     )}
     {...props}

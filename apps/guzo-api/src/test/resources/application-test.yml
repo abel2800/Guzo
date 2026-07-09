@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:guzo_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+
+guzo:
+  jwt:
+    access-secret: test_access_secret_32_chars_minimum
+    refresh-secret: test_refresh_secret_32_chars_minimum
+  socket:
+    enabled: false

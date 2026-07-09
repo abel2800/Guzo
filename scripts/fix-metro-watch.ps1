@@ -1,4 +1,4 @@
-# Fixes Metro file-watcher crashes on Windows (broken optional native binding paths)
+
 $Root = Split-Path -Parent $PSScriptRoot
 $paths = @(
     "$Root\node_modules\@tybys\wasm-util\dist",

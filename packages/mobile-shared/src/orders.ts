@@ -10,7 +10,13 @@ export function createOrder(input: CreateOrderInput): Promise<Order> {
   return apiPost<Order>('/orders', input);
 }
 
-export function listOrders(params: { page?: number; limit?: number; status?: string; search?: string; scope?: 'available' } = {}) {
+export function listOrders(params: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+  scope?: 'available' | 'incoming';
+} = {}) {
   return apiList<Order>('/orders', params);
 }
 
@@ -48,6 +54,7 @@ export async function submitPod(
   orderId: string,
   input: {
     photo: PodUpload;
+    signature?: PodUpload;
     recipientName?: string;
     note?: string;
     latitude?: number;
@@ -56,6 +63,13 @@ export async function submitPod(
 ): Promise<Order> {
   const form = new FormData();
   form.append('photo', { uri: input.photo.uri, name: input.photo.name, type: input.photo.type } as unknown as Blob);
+  if (input.signature) {
+    form.append('signature', {
+      uri: input.signature.uri,
+      name: input.signature.name,
+      type: input.signature.type,
+    } as unknown as Blob);
+  }
   if (input.recipientName) form.append('recipientName', input.recipientName);
   if (input.note) form.append('note', input.note);
   if (input.latitude != null) form.append('latitude', String(input.latitude));

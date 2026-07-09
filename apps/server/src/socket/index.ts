@@ -9,7 +9,6 @@ import { registerPresenceHandlers } from './handlers/presence.handler.js';
 
 let io: SocketIOServer | null = null;
 
-/** Room helpers keep emit targets consistent across the app. */
 export const rooms = {
   user: (userId: string) => `user:${userId}`,
   order: (orderId: string) => `order:${orderId}`,
@@ -22,8 +21,7 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
     cors: { origin: env.corsOrigins, credentials: true },
   });
 
-  // Authenticate every socket using the JWT access token.
-  io.use((socket, next) => {
+    io.use((socket, next) => {
     try {
       const token =
         (socket.handshake.auth?.token as string | undefined) ||
@@ -56,13 +54,11 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
   return io;
 }
 
-/** Access the io instance from services to emit server-initiated events. */
 export function getIO(): SocketIOServer {
   if (!io) throw new Error('Socket.IO not initialized');
   return io;
 }
 
-/** Convenience emit helpers used by services. */
 export function emitToUser(userId: string, event: string, payload: unknown) {
   io?.to(rooms.user(userId)).emit(event, payload);
 }

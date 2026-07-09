@@ -1,11 +1,5 @@
 import { prisma } from '@delivery/database';
 
-/**
- * Repository for merchants. Generic CRUD over the Prisma "merchant" delegate.
- * The delegate is accessed dynamically so this stays small; tighten types as
- * the module matures (mirror the fully-typed users/auth repositories).
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const delegate = (prisma as any).merchant;
 
 export interface MerchantListParams {
@@ -14,14 +8,12 @@ export interface MerchantListParams {
   search?: string;
   sortBy?: string;
   sortOrder: 'asc' | 'desc';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filters?: Record<string, any>;
 }
 
 export class MerchantRepository {
   async list(params: MerchantListParams) {
     const searchFields = ["merchantCode","businessName"];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { ...(params.filters ?? {}) };
     if (params.search && searchFields.length) {
       where.OR = searchFields.map((f) => ({ [f]: { contains: params.search, mode: 'insensitive' } }));
@@ -38,12 +30,10 @@ export class MerchantRepository {
     return delegate.findUnique({ where: { id } });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   create(data: any) {
     return delegate.create({ data });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   update(id: string, data: any) {
     return delegate.update({ where: { id }, data });
   }

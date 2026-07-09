@@ -1,5 +1,4 @@
-# Build GUZO mobile apps via EAS (Expo Application Services)
-# Requires: npx eas-cli login, EAS_PROJECT_ID per app, Apple Developer for iOS device builds
+
 
 param(
     [ValidateSet('android', 'ios', 'all')]
@@ -15,7 +14,6 @@ $Root = Split-Path -Parent $PSScriptRoot
 
 Write-Host "GUZO mobile build — platform=$Platform app=$App profile=$Profile" -ForegroundColor Cyan
 
-# Check EAS login
 $whoami = npx eas-cli whoami 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Host "`nNot logged in to Expo. Run:" -ForegroundColor Yellow

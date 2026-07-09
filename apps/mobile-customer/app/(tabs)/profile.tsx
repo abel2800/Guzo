@@ -4,6 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getWallet } from '@guzo/mobile-shared';
 import { useAuth } from '@/lib/auth';
 import { GlassCard } from '@guzo/mobile-ui';
 import { colors, gradients, designStyles, radius, spacing } from '@/lib/design';
@@ -12,6 +14,9 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut } = useAuth();
   const [pushEnabled, setPushEnabled] = useState(true);
+  const { data: wallet } = useQuery({ queryKey: ['wallet'], queryFn: getWallet });
+  const currency = wallet?.currency ?? user?.walletCurrency ?? 'ETB';
+  const balance = wallet?.balance ?? user?.walletBalance ?? 0;
 
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase() || 'GU';
 
@@ -25,6 +30,11 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
         <Text style={styles.email}>{user?.email}</Text>
+        {user?.guzoId ? (
+          <View style={styles.guzoBadge}>
+            <Text style={styles.guzoId}>{user.guzoId}</Text>
+          </View>
+        ) : null}
         <View style={styles.ratingRow}>
           <Ionicons name="star" size={14} color={colors.warning} />
           <Text style={styles.rating}>4.9 · Trusted customer</Text>
@@ -35,17 +45,22 @@ export default function ProfileScreen() {
         <View style={styles.walletRow}>
           <View>
             <Text style={styles.walletLabel}>Wallet balance</Text>
-            <Text style={styles.walletValue}>ETB 0.00</Text>
+            <Text style={styles.walletValue}>
+              {currency} {Number(balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </Text>
           </View>
-          <Pressable style={styles.topUpBtn}>
+          <Pressable style={styles.topUpBtn} onPress={() => router.push('/wallet')}>
             <Text style={styles.topUpText}>Top up</Text>
           </Pressable>
         </View>
       </GlassCard>
 
       <Text style={styles.sectionLabel}>Activity</Text>
-      <MenuItem icon="cube-outline" label="Order history" onPress={() => router.push('/(tabs)/orders')} />
-      <MenuItem icon="location-outline" label="Saved addresses" onPress={() => {}} />
+      <MenuItem icon="cube-outline" label="My parcels" onPress={() => router.push('/(tabs)/orders')} />
+      <MenuItem icon="receipt-outline" label="Receipts & invoices" onPress={() => router.push('/receipts')} />
+      <MenuItem icon="location-outline" label="Saved addresses" onPress={() => router.push('/addresses')} />
+      <MenuItem icon="people-outline" label="Family members" onPress={() => router.push('/family')} />
+      <MenuItem icon="headset-outline" label="Support" onPress={() => router.push('/support')} />
       <MenuItem icon="refresh-outline" label="Send again" subtitle="Reorder last shipment" onPress={() => router.push('/(tabs)/book')} />
 
       <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Settings</Text>
@@ -107,6 +122,8 @@ const styles = StyleSheet.create({
   avatarText: { color: colors.text, fontSize: 28, fontWeight: '800' },
   name: { fontSize: 22, fontWeight: '800', color: colors.text },
   email: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
+  guzoBadge: { marginTop: 10, backgroundColor: 'rgba(34,197,94,0.12)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: radius.pill },
+  guzoId: { color: colors.primary, fontWeight: '800', fontSize: 14, letterSpacing: 1 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
   rating: { color: colors.textMuted, fontSize: 13 },
   wallet: { marginBottom: 24 },

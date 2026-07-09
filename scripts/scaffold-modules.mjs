@@ -1,12 +1,3 @@
-/* eslint-disable */
-// ============================================================================
-// Module scaffolder. Generates the standard 8-file structure
-// (controller/service/repository/route/validator/dto/types/constants) for each
-// CRUD module so every module is consistent. Re-runnable & non-destructive:
-// it never overwrites an existing file (so hand-written modules stay intact).
-//
-//   node scripts/scaffold-modules.mjs
-// ============================================================================
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,8 +5,6 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MODULES_DIR = join(__dirname, '..', 'apps', 'server', 'src', 'modules');
 
-// model = Prisma delegate (camelCase). searchFields = string columns for ?search=.
-// roles = who may access the management routes. write = roles allowed to mutate.
 const MODULES = [
   { name: 'roles', model: 'role', pascal: 'Role', searchFields: ['name', 'description'], roles: ['ADMIN'], write: ['ADMIN'] },
   { name: 'permissions', model: 'permission', pascal: 'Permission', searchFields: ['key', 'resource'], roles: ['ADMIN'], write: ['ADMIN'] },
@@ -63,19 +52,15 @@ export interface ${m.pascal}ListResult<T> {
 
 export const idParamValidator = [param('id').isString().notEmpty()];
 
-// Extend with concrete field rules as the ${m.name} contract solidifies.
+
 export const create${m.pascal}Validator = [body().custom(() => true)];
 export const update${m.pascal}Validator = [param('id').isString().notEmpty()];
 `,
 
   repository: (m) => `import { prisma } from '@delivery/database';
 
-/**
- * Repository for ${m.name}. Generic CRUD over the Prisma "${m.model}" delegate.
- * The delegate is accessed dynamically so this stays small; tighten types as
- * the module matures (mirror the fully-typed users/auth repositories).
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+
 const delegate = (prisma as any).${m.model};
 
 export interface ${m.pascal}ListParams {
@@ -84,14 +69,14 @@ export interface ${m.pascal}ListParams {
   search?: string;
   sortBy?: string;
   sortOrder: 'asc' | 'desc';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   filters?: Record<string, any>;
 }
 
 export class ${m.pascal}Repository {
   async list(params: ${m.pascal}ListParams) {
     const searchFields = ${JSON.stringify(m.searchFields)};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const where: any = { ...(params.filters ?? {}) };
     if (params.search && searchFields.length) {
       where.OR = searchFields.map((f) => ({ [f]: { contains: params.search, mode: 'insensitive' } }));
@@ -108,12 +93,12 @@ export class ${m.pascal}Repository {
     return delegate.findUnique({ where: { id } });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   create(data: any) {
     return delegate.create({ data });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   update(id: string, data: any) {
     return delegate.update({ where: { id }, data });
   }

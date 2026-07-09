@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Receipt, Search, Loader2, CheckCircle2, Ban } from 'lucide-react';
+import { Receipt, Loader2, CheckCircle2, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   listInvoices,
@@ -14,9 +14,15 @@ import {
 } from '@/lib/finance';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  EmptyPanel,
+  FilterChip,
+  FuturisticHero,
+  PaginationBar,
+  SearchField,
+} from '@/components/dashboard/futuristic-primitives';
 
 const STATUS_FILTERS = ['', 'ISSUED', 'PAID', 'OVERDUE', 'VOID'];
 
@@ -46,40 +52,41 @@ export function FinanceInvoices() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Invoices</h1>
-        <p className="text-muted-foreground">Track billing and settle outstanding invoices.</p>
-      </div>
+      <FuturisticHero
+        eyebrow="Billing operations"
+        icon={Receipt}
+        title="Invoices"
+        description="Track billing and settle outstanding invoices from a unified finance command view."
+        stats={[
+          { label: 'Status', value: 'Lifecycle' },
+          { label: 'Actions', value: 'Mark paid' },
+          { label: 'Search', value: 'Instant' },
+        ]}
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex flex-wrap gap-2">
           {STATUS_FILTERS.map((s) => (
-            <button
+            <FilterChip
               key={s || 'all'}
               onClick={() => {
                 setStatus(s);
                 setPage(1);
               }}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                status === s ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted'
-              }`}
+              active={status === s}
             >
               {s ? INVOICE_STATUS_META[s]?.label ?? s : 'All'}
-            </button>
+            </FilterChip>
           ))}
         </div>
-        <div className="relative max-w-xs flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Search invoice / order"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-        </div>
+        <SearchField
+          placeholder="Search invoice / order"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+        />
       </div>
 
       <Card>
@@ -91,24 +98,21 @@ export function FinanceInvoices() {
               ))}
             </div>
           ) : invoices.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <Receipt className="h-10 w-10 text-muted-foreground" />
-              <p className="font-semibold">No invoices found</p>
-            </div>
+            <EmptyPanel icon={Receipt} title="No invoices found" />
           ) : (
-            <div className="divide-y">
+            <div className="dashboard-divide">
               {invoices.map((inv) => {
                 const m = INVOICE_STATUS_META[inv.status] ?? { label: inv.status, variant: 'secondary' as const };
                 const busy = setStatusMut.isPending;
                 return (
-                  <div key={inv.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 text-sm">
+                  <div key={inv.id} className="dashboard-list-row flex flex-wrap items-center justify-between gap-3 px-6 py-4 text-sm">
                     <div className="min-w-[160px]">
-                      <p className="font-semibold">{inv.invoiceNumber}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="font-semibold text-white">{inv.invoiceNumber}</p>
+                      <p className="text-xs text-slate-400">
                         {inv.order?.orderNumber ?? '—'} · {personName(inv.order)}
                       </p>
                     </div>
-                    <p className="font-medium">
+                    <p className="font-medium text-white">
                       {inv.currency} {num(inv.total).toLocaleString()}
                     </p>
                     <Badge variant={m.variant}>{m.label}</Badge>
@@ -143,20 +147,17 @@ export function FinanceInvoices() {
         </CardContent>
       </Card>
 
-      {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {meta.page} of {meta.totalPages} · {meta.total} invoices
-          </p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={!meta.hasPrev} onClick={() => setPage((p) => p - 1)}>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" disabled={!meta.hasNext} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
+      {meta && (
+        <PaginationBar
+          page={meta.page}
+          totalPages={meta.totalPages}
+          total={meta.total}
+          unit="invoices"
+          hasPrev={meta.hasPrev}
+          hasNext={meta.hasNext}
+          onPrev={() => setPage((p) => p - 1)}
+          onNext={() => setPage((p) => p + 1)}
+        />
       )}
     </div>
   );

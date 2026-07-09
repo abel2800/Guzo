@@ -5,7 +5,6 @@ import * as SecureStore from 'expo-secure-store';
 const BIOMETRIC_KEY = 'guzo_biometric_enabled';
 const EMAIL_KEY = 'guzo_last_email';
 
-/** Per-app scope so customer login email is not reused on the driver app. */
 export type MobileAppScope = 'customer' | 'driver' | 'merchant';
 
 function scopedKey(base: string, app?: MobileAppScope): string {

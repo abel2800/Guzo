@@ -7,11 +7,6 @@ import type {
   RefundResult,
 } from './payment.interface.js';
 
-/**
- * Local development payment provider. Always succeeds (unless amount <= 0) and
- * returns deterministic-looking references. Mirrors the shape a real gateway
- * would return so swapping later is trivial.
- */
 export class FakePaymentProvider implements PaymentProvider {
   readonly name = 'fake';
 

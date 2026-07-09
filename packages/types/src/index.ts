@@ -1,7 +1,3 @@
-// ============================================================================
-// Shared API contracts. Frontends and backend agree on these shapes so the
-// HTTP boundary is fully typed end-to-end.
-// ============================================================================
 
 export type Role =
   | 'SUPER_ADMIN'
@@ -9,13 +5,13 @@ export type Role =
   | 'OPERATIONS_MANAGER'
   | 'WAREHOUSE_MANAGER'
   | 'WAREHOUSE_STAFF'
+  | 'BRANCH_STAFF'
   | 'DRIVER'
   | 'MERCHANT'
   | 'CUSTOMER'
   | 'SUPPORT'
   | 'FINANCE';
 
-/** Standard success envelope returned by every endpoint. */
 export interface ApiSuccess<T> {
   success: true;
   message: string;
@@ -23,14 +19,12 @@ export interface ApiSuccess<T> {
   meta?: PaginationMeta;
 }
 
-/** Standard error envelope returned by every endpoint. */
 export interface ApiError {
   success: false;
   message: string;
   errorCode: string;
   errors?: FieldError[];
-  /** Only present in development. */
-  stack?: string;
+    stack?: string;
 }
 
 export type ApiResponse<T> = ApiSuccess<T> | ApiError;
@@ -49,7 +43,6 @@ export interface PaginationMeta {
   hasPrev: boolean;
 }
 
-/** Standard list-query parameters supported by index endpoints. */
 export interface ListQuery {
   page?: number;
   limit?: number;
@@ -59,7 +52,6 @@ export interface ListQuery {
   [filter: string]: unknown;
 }
 
-// ---- Auth payloads ----
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
@@ -71,8 +63,31 @@ export interface AuthUser {
   email: string;
   firstName: string;
   lastName: string;
+  phone?: string | null;
+  guzoId?: string | null;
+  gender?: string;
+  avatarUrl?: string | null;
   roles: Role[];
   permissions: string[];
+}
+
+export interface UserProfileAddress {
+  id: string;
+  label?: string | null;
+  line1: string;
+  line2?: string | null;
+  city: string;
+  state?: string | null;
+  postalCode?: string | null;
+  country: string;
+  isDefault: boolean;
+}
+
+export interface UserProfile extends AuthUser {
+  createdAt: string;
+  defaultAddress?: UserProfileAddress | null;
+  walletBalance?: number | null;
+  walletCurrency?: string | null;
 }
 
 export interface LoginResponse {
@@ -80,10 +95,8 @@ export interface LoginResponse {
   tokens: AuthTokens;
 }
 
-/** JWT access-token claims. */
 export interface JwtPayload {
-  sub: string; // userId
-  email: string;
+  sub: string;   email: string;
   roles: Role[];
   sessionId?: string;
   type: 'access' | 'refresh';
@@ -91,20 +104,14 @@ export interface JwtPayload {
   exp?: number;
 }
 
-// ---- Realtime (Socket.IO) event names ----
 export const SOCKET_EVENTS = {
-  // tracking
-  DRIVER_LOCATION: 'driver:location',
+    DRIVER_LOCATION: 'driver:location',
   ORDER_TRACKING: 'order:tracking',
-  // status
-  DRIVER_STATUS: 'driver:status',
+    DRIVER_STATUS: 'driver:status',
   ORDER_STATUS: 'order:status',
-  // notifications
-  NOTIFICATION_NEW: 'notification:new',
-  // chat
-  CHAT_MESSAGE: 'chat:message',
-  // admin
-  ADMIN_METRICS: 'admin:metrics',
+    NOTIFICATION_NEW: 'notification:new',
+    CHAT_MESSAGE: 'chat:message',
+    ADMIN_METRICS: 'admin:metrics',
 } as const;
 
 export type SocketEvent = (typeof SOCKET_EVENTS)[keyof typeof SOCKET_EVENTS];

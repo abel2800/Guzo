@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Boxes, Search, MapPin, Loader2, Truck, Tag } from 'lucide-react';
+import { Boxes, MapPin, Loader2, Truck, Tag, Printer, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   listInventory,
   sortParcel,
   dispatchParcel,
+  transferParcel,
+  listWarehouses,
+  printWarehouseLabel,
   PACKAGE_STATUS_META,
   type InventoryItem,
 } from '@/lib/warehouse';
@@ -19,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import { EmptyPanel, FilterChip, FuturisticHero, SearchField } from '@/components/dashboard/futuristic-primitives';
 
 const STATES = [
   { key: 'in-stock', label: 'In stock' },
@@ -35,6 +39,12 @@ export function WarehouseInventory() {
   const [selected, setSelected] = useState<InventoryItem | null>(null);
   const [shelfCode, setShelfCode] = useState('');
   const [zone, setZone] = useState('');
+  const [transferDest, setTransferDest] = useState('');
+
+  const { data: warehouses } = useQuery({
+    queryKey: ['warehouses'],
+    queryFn: listWarehouses,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ['wh-inventory', warehouseId, state, search, page],
@@ -75,12 +85,36 @@ export function WarehouseInventory() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const transfer = useMutation({
+    mutationFn: () =>
+      transferParcel(warehouseId!, {
+        trackingNumber: selected!.package.trackingNumber,
+        destinationWarehouseId: transferDest,
+      }),
+    onSuccess: () => {
+      toast.success('Parcel transferred');
+      setSelected(null);
+      setTransferDest('');
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
-          <p className="text-muted-foreground">Sort parcels onto shelves and dispatch for delivery.</p>
+        <div className="flex-1">
+          <FuturisticHero
+            eyebrow="Warehouse flow"
+            icon={Boxes}
+            title="Inventory"
+            description="Sort parcels onto shelves, map every storage position, and dispatch outbound loads from a cleaner logistics command view."
+            stats={[
+              { label: 'Shelfing', value: 'Structured' },
+              { label: 'Dispatch', value: 'One click' },
+              { label: 'Zone mode', value: 'Live ops' },
+            ]}
+          />
         </div>
         <WarehouseSelect />
       </div>
@@ -88,32 +122,26 @@ export function WarehouseInventory() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex gap-2">
           {STATES.map((s) => (
-            <button
+            <FilterChip
               key={s.key}
               onClick={() => {
                 setState(s.key);
                 setPage(1);
               }}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                state === s.key ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted'
-              }`}
+              active={state === s.key}
             >
               {s.label}
-            </button>
+            </FilterChip>
           ))}
         </div>
-        <div className="relative max-w-xs flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Search tracking / barcode"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-        </div>
+        <SearchField
+          placeholder="Search tracking / barcode"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+        />
       </div>
 
       <Card>
@@ -125,40 +153,53 @@ export function WarehouseInventory() {
               ))}
             </div>
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <Boxes className="h-10 w-10 text-muted-foreground" />
-              <p className="font-semibold">No parcels here</p>
-              <p className="text-sm text-muted-foreground">Receive parcels to build up inventory.</p>
-            </div>
+            <EmptyPanel
+              icon={Boxes}
+              title="No parcels here"
+              description="Receive parcels to build up inventory."
+            />
           ) : (
             <div className="divide-y">
               {items.map((item) => {
                 const m = PACKAGE_STATUS_META[item.package.status] ?? { label: item.package.status, variant: 'secondary' as const };
                 const dispatched = !!item.dispatchedAt;
                 return (
-                  <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 text-sm">
+                  <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 text-sm transition-colors hover:bg-white/5">
                     <div className="min-w-[180px]">
-                      <p className="font-semibold">{item.package.trackingNumber}</p>
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <p className="font-semibold text-white">{item.package.trackingNumber}</p>
+                      <p className="flex items-center gap-1 text-xs text-slate-400">
                         <MapPin className="h-3 w-3" /> {item.package.order.dropoffAddress?.city ?? '—'} ·{' '}
                         {item.package.order.orderNumber}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       {item.shelfCode ? (
-                        <Badge variant="outline" className="gap-1">
+                        <Badge variant="outline" className="gap-1 border-white/10 text-slate-200">
                           <Tag className="h-3 w-3" /> {item.shelfCode}
                           {item.zone ? ` · ${item.zone}` : ''}
                         </Badge>
                       ) : (
-                        <span className="text-xs text-muted-foreground">No shelf</span>
+                        <span className="text-xs text-slate-400">No shelf</span>
                       )}
                       <Badge variant={m.variant}>{m.label}</Badge>
                     </div>
                     {!dispatched && (
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button size="sm" variant="outline" onClick={() => openSort(item)}>
                           <Tag className="h-4 w-4" /> Sort
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            printWarehouseLabel(
+                              item.package.trackingNumber,
+                              item.shelfCode,
+                              item.package.order.dropoffAddress?.city,
+                            )
+                          }
+                        >
+                          <Printer className="h-4 w-4" /> Label
                         </Button>
                         <Button size="sm" onClick={() => dispatch.mutate(item)} disabled={dispatch.isPending}>
                           {dispatch.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
@@ -181,7 +222,7 @@ export function WarehouseInventory() {
 
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-400">
             Page {meta.page} of {meta.totalPages} · {meta.total} parcels
           </p>
           <div className="flex gap-2">
@@ -215,6 +256,30 @@ export function WarehouseInventory() {
                 {sort.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Tag className="h-4 w-4" />}
                 Save shelf
               </Button>
+              <div className="border-t border-white/10 pt-4 space-y-3">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <ArrowRightLeft className="h-4 w-4" /> Cross-warehouse transfer
+                </p>
+                <select
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  value={transferDest}
+                  onChange={(e) => setTransferDest(e.target.value)}
+                >
+                  <option value="">— Destination warehouse —</option>
+                  {warehouses?.filter((w) => w.id !== warehouseId).map((w) => (
+                    <option key={w.id} value={w.id}>{w.name} ({w.city})</option>
+                  ))}
+                </select>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => transfer.mutate()}
+                  disabled={!transferDest || transfer.isPending}
+                >
+                  {transfer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
+                  Transfer parcel
+                </Button>
+              </div>
             </div>
           )}
         </SheetContent>

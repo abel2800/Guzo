@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import { EmptyPanel, FilterChip, FuturisticHero } from '@/components/dashboard/futuristic-primitives';
 
 const STATUS_FILTERS = ['', 'CONFIRMED', 'ASSIGNED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'];
 const LIST_KEY = 'merchant-orders';
@@ -29,25 +30,30 @@ export function MerchantOrders() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Orders</h1>
-        <p className="text-muted-foreground">All shipments created under your merchant account.</p>
-      </div>
+      <FuturisticHero
+        eyebrow="Merchant shipment center"
+        icon={Package}
+        title="Orders"
+        description="Monitor every merchant shipment in one premium control view, with route visibility, delivery status, and proof-of-delivery history."
+        stats={[
+          { label: 'Channel', value: 'Merchant' },
+          { label: 'Tracking', value: 'Live ready' },
+          { label: 'Mode', value: 'Scale ops' },
+        ]}
+      />
 
       <div className="flex flex-wrap gap-2">
         {STATUS_FILTERS.map((s) => (
-          <button
+          <FilterChip
             key={s || 'all'}
             onClick={() => {
               setStatus(s);
               setPage(1);
             }}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-              status === s ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted'
-            }`}
+            active={status === s}
           >
             {s ? ORDER_STATUS_META[s]?.label ?? s : 'All'}
-          </button>
+          </FilterChip>
         ))}
       </div>
 
@@ -60,14 +66,14 @@ export function MerchantOrders() {
               ))}
             </div>
           ) : orders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <Package className="h-10 w-10 text-muted-foreground" />
-              <p className="font-semibold">No orders yet</p>
-              <p className="text-sm text-muted-foreground">Create shipments from the Bulk Upload page.</p>
-            </div>
+            <EmptyPanel
+              icon={Package}
+              title="No orders yet"
+              description="Create shipments from the Bulk Upload page."
+            />
           ) : (
             <div className="divide-y">
-              <div className="hidden grid-cols-12 gap-4 px-6 py-3 text-xs font-medium uppercase text-muted-foreground md:grid">
+              <div className="hidden grid-cols-12 gap-4 px-6 py-3 text-xs font-medium uppercase text-slate-400 md:grid">
                 <div className="col-span-3">Order</div>
                 <div className="col-span-4">Route</div>
                 <div className="col-span-2">Status</div>
@@ -79,16 +85,16 @@ export function MerchantOrders() {
                   <button
                     key={o.id}
                     onClick={() => setSelectedId(o.id)}
-                    className="grid w-full grid-cols-2 items-center gap-4 px-6 py-4 text-left text-sm transition-colors hover:bg-muted/50 md:grid-cols-12"
+                    className="grid w-full grid-cols-2 items-center gap-4 px-6 py-4 text-left text-sm transition-colors hover:bg-white/5 md:grid-cols-12"
                   >
                     <div className="md:col-span-3">
-                      <p className="font-semibold">{o.orderNumber}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="font-semibold text-white">{o.orderNumber}</p>
+                      <p className="text-xs text-slate-400">
                         {new Date(o.createdAt).toLocaleDateString()} · {o.deliveryType}
                       </p>
                     </div>
-                    <div className="hidden text-muted-foreground md:col-span-4 md:block">
-                      {o.pickupAddress?.city} → {o.dropoffAddress?.city}
+                    <div className="hidden text-slate-300 md:col-span-4 md:block">
+                      {`${o.pickupAddress?.city ?? '—'} -> ${o.dropoffAddress?.city ?? '—'}`}
                     </div>
                     <div className="md:col-span-2">
                       <Badge variant={m.variant}>{m.label}</Badge>
@@ -106,7 +112,7 @@ export function MerchantOrders() {
 
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-400">
             Page {meta.page} of {meta.totalPages} · {meta.total} orders
           </p>
           <div className="flex gap-2">
@@ -163,7 +169,7 @@ function MerchantOrderDetail({ order }: { order: Order }) {
       {order.delivery?.proofFile && (
         <div className="space-y-2">
           <p className="text-sm font-medium">Proof of delivery</p>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          
           <img src={fileUrl(order.delivery.proofFile.storageKey)} alt="Proof" className="w-full rounded-lg border" />
         </div>
       )}

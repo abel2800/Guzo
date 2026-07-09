@@ -18,10 +18,16 @@ import { initials } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import {
+  EmptyPanel,
+  FilterChip,
+  FuturisticHero,
+  PaginationBar,
+  SearchField,
+} from '@/components/dashboard/futuristic-primitives';
 
 const STATUS_FILTERS = ['', 'ACTIVE', 'PENDING', 'SUSPENDED', 'BANNED'];
 const LIST_KEY = 'admin-users';
@@ -47,9 +53,18 @@ export function AdminUsers() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Users</h1>
-          <p className="text-muted-foreground">Manage accounts, roles and access across the platform.</p>
+        <div className="flex-1">
+          <FuturisticHero
+            eyebrow="Access control"
+            icon={Users}
+            title="Users"
+            description="Manage accounts, roles and platform access from a single identity command center."
+            stats={[
+              { label: 'Roles', value: 'RBAC' },
+              { label: 'Status', value: 'Lifecycle' },
+              { label: 'Scope', value: 'Platform-wide' },
+            ]}
+          />
         </div>
         <form
           className="flex gap-2"
@@ -59,7 +74,7 @@ export function AdminUsers() {
             setPage(1);
           }}
         >
-          <Input
+          <SearchField
             placeholder="Search name or email"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
@@ -73,18 +88,16 @@ export function AdminUsers() {
 
       <div className="flex flex-wrap gap-2">
         {STATUS_FILTERS.map((s) => (
-          <button
+          <FilterChip
             key={s || 'all'}
             onClick={() => {
               setStatus(s);
               setPage(1);
             }}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-              status === s ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted'
-            }`}
+            active={status === s}
           >
             {s ? USER_STATUS_META[s]?.label ?? s : 'All'}
-          </button>
+          </FilterChip>
         ))}
       </div>
 
@@ -97,13 +110,10 @@ export function AdminUsers() {
               ))}
             </div>
           ) : users.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <Users className="h-10 w-10 text-muted-foreground" />
-              <p className="font-semibold">No users found</p>
-            </div>
+            <EmptyPanel icon={Users} title="No users found" />
           ) : (
-            <div className="divide-y">
-              <div className="hidden grid-cols-12 gap-4 px-6 py-3 text-xs font-medium uppercase text-muted-foreground md:grid">
+            <div className="dashboard-divide">
+              <div className="hidden grid-cols-12 gap-4 px-6 py-3 text-xs font-medium uppercase text-slate-400 md:grid">
                 <div className="col-span-4">User</div>
                 <div className="col-span-4">Roles</div>
                 <div className="col-span-2">Status</div>
@@ -115,7 +125,7 @@ export function AdminUsers() {
                   <button
                     key={u.id}
                     onClick={() => setSelectedId(u.id)}
-                    className="grid w-full grid-cols-2 items-center gap-4 px-6 py-4 text-left text-sm transition-colors hover:bg-muted/50 md:grid-cols-12"
+                    className="dashboard-list-row grid w-full grid-cols-2 items-center gap-4 px-6 py-4 text-left text-sm md:grid-cols-12"
                   >
                     <div className="flex items-center gap-3 md:col-span-4">
                       <Avatar className="h-9 w-9">
@@ -123,24 +133,24 @@ export function AdminUsers() {
                       </Avatar>
                       <div className="min-w-0">
                         <p className="truncate font-semibold">{u.firstName} {u.lastName}</p>
-                        <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                        <p className="truncate text-xs text-slate-400">{u.email}</p>
                       </div>
                     </div>
                     <div className="hidden flex-wrap gap-1 md:col-span-4 md:flex">
                       {u.roles.length ? (
                         u.roles.map((r) => (
-                          <span key={r} className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
+                          <span key={r} className="rounded border border-white/10 bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
                             {r}
                           </span>
                         ))
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-slate-500">—</span>
                       )}
                     </div>
                     <div className="md:col-span-2">
                       <Badge variant={m.variant}>{m.label}</Badge>
                     </div>
-                    <div className="hidden text-right text-xs text-muted-foreground md:col-span-2 md:block">
+                    <div className="hidden text-right text-xs text-slate-400 md:col-span-2 md:block">
                       {new Date(u.createdAt).toLocaleDateString()}
                     </div>
                   </button>
@@ -151,20 +161,17 @@ export function AdminUsers() {
         </CardContent>
       </Card>
 
-      {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {meta.page} of {meta.totalPages} · {meta.total} users
-          </p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={!meta.hasPrev} onClick={() => setPage((p) => p - 1)}>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" disabled={!meta.hasNext} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
+      {meta && (
+        <PaginationBar
+          page={meta.page}
+          totalPages={meta.totalPages}
+          total={meta.total}
+          unit="users"
+          hasPrev={meta.hasPrev}
+          hasNext={meta.hasNext}
+          onPrev={() => setPage((p) => p - 1)}
+          onNext={() => setPage((p) => p + 1)}
+        />
       )}
 
       <Sheet open={!!selectedId} onOpenChange={(o) => !o && setSelectedId(null)}>
@@ -285,16 +292,9 @@ function UserDetail({
           {(allRoles ?? []).map((r) => {
             const active = roles.includes(r.name);
             return (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => toggleRole(r.name)}
-                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                  active ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted'
-                }`}
-              >
+              <FilterChip key={r.id} type="button" active={active} onClick={() => toggleRole(r.name)}>
                 {r.name}
-              </button>
+              </FilterChip>
             );
           })}
         </div>

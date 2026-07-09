@@ -11,12 +11,18 @@ export class InvoiceService {
 
   async list(
     query: ParsedListQuery,
-    scope?: { customerUserId?: string },
+    scope?: { customerUserId?: string; merchantUserId?: string },
   ): Promise<{ items: unknown[]; meta: PaginationMeta }> {
     let customerId: string | undefined;
+    let merchantId: string | undefined;
+
     if (scope?.customerUserId) {
       const customer = await prisma.customer.findUnique({ where: { userId: scope.customerUserId } });
       customerId = customer?.id ?? '__no_customer__';
+    }
+    if (scope?.merchantUserId) {
+      const merchant = await prisma.merchant.findUnique({ where: { userId: scope.merchantUserId } });
+      merchantId = merchant?.id ?? '__no_merchant__';
     }
 
     const { items, total } = await this.repo.list({
@@ -25,6 +31,7 @@ export class InvoiceService {
       search: query.search,
       status: query.filters.status,
       customerId,
+      merchantId,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     });

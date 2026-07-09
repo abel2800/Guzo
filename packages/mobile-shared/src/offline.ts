@@ -1,6 +1,5 @@
 import type { Order } from './types';
 
-/** Key-value storage (AsyncStorage in each app). */
 export interface OfflineStorage {
   getItem(key: string): Promise<string | null>;
   setItem(key: string, value: string): Promise<void>;

@@ -9,11 +9,6 @@ export interface EmailMessage {
   text?: string;
 }
 
-/**
- * Email provider. In local dev, EMAIL_DRIVER=console logs the email to the
- * terminal. Set EMAIL_DRIVER=smtp + run Mailpit (docker) to view real emails
- * at http://localhost:8025. Production just points SMTP_* at a real relay.
- */
 class EmailProvider {
   private transporter: Transporter | null = null;
 

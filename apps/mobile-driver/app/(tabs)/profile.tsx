@@ -47,6 +47,10 @@ export default function ProfileScreen() {
       <GlassCard>
         <MenuRow icon="navigate-outline" label="Active deliveries" onPress={() => router.push('/(tabs)/active')} />
         <View style={styles.divider} />
+        <MenuRow icon="wallet-outline" label="Earnings history" onPress={() => router.push('/earnings' as '/')} />
+        <View style={styles.divider} />
+        <MenuRow icon="car-outline" label="Vehicle & logs" onPress={() => router.push('/vehicle' as '/')} />
+        <View style={styles.divider} />
         <MenuRow icon="briefcase-outline" label="Available jobs" onPress={() => router.push('/(tabs)/jobs')} />
         <View style={styles.divider} />
         <MenuRow icon="help-circle-outline" label="Help & support" />

@@ -30,4 +30,15 @@ export const reviewsController = {
     await reviewsService.remove(req.params.id);
     return noContent(res);
   }),
+
+  createForOrder: asyncHandler(async (req: Request, res: Response) => {
+    const { rating, comment } = req.body ?? {};
+    const item = await reviewsService.createForOrder(req.user!.id, req.params.orderId, Number(rating), comment);
+    return created(res, item, REVIEWS_MESSAGES.CREATED);
+  }),
+
+  pending: asyncHandler(async (req: Request, res: Response) => {
+    const items = await reviewsService.pendingForCustomer(req.user!.id);
+    return ok(res, items, 'Orders awaiting rating');
+  }),
 };

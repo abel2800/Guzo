@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyPanel, FuturisticHero } from '@/components/dashboard/futuristic-primitives';
 
 export function AdminReports() {
   const [from, setFrom] = useState('');
@@ -32,10 +33,17 @@ export function AdminReports() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-        <p className="text-muted-foreground">Export-ready summaries for orders and deliveries.</p>
-      </div>
+      <FuturisticHero
+        eyebrow="Operations reporting"
+        icon={FileText}
+        title="Reports"
+        description="Export-ready summaries for orders and deliveries with configurable date ranges."
+        stats={[
+          { label: 'Range', value: 'Date filter' },
+          { label: 'Orders', value: 'By status' },
+          { label: 'Delivery', value: 'Success rate' },
+        ]}
+      />
 
       <Card>
         <CardContent className="flex flex-wrap items-end gap-4 p-6">
@@ -82,7 +90,7 @@ export function AdminReports() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">No orders in range.</div>
+            <EmptyPanel icon={Package} title="No orders in range" />
           )}
         </CardContent>
       </Card>

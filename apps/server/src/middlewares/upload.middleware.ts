@@ -15,11 +15,6 @@ const ALLOWED_MIME = new Set([
   'application/pdf',
 ]);
 
-/**
- * Local disk storage. The destination folder is chosen per route via
- * `req.uploadFolder`. Switching STORAGE_DRIVER to s3/minio later only requires
- * swapping this storage engine + the storage provider - controllers don't change.
- */
 function makeStorage() {
   return multer.diskStorage({
     destination: (req: Request, _file, cb) => {
@@ -47,7 +42,6 @@ export const upload = multer({
   },
 });
 
-/** Selects the destination folder for the next upload. */
 export function uploadTo(folder: string) {
   return (req: Request, _res: unknown, next: (e?: unknown) => void) => {
     (req as Request & { uploadFolder?: string }).uploadFolder = folder;

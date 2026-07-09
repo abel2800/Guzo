@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { listOrders, ORDER_STATUS_LABELS } from '@guzo/mobile-shared';
+import { listOrders, ORDER_STATUS_LABELS, getDriverRoute } from '@guzo/mobile-shared';
 import { GlassCard, OfflineBanner, colors, designStyles, spacing } from '@guzo/mobile-ui';
 
 const STEPS = ['Pickup', 'In transit', 'Delivered'];
@@ -21,16 +21,42 @@ export default function ActiveScreen() {
     queryFn: () => listOrders({ limit: 50 }),
     refetchInterval: 15_000,
   });
+  const route = useQuery({
+    queryKey: ['driver-route'],
+    queryFn: getDriverRoute,
+    refetchInterval: 30_000,
+  });
 
-  const active = (data?.items ?? []).filter((o) => !['DELIVERED', 'CANCELLED', 'FAILED'].includes(o.status));
+  const active = (data?.items ?? []).filter((o) => !['DELIVERED', 'CANCELLED'].includes(o.status));
+  const failed = active.filter((o) => o.status === 'FAILED');
+  const inProgress = active.filter((o) => o.status !== 'FAILED');
 
   return (
     <View style={[designStyles.screen, { paddingTop: insets.top }]}>
       <OfflineBanner />
       <View style={styles.header}>
         <Text style={styles.title}>Active deliveries</Text>
-        <Text style={styles.sub}>{active.length} in progress</Text>
+        <Text style={styles.sub}>{inProgress.length} in progress · {failed.length} failed</Text>
       </View>
+      {(route.data?.stops?.length ?? 0) > 0 ? (
+        <View style={[designStyles.screenPad, { paddingBottom: 0 }]}>
+          <GlassCard glow>
+            <Text style={styles.routeTitle}>Optimized route · {route.data?.totalStops} stops</Text>
+            {route.data!.stops.slice(0, 4).map((stop, idx) => (
+              <View key={`${stop.orderId}-${stop.type}-${idx}`} style={styles.routeRow}>
+                <Text style={styles.routeIdx}>{idx + 1}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.routeOrder}>{stop.orderNumber} · {stop.type}</Text>
+                  <Text style={styles.routeAddr}>{stop.line1}, {stop.city}</Text>
+                </View>
+              </View>
+            ))}
+            {(route.data?.estimatedKm ?? 0) > 0 ? (
+              <Text style={styles.routeKm}>~{route.data!.estimatedKm} km estimated</Text>
+            ) : null}
+          </GlassCard>
+        </View>
+      ) : null}
       <FlatList
         contentContainerStyle={[designStyles.screenPad, { paddingTop: spacing.sm }]}
         data={active}
@@ -76,6 +102,12 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: spacing.lg, paddingVertical: 16 },
   title: { fontSize: 28, fontWeight: '800', color: colors.text },
   sub: { color: colors.textMuted, marginTop: 4 },
+  routeTitle: { color: colors.text, fontWeight: '700', marginBottom: 8 },
+  routeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
+  routeIdx: { color: colors.primary, fontWeight: '800', width: 18 },
+  routeOrder: { color: colors.text, fontWeight: '600', fontSize: 13 },
+  routeAddr: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  routeKm: { color: colors.accent, fontSize: 12, fontWeight: '600', marginTop: 4 },
   card: { marginBottom: 12 },
   liveRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary, marginRight: 4 },

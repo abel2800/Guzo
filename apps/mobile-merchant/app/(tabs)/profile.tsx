@@ -28,6 +28,14 @@ export default function ProfileScreen() {
       </View>
 
       <GlassCard>
+        <MenuRow icon="bar-chart-outline" label="Analytics" onPress={() => router.push('/analytics')} />
+        <View style={styles.divider} />
+        <MenuRow icon="people-outline" label="Customers" onPress={() => router.push('/customers')} />
+        <View style={styles.divider} />
+        <MenuRow icon="receipt-outline" label="Invoices" onPress={() => router.push('/invoices')} />
+        <View style={styles.divider} />
+        <MenuRow icon="key-outline" label="API keys" onPress={() => router.push('/api-keys')} />
+        <View style={styles.divider} />
         <MenuRow icon="home-outline" label="Dashboard" onPress={() => router.push('/(tabs)/dashboard')} />
         <View style={styles.divider} />
         <MenuRow icon="layers-outline" label="Bulk upload" onPress={() => router.push('/(tabs)/bulk')} />

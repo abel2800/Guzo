@@ -1,24 +1,62 @@
 import { prisma, type Prisma } from '@delivery/database';
 
-/**
- * Repository: the ONLY place that talks to the database for auth concerns.
- * Services depend on this, never on Prisma directly. Swapping the data source
- * later (read replicas, sharding) is isolated here.
- */
 export class AuthRepository {
   findUserByEmail(email: string) {
     return prisma.user.findUnique({
       where: { email },
       include: {
+        avatar: true,
         roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
       },
     });
+  }
+
+  findDefaultAddress(userId: string) {
+    return prisma.address.findFirst({
+      where: { userId, isDefault: true },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  updateProfile(id: string, data: Prisma.UserUpdateInput) {
+    return prisma.user.update({
+      where: { id },
+      data,
+      include: {
+        avatar: true,
+        roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
+      },
+    });
+  }
+
+  createFile(data: Prisma.FileUncheckedCreateInput) {
+    return prisma.file.create({ data });
+  }
+
+  clearDefaultAddresses(userId: string) {
+    return prisma.address.updateMany({ where: { userId, isDefault: true }, data: { isDefault: false } });
+  }
+
+  findDefaultAddressOrFirst(userId: string) {
+    return prisma.address.findFirst({
+      where: { userId },
+      orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
+    });
+  }
+
+  createAddress(data: Prisma.AddressUncheckedCreateInput) {
+    return prisma.address.create({ data });
+  }
+
+  updateAddress(id: string, data: Prisma.AddressUpdateInput) {
+    return prisma.address.update({ where: { id }, data });
   }
 
   findUserById(id: string) {
     return prisma.user.findUnique({
       where: { id },
       include: {
+        avatar: true,
         roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
       },
     });
@@ -32,6 +70,7 @@ export class AuthRepository {
     return prisma.user.create({
       data,
       include: {
+        avatar: true,
         roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
       },
     });

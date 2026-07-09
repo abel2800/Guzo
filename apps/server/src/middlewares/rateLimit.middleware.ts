@@ -9,7 +9,6 @@ const jsonHandler = (_req: unknown, res: { status: (n: number) => { json: (b: un
     errorCode: ERROR_CODES.RATE_LIMITED,
   });
 
-/** Global limiter applied to the whole API. */
 export const globalRateLimiter = rateLimit({
   windowMs: env.rateLimit.windowMs,
   max: env.rateLimit.max,
@@ -18,7 +17,6 @@ export const globalRateLimiter = rateLimit({
   handler: jsonHandler as never,
 });
 
-/** Stricter limiter for auth endpoints to slow brute-force attempts. */
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,

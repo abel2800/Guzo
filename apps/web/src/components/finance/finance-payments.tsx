@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Wallet, Search, Loader2, Undo2 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { Wallet, Loader2, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   listPayments,
@@ -19,10 +20,35 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import {
+  EmptyPanel,
+  FilterChip,
+  FuturisticHero,
+  PaginationBar,
+  SearchField,
+} from '@/components/dashboard/futuristic-primitives';
 
 const STATUS_FILTERS = ['', 'PAID', 'PARTIALLY_REFUNDED', 'REFUNDED', 'PENDING', 'FAILED'];
 
-export function FinancePayments({ defaultStatus = '', title = 'Payments' }: { defaultStatus?: string; title?: string }) {
+export function FinancePayments({
+  defaultStatus = '',
+  title = 'Payments',
+  eyebrow = 'Finance command center',
+  icon: Icon = Wallet,
+  description = 'Review every transaction, monitor payment health, and issue refunds from a premium finance workflow built for clarity and control.',
+  stats = [
+    { label: 'Ledger', value: 'Unified' },
+    { label: 'Refunds', value: 'Inline actions' },
+    { label: 'Signals', value: 'Realtime ready' },
+  ],
+}: {
+  defaultStatus?: string;
+  title?: string;
+  eyebrow?: string;
+  icon?: LucideIcon;
+  description?: string;
+  stats?: Array<{ label: string; value: string }>;
+}) {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState(defaultStatus);
   const [search, setSearch] = useState('');
@@ -59,40 +85,37 @@ export function FinancePayments({ defaultStatus = '', title = 'Payments' }: { de
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        <p className="text-muted-foreground">Review transactions and issue refunds.</p>
-      </div>
+      <FuturisticHero
+        eyebrow={eyebrow}
+        icon={Icon}
+        title={title}
+        description={description}
+        stats={stats}
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex flex-wrap gap-2">
           {STATUS_FILTERS.map((s) => (
-            <button
+            <FilterChip
               key={s || 'all'}
               onClick={() => {
                 setStatus(s);
                 setPage(1);
               }}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                status === s ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted'
-              }`}
+              active={status === s}
             >
               {s ? PAYMENT_STATUS_META[s]?.label ?? s : 'All'}
-            </button>
+            </FilterChip>
           ))}
         </div>
-        <div className="relative max-w-xs flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Search reference / order"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-        </div>
+        <SearchField
+          placeholder="Search reference / order"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+        />
       </div>
 
       <Card>
@@ -104,25 +127,22 @@ export function FinancePayments({ defaultStatus = '', title = 'Payments' }: { de
               ))}
             </div>
           ) : payments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <Wallet className="h-10 w-10 text-muted-foreground" />
-              <p className="font-semibold">No payments found</p>
-            </div>
+            <EmptyPanel icon={Wallet} title="No payments found" />
           ) : (
-            <div className="divide-y">
+            <div className="dashboard-divide">
               {payments.map((p) => {
                 const m = PAYMENT_STATUS_META[p.status] ?? { label: p.status, variant: 'secondary' as const };
                 const refundable = p.status === 'PAID' || p.status === 'PARTIALLY_REFUNDED';
                 return (
-                  <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 text-sm">
+                  <div key={p.id} className="dashboard-list-row flex flex-wrap items-center justify-between gap-3 px-6 py-4 text-sm">
                     <div className="min-w-[160px]">
-                      <p className="font-semibold">{p.reference}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="font-semibold text-white">{p.reference}</p>
+                      <p className="text-xs text-slate-400">
                         {p.order?.orderNumber ?? '—'} · {personName(p.order)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">
+                      <p className="font-medium text-white">
                         {p.currency} {num(p.amount).toLocaleString()}
                       </p>
                       {num(p.refundedAmount) > 0 && (
@@ -135,7 +155,7 @@ export function FinancePayments({ defaultStatus = '', title = 'Payments' }: { de
                         <Undo2 className="h-4 w-4" /> Refund
                       </Button>
                     ) : (
-                      <span className="w-[90px] text-right text-xs text-muted-foreground">—</span>
+                      <span className="w-[90px] text-right text-xs text-slate-400">—</span>
                     )}
                   </div>
                 );
@@ -145,20 +165,17 @@ export function FinancePayments({ defaultStatus = '', title = 'Payments' }: { de
         </CardContent>
       </Card>
 
-      {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {meta.page} of {meta.totalPages} · {meta.total} payments
-          </p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={!meta.hasPrev} onClick={() => setPage((p) => p - 1)}>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" disabled={!meta.hasNext} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
+      {meta && (
+        <PaginationBar
+          page={meta.page}
+          totalPages={meta.totalPages}
+          total={meta.total}
+          unit="payments"
+          hasPrev={meta.hasPrev}
+          hasNext={meta.hasNext}
+          onPrev={() => setPage((p) => p - 1)}
+          onNext={() => setPage((p) => p + 1)}
+        />
       )}
 
       <Sheet open={!!refunding} onOpenChange={(o) => !o && setRefunding(null)}>

@@ -7,9 +7,13 @@ import type {
   LoginDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  UpdateProfileDto,
+  ChangePasswordDto,
+  UpdateProfileLocationDto,
   RequestContext,
 } from './auth.dto.js';
 import type { LoginResponse } from './auth.types.js';
+import type { UserProfile } from '@delivery/types';
 import { ApiError } from '../../utils/ApiError.js';
 import { hashPassword, comparePassword } from '../../utils/password.js';
 import {
@@ -23,8 +27,11 @@ import { env } from '../../config/env.js';
 import { generateReference } from '@delivery/utils';
 import { eventBus, DOMAIN_EVENTS } from '../../events/eventBus.js';
 import { emailProvider } from '../../providers/notification/email.provider.js';
+import { storage } from '../../providers/storage/index.js';
+import { UPLOAD_FOLDERS } from '../../constants/index.js';
 
 type UserWithRoles = NonNullable<Awaited<ReturnType<AuthRepository['findUserById']>>>;
+type AddressRow = NonNullable<Awaited<ReturnType<AuthRepository['findDefaultAddressOrFirst']>>>;
 
 export class AuthService {
   constructor(private readonly repo: AuthRepository = authRepository) {}
@@ -39,8 +46,7 @@ export class AuthService {
 
     const passwordHash = await hashPassword(dto.password);
 
-    // Create profile row matching the chosen role.
-    const profile =
+        const profile =
       roleName === 'MERCHANT'
         ? { merchant: { create: { merchantCode: generateReference('MER'), businessName: `${dto.firstName} ${dto.lastName}` } } }
         : roleName === 'DRIVER'
@@ -97,8 +103,7 @@ export class AuthService {
     const user = await this.repo.findUserById(claims.sub);
     if (!user || user.status !== 'ACTIVE') throw ApiError.unauthorized('Account is not active');
 
-    // Rotate: revoke old token, issue a new one in the same session.
-    const session = stored.sessionId ?? undefined;
+        const session = stored.sessionId ?? undefined;
     const result = await this.issueSession(user, ctx, session);
     await this.repo.revokeRefreshToken(stored.id);
     return result;
@@ -111,15 +116,12 @@ export class AuthService {
         await this.repo.revokeRefreshToken(stored.id);
         if (stored.sessionId) await this.repo.revokeSession(stored.sessionId);
       }
-    } catch {
-      /* best-effort */
-    }
+    } catch {}
   }
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
     const user = await this.repo.findUserByEmail(dto.email);
-    // Always behave the same to avoid user enumeration.
-    if (user) {
+        if (user) {
       const resetToken = jwt.sign({ sub: user.id, purpose: 'reset' }, env.jwt.accessSecret, {
         expiresIn: '30m',
       });
@@ -147,15 +149,91 @@ export class AuthService {
     return { message: AUTH_MESSAGES.PASSWORD_RESET };
   }
 
-  getMe(userId: string) {
-    return this.repo.findUserById(userId).then((user) => {
+  getMe(userId: string): Promise<UserProfile> {
+    return this.repo.findUserById(userId).then(async (user) => {
       if (!user) throw ApiError.notFound('User not found');
-      return this.toAuthUser(user);
+      const defaultAddress = await this.repo.findDefaultAddressOrFirst(userId);
+      return this.toUserProfile(user, defaultAddress);
     });
   }
 
-  // ---- helpers ----
+  async updateProfile(userId: string, dto: UpdateProfileDto): Promise<UserProfile> {
+    const user = await this.repo.updateProfile(userId, {
+      ...(dto.firstName !== undefined ? { firstName: dto.firstName } : {}),
+      ...(dto.lastName !== undefined ? { lastName: dto.lastName } : {}),
+      ...(dto.phone !== undefined ? { phone: dto.phone || null } : {}),
+      ...(dto.gender !== undefined ? { gender: dto.gender } : {}),
+    });
+    const defaultAddress = await this.repo.findDefaultAddressOrFirst(userId);
+    return this.toUserProfile(user, defaultAddress);
+  }
 
+  async updateLocation(userId: string, dto: UpdateProfileLocationDto): Promise<UserProfile> {
+    const existing = await this.repo.findDefaultAddressOrFirst(userId);
+    if (existing) {
+      await this.repo.clearDefaultAddresses(userId);
+      await this.repo.updateAddress(existing.id, {
+        label: dto.label ?? existing.label ?? 'Primary',
+        line1: dto.line1,
+        line2: dto.line2,
+        city: dto.city,
+        state: dto.state,
+        postalCode: dto.postalCode,
+        country: dto.country ?? existing.country ?? 'ET',
+        isDefault: true,
+      });
+    } else {
+      await this.repo.createAddress({
+        userId,
+        label: dto.label ?? 'Primary',
+        type: 'HOME',
+        line1: dto.line1,
+        line2: dto.line2,
+        city: dto.city,
+        state: dto.state,
+        postalCode: dto.postalCode,
+        country: dto.country ?? 'ET',
+        isDefault: true,
+      });
+    }
+    return this.getMe(userId);
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<{ message: string }> {
+    const user = await this.repo.findUserById(userId);
+    if (!user) throw ApiError.notFound('User not found');
+    const valid = await comparePassword(dto.currentPassword, user.passwordHash);
+    if (!valid) throw ApiError.badRequest('Current password is incorrect');
+    const passwordHash = await hashPassword(dto.newPassword);
+    await this.repo.updatePassword(userId, passwordHash);
+    return { message: AUTH_MESSAGES.PASSWORD_CHANGED };
+  }
+
+  async uploadAvatar(
+    userId: string,
+    file: { path: string; filename: string; originalname: string; mimetype: string; size: number },
+  ): Promise<UserProfile> {
+    const saved = await storage.save({
+      absolutePath: file.path,
+      folder: UPLOAD_FOLDERS.AVATARS,
+      filename: file.filename,
+    });
+    const fileRow = await this.repo.createFile({
+      uploaderId: userId,
+      category: 'AVATAR',
+      originalName: file.originalname,
+      storedName: file.filename,
+      mimeType: file.mimetype,
+      sizeBytes: file.size,
+      storageKey: saved.storageKey,
+      storageDriver: saved.driver,
+    });
+    const user = await this.repo.updateProfile(userId, { avatar: { connect: { id: fileRow.id } } });
+    const defaultAddress = await this.repo.findDefaultAddressOrFirst(userId);
+    return this.toUserProfile(user, defaultAddress);
+  }
+
+  
   private async issueSession(
     user: UserWithRoles,
     ctx: RequestContext,
@@ -202,9 +280,37 @@ export class AuthService {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      phone: user.phone,
+      gender: user.gender,
+      avatarUrl: this.avatarUrl(user),
       roles,
       permissions,
     };
+  }
+
+  private toUserProfile(user: UserWithRoles, defaultAddress: AddressRow | null): UserProfile {
+    return {
+      ...this.toAuthUser(user),
+      createdAt: user.createdAt.toISOString(),
+      defaultAddress: defaultAddress
+        ? {
+            id: defaultAddress.id,
+            label: defaultAddress.label,
+            line1: defaultAddress.line1,
+            line2: defaultAddress.line2,
+            city: defaultAddress.city,
+            state: defaultAddress.state,
+            postalCode: defaultAddress.postalCode,
+            country: defaultAddress.country,
+            isDefault: defaultAddress.isDefault,
+          }
+        : null,
+    };
+  }
+
+  private avatarUrl(user: UserWithRoles) {
+    if (!user.avatar?.storageKey) return null;
+    return `${env.publicUrl}/static/${user.avatar.storageKey.replace(/^uploads\//, '')}`;
   }
 }
 

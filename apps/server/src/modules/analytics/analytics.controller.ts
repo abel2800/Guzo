@@ -19,4 +19,16 @@ export const analyticsController = {
     const data = await analyticsService.topDrivers();
     return ok(res, data, 'Top drivers');
   }),
+
+  operationsMetrics: asyncHandler(async (req: Request, res: Response) => {
+    const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
+    const data = await analyticsService.operationsMetrics(days);
+    return ok(res, data, 'Operations metrics');
+  }),
+
+  satisfactionSummary: asyncHandler(async (req: Request, res: Response) => {
+    const days = Math.min(365, Math.max(1, Number(req.query.days) || 90));
+    const data = await analyticsService.satisfactionSummary(days);
+    return ok(res, data, 'Satisfaction summary');
+  }),
 };

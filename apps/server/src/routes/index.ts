@@ -28,10 +28,18 @@ import analyticsRoutes from '../modules/analytics/analytics.routes.js';
 import dashboardRoutes from '../modules/dashboard/dashboard.routes.js';
 import searchRoutes from '../modules/search/search.routes.js';
 import adminRoutes from '../modules/admin/admin.routes.js';
+import manifestsRoutes from '../modules/manifests/manifests.routes.js';
+import branchesRoutes from '../modules/branches/branches.routes.js';
+import branchStaffRoutes from '../modules/branches/branch-staff.routes.js';
+import cityZonesRoutes from '../modules/city-zones/city-zones.routes.js';
+import loyaltyRoutes from '../modules/loyalty/loyalty.routes.js';
+import insuranceClaimsRoutes from '../modules/insurance-claims/insurance-claims.routes.js';
+import merchantPlatformRoutes from '../modules/merchant-platform/merchant-platform.routes.js';
+import merchantApiRoutes from '../modules/merchant-platform/merchant-api.routes.js';
+import mapsRoutes from '../modules/maps/maps.routes.js';
 
 const router = Router();
 
-/** Each module owns its own router; this is the single composition root. */
 const modules: Array<[string, Router]> = [
   ['/auth', authRoutes],
   ['/push-tokens', pushTokensRoutes],
@@ -43,6 +51,10 @@ const modules: Array<[string, Router]> = [
   ['/drivers', driversRoutes],
   ['/merchants', merchantsRoutes],
   ['/warehouses', warehousesRoutes],
+  ['/manifests', manifestsRoutes],
+  ['/branches', branchesRoutes],
+  ['/branch-staff', branchStaffRoutes],
+  ['/city-zones', cityZonesRoutes],
   ['/packages', packagesRoutes],
   ['/orders', ordersRoutes],
   ['/deliveries', deliveriesRoutes],
@@ -54,6 +66,8 @@ const modules: Array<[string, Router]> = [
   ['/payments', paymentsRoutes],
   ['/invoices', invoicesRoutes],
   ['/reviews', reviewsRoutes],
+  ['/loyalty', loyaltyRoutes],
+  ['/insurance-claims', insuranceClaimsRoutes],
   ['/support', supportRoutes],
   ['/settings', settingsRoutes],
   ['/reports', reportsRoutes],
@@ -61,6 +75,9 @@ const modules: Array<[string, Router]> = [
   ['/dashboard', dashboardRoutes],
   ['/search', searchRoutes],
   ['/admin', adminRoutes],
+  ['/merchant-platform', merchantPlatformRoutes],
+  ['/merchant-api', merchantApiRoutes],
+  ['/maps', mapsRoutes],
 ];
 
 for (const [path, moduleRouter] of modules) {

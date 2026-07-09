@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Truck } from 'lucide-react';
 import { SectionReveal } from '@/components/common/section-reveal';
 import { Button } from '@/components/ui/button';
+import { fetchMarketingStats } from '@/lib/java-api';
 
 const ROUTES = [
   { id: 1, from: 'Bole', to: 'Piassa', eta: '22 min', progress: 65 },
@@ -13,13 +15,22 @@ const ROUTES = [
 ];
 
 export function LiveMap() {
+  const [active, setActive] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchMarketingStats()
+      .then((d) => setActive(d.raw.activeDeliveries))
+      .catch(() => setActive(null));
+  }, []);
+
   return (
     <section className="relative overflow-hidden border-y border-white/10 py-24">
       <div className="container">
         <SectionReveal className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-4xl font-bold text-white md:text-5xl">Live Deliveries Across Ethiopia</h2>
           <p className="mt-4 text-guzo-muted">
-            Real-time GPS routing, animated ETAs, and fleet visibility — powered by GUZO&apos;s intelligent network.
+            Real-time GPS routing, animated ETAs, and fleet visibility across Ethiopia
+            {active !== null ? ` — ${active} deliveries on the road right now.` : '.'}
           </p>
         </SectionReveal>
 
@@ -27,14 +38,14 @@ export function LiveMap() {
           <div className="relative col-span-3 min-h-[360px] overflow-hidden rounded-3xl border border-white/10 bg-guzo-card/60 backdrop-blur">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(34,197,94,0.15),transparent_60%)]" />
             <svg viewBox="0 0 800 400" className="h-full w-full" preserveAspectRatio="xMidYMid slice">
-              {/* Grid */}
+              
               {Array.from({ length: 20 }).map((_, i) => (
                 <line key={`h${i}`} x1="0" y1={i * 20} x2="800" y2={i * 20} stroke="rgba(255,255,255,0.04)" />
               ))}
               {Array.from({ length: 40 }).map((_, i) => (
                 <line key={`v${i}`} x1={i * 20} y1="0" x2={i * 20} y2="400" stroke="rgba(255,255,255,0.04)" />
               ))}
-              {/* Routes */}
+              
               <motion.path
                 d="M80,320 C200,280 300,200 420,180 S620,80 720,60"
                 fill="none"
@@ -57,7 +68,7 @@ export function LiveMap() {
                 viewport={{ once: true }}
                 transition={{ duration: 2.5, delay: 0.3 }}
               />
-              {/* Moving vehicles */}
+              
               <motion.g
                 animate={{ offsetDistance: ['0%', '100%'] }}
                 transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}

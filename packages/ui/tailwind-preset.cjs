@@ -1,4 +1,3 @@
-/** Shared Tailwind preset so all four apps share one design language. */
 module.exports = {
   theme: {
     extend: {

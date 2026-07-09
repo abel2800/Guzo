@@ -14,10 +14,6 @@ export interface ParsedListQuery {
 
 const RESERVED = new Set(['page', 'limit', 'search', 'sortBy', 'sortOrder']);
 
-/**
- * Parses standard pagination/sorting/search/filter query params.
- * Everything that's not reserved is treated as an equality filter.
- */
 export function parseListQuery(req: Request): ParsedListQuery {
   const q = req.query;
   const page = Math.max(1, Number(q.page) || PAGINATION.DEFAULT_PAGE);

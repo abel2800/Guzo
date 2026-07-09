@@ -12,9 +12,9 @@ services:
     container_name: delivery_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: delivery
-      POSTGRES_PASSWORD: delivery
-      POSTGRES_DB: delivery_platform
+      POSTGRES_USER: ${POSTGRES_USER:-delivery}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-delivery_platform}
     ports:
       - '5432:5432'
     volumes:
@@ -52,8 +52,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: delivery
-      MINIO_ROOT_PASSWORD: delivery123
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-delivery}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
       - '9000:9000'
       - '9001:9001'

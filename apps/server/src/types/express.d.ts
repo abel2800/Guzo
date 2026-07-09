@@ -1,6 +1,5 @@
 import type { Role } from '@delivery/types';
 
-/** Authenticated principal attached to the request by the auth middleware. */
 export interface AuthenticatedUser {
   id: string;
   email: string;
@@ -10,8 +9,7 @@ export interface AuthenticatedUser {
 }
 
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
+    namespace Express {
     interface Request {
       user?: AuthenticatedUser;
       requestId?: string;

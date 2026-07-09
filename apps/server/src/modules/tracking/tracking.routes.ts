@@ -7,7 +7,6 @@ import { authorize } from '../../middlewares/rbac.middleware.js';
 
 const router = Router();
 
-// Public status timeline for a given order.
 router.get('/:orderId/timeline', optionalAuth, validate(orderIdParamValidator), trackingController.timeline);
 
 router.use(authenticate);

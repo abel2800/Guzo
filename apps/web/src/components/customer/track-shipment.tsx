@@ -1,20 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, MapPin, Navigation, Truck, CheckCircle2, Circle, Clock, Radio } from 'lucide-react';
+import { MapPin, Navigation, Truck, CheckCircle2, Circle, Clock, Radio } from 'lucide-react';
 import { trackOrder, fileUrl, ORDER_STATUS_META, TRACKING_STEPS, type Order } from '@/lib/orders';
 import { useOrderSocket } from '@/lib/use-order-socket';
+import { fetchRoute } from '@/lib/maps';
 import { Map, type MapMarker } from '@/components/map';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { EmptyPanel, FuturisticHero, SearchField } from '@/components/dashboard/futuristic-primitives';
 
-// Maps every status onto the happy-path step index for the progress timeline.
 const STATUS_TO_STEP: Record<string, number> = {
   PENDING_PAYMENT: -1,
   CONFIRMED: 0,
@@ -47,7 +47,6 @@ export function TrackShipment() {
     refetchInterval: 15_000,
   });
 
-  // Live updates: refetch the moment a status change or GPS ping arrives.
   useOrderSocket(order?.id, {
     onStatus: () => queryClient.invalidateQueries({ queryKey: ['track', active] }),
     onTracking: () => queryClient.invalidateQueries({ queryKey: ['track', active] }),
@@ -55,10 +54,17 @@ export function TrackShipment() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Track Shipment</h1>
-        <p className="text-muted-foreground">Enter an order or tracking number to see live status.</p>
-      </div>
+      <FuturisticHero
+        eyebrow="Live tracking"
+        icon={MapPin}
+        title="Track Shipment"
+        description="Enter an order or tracking number to see live status, route progress, and delivery history."
+        stats={[
+          { label: 'Map', value: 'Live GPS' },
+          { label: 'ETA', value: 'Realtime' },
+          { label: 'Proof', value: 'On delivery' },
+        ]}
+      />
 
       <form
         className="flex gap-2"
@@ -67,17 +73,19 @@ export function TrackShipment() {
           setActive(ref.trim());
         }}
       >
-        <Input placeholder="e.g. ORD-XXXX or tracking number" value={ref} onChange={(e) => setRef(e.target.value)} />
-        <Button type="submit">
-          <Search className="h-4 w-4" /> Track
-        </Button>
+        <SearchField
+          placeholder="e.g. ORD-XXXX or tracking number"
+          value={ref}
+          onChange={(e) => setRef(e.target.value)}
+          className="max-w-md"
+        />
+        <Button type="submit">Track</Button>
       </form>
 
       {!active ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center gap-2 py-20 text-center text-muted-foreground">
-            <MapPin className="h-10 w-10" />
-            <p>Enter a reference above to start tracking.</p>
+          <CardContent className="p-0">
+            <EmptyPanel icon={MapPin} title="Enter a reference" description="Enter a reference above to start tracking." />
           </CardContent>
         </Card>
       ) : isLoading ? (
@@ -100,15 +108,55 @@ function TrackingDetails({ order }: { order: Order }) {
   const currentStep = STATUS_TO_STEP[order.status] ?? 0;
   const cancelled = ['CANCELLED', 'FAILED', 'RETURNED'].includes(order.status);
 
-  const lastWithCoords = [...order.trackingEvents].reverse().find((e) => e.latitude && e.longitude);
+  const [liveDriver, setLiveDriver] = useState<{ lat: number; lng: number } | null>(null);
+
+  useOrderSocket(order.id, {
+    onTracking: (p) => {
+      if (p.lat != null && p.lng != null) setLiveDriver({ lat: p.lat, lng: p.lng });
+    },
+  });
+
+  const pickup =
+    order.pickupAddress?.latitude != null && order.pickupAddress?.longitude != null
+      ? { lat: order.pickupAddress.latitude, lng: order.pickupAddress.longitude }
+      : null;
+  const dropoff =
+    order.dropoffAddress?.latitude != null && order.dropoffAddress?.longitude != null
+      ? { lat: order.dropoffAddress.latitude, lng: order.dropoffAddress.longitude }
+      : null;
+
+  const driverFromOrder =
+    order.delivery?.driver?.currentLat != null && order.delivery?.driver?.currentLng != null
+      ? { lat: order.delivery.driver.currentLat, lng: order.delivery.driver.currentLng }
+      : null;
+
+  const lastEventCoords = [...order.trackingEvents].reverse().find((e) => e.latitude && e.longitude);
+  const driverPos = liveDriver ?? driverFromOrder ?? (lastEventCoords ? { lat: lastEventCoords.latitude!, lng: lastEventCoords.longitude! } : null);
+
   const markers: MapMarker[] = [];
-  if (order.pickupAddress?.latitude && order.pickupAddress?.longitude)
-    markers.push({ lat: order.pickupAddress.latitude, lng: order.pickupAddress.longitude, color: '#16a34a', label: 'Pickup' });
-  if (lastWithCoords)
-    markers.push({ lat: lastWithCoords.latitude!, lng: lastWithCoords.longitude!, color: '#2563eb', label: 'Current' });
-  if (order.dropoffAddress?.latitude && order.dropoffAddress?.longitude)
-    markers.push({ lat: order.dropoffAddress.latitude, lng: order.dropoffAddress.longitude, color: '#ea580c', label: 'Dropoff' });
-  const route = markers.length >= 2 ? (markers.map((m) => [m.lat, m.lng]) as Array<[number, number]>) : undefined;
+  if (pickup) markers.push({ lat: pickup.lat, lng: pickup.lng, color: '#16a34a', label: 'Pickup' });
+  if (driverPos && !['DELIVERED', 'CANCELLED', 'FAILED', 'RETURNED'].includes(order.status)) {
+    markers.push({ lat: driverPos.lat, lng: driverPos.lng, color: '#2563eb', label: 'Driver' });
+  }
+  if (dropoff) markers.push({ lat: dropoff.lat, lng: dropoff.lng, color: '#ea580c', label: 'Dropoff' });
+
+  const routeKey = useMemo(() => {
+    const parts = [pickup, driverPos, dropoff].filter(Boolean).map((p) => `${p!.lat},${p!.lng}`);
+    return parts.join('|');
+  }, [pickup, driverPos, dropoff]);
+
+  const { data: routeData, isLoading: routeLoading } = useQuery({
+    queryKey: ['track-route', routeKey],
+    queryFn: () => {
+      if (!pickup || !dropoff) return null;
+      const via = driverPos ? [driverPos] : [];
+      return fetchRoute(pickup, dropoff, via);
+    },
+    enabled: !!pickup && !!dropoff,
+    staleTime: 60_000,
+  });
+
+  const route = routeData?.coordinates;
 
   const driverName = order.delivery?.driver?.user
     ? `${order.delivery.driver.user.firstName} ${order.delivery.driver.user.lastName}`
@@ -119,10 +167,11 @@ function TrackingDetails({ order }: { order: Order }) {
       <Card>
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-6">
           <div>
-            <p className="text-xs text-muted-foreground">Order</p>
-            <p className="text-lg font-bold">{order.orderNumber}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-400">Order</p>
+            <p className="text-lg font-bold text-white">{order.orderNumber}</p>
+            <p className="text-xs text-slate-400">
               {order.pickupAddress?.city} → {order.dropoffAddress?.city} · {order.deliveryType}
+              {routeData ? ` · ${routeData.distanceKm.toFixed(1)} km · ~${routeData.durationMin} min` : ''}
             </p>
           </div>
           <div className="text-right">
@@ -135,7 +184,7 @@ function TrackingDetails({ order }: { order: Order }) {
               <Badge variant={meta.variant}>{meta.label}</Badge>
             </div>
             {order.estimatedDeliveryAt && (
-              <p className="mt-1 flex items-center justify-end gap-1 text-xs text-muted-foreground">
+              <p className="mt-1 flex items-center justify-end gap-1 text-xs text-slate-400">
                 <Clock className="h-3 w-3" /> ETA {new Date(order.estimatedDeliveryAt).toLocaleString()}
               </p>
             )}
@@ -163,10 +212,10 @@ function TrackingDetails({ order }: { order: Order }) {
                       {done ? (
                         <CheckCircle2 className={cn('h-6 w-6 shrink-0', isCurrent ? 'text-primary' : 'text-emerald-500')} />
                       ) : (
-                        <Circle className="h-6 w-6 shrink-0 text-muted-foreground/40" />
+                        <Circle className="h-6 w-6 shrink-0 text-slate-500/40" />
                       )}
                       <div className="pt-0.5">
-                        <p className={cn('text-sm font-medium', !done && 'text-muted-foreground')}>{s.label}</p>
+                        <p className={cn('text-sm font-medium', !done && 'text-slate-400')}>{s.label}</p>
                         {isCurrent && <p className="text-xs text-primary">Current status</p>}
                       </div>
                     </li>
@@ -181,8 +230,13 @@ function TrackingDetails({ order }: { order: Order }) {
                   <Truck className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Driver</p>
+                  <p className="text-xs text-slate-400">Driver</p>
                   <p className="text-sm font-medium">{driverName}</p>
+                  {driverPos && (
+                    <p className="text-xs text-slate-500">
+                      {driverPos.lat.toFixed(4)}, {driverPos.lng.toFixed(4)}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -190,11 +244,16 @@ function TrackingDetails({ order }: { order: Order }) {
         </Card>
 
         <Card className="overflow-hidden lg:col-span-2">
-          <div className="h-[420px] w-full">
+          <div className="relative h-[420px] w-full">
+            {routeLoading && markers.length > 0 && (
+              <div className="absolute right-3 top-3 z-[500] rounded-full bg-black/60 px-2 py-1 text-xs text-white">
+                Loading route…
+              </div>
+            )}
             {markers.length ? (
               <Map markers={markers} route={route} />
             ) : (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-full items-center justify-center text-sm text-slate-400">
                 No location data available for this shipment.
               </div>
             )}
@@ -210,7 +269,7 @@ function TrackingDetails({ order }: { order: Order }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-[220px_1fr]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+
             <img
               src={fileUrl(order.delivery.proofFile.storageKey)}
               alt="Proof of delivery"
@@ -219,20 +278,20 @@ function TrackingDetails({ order }: { order: Order }) {
             <div className="space-y-3 text-sm">
               {order.delivery.recipientName && (
                 <div>
-                  <p className="text-xs text-muted-foreground">Received by</p>
+                  <p className="text-xs text-slate-400">Received by</p>
                   <p className="font-medium">{order.delivery.recipientName}</p>
                 </div>
               )}
               {order.delivery.deliveredAt && (
                 <div>
-                  <p className="text-xs text-muted-foreground">Delivered at</p>
+                  <p className="text-xs text-slate-400">Delivered at</p>
                   <p className="font-medium">{new Date(order.delivery.deliveredAt).toLocaleString()}</p>
                 </div>
               )}
               {order.delivery.signatureFile && (
                 <div>
-                  <p className="text-xs text-muted-foreground">Signature</p>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <p className="text-xs text-slate-400">Signature</p>
+
                   <img
                     src={fileUrl(order.delivery.signatureFile.storageKey)}
                     alt="Signature"
@@ -251,16 +310,24 @@ function TrackingDetails({ order }: { order: Order }) {
         </CardHeader>
         <CardContent>
           <ol className="space-y-4">
-            {[...order.trackingEvents].reverse().map((e) => (
-              <li key={e.id} className="flex items-start gap-3">
-                <Navigation className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <div>
-                  <p className="text-sm font-medium">{e.status}</p>
-                  {e.description && <p className="text-xs text-muted-foreground">{e.description}</p>}
-                  <p className="text-xs text-muted-foreground">{new Date(e.createdAt).toLocaleString()}</p>
-                </div>
-              </li>
-            ))}
+            {[...order.trackingEvents].reverse().map((e) => {
+              const statusLabel = ORDER_STATUS_META[e.status]?.label ?? e.status;
+              return (
+                <li key={e.id} className="flex items-start gap-3">
+                  <Navigation className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium">{statusLabel}</p>
+                    {e.description && <p className="text-xs text-slate-400">{e.description}</p>}
+                    {e.latitude != null && e.longitude != null && (
+                      <p className="text-xs text-slate-500">
+                        {e.latitude.toFixed(4)}, {e.longitude.toFixed(4)}
+                      </p>
+                    )}
+                    <p className="text-xs text-slate-400">{new Date(e.createdAt).toLocaleString()}</p>
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         </CardContent>
       </Card>

@@ -3,10 +3,6 @@ import { ApiError } from '../utils/ApiError.js';
 import type { Role } from '@delivery/types';
 import { ROLES } from '../constants/index.js';
 
-/**
- * Role-based access control. SUPER_ADMIN always passes.
- * Usage: router.get('/', authenticate, authorize('ADMIN', 'SUPPORT'), handler)
- */
 export function authorize(...allowedRoles: Role[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) return next(ApiError.unauthorized());
@@ -17,10 +13,6 @@ export function authorize(...allowedRoles: Role[]) {
   };
 }
 
-/**
- * Permission-based access control (fine-grained). SUPER_ADMIN always passes.
- * Usage: authorizePermission('orders.create')
- */
 export function authorizePermission(...required: string[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) return next(ApiError.unauthorized());

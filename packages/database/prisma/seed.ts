@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { PrismaClient, CouponType, DeliveryType, VehicleType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
@@ -10,6 +9,7 @@ const ROLES = [
   'OPERATIONS_MANAGER',
   'WAREHOUSE_MANAGER',
   'WAREHOUSE_STAFF',
+  'BRANCH_STAFF',
   'DRIVER',
   'MERCHANT',
   'CUSTOMER',
@@ -42,8 +42,7 @@ const ACTIONS = ['create', 'read', 'update', 'delete', 'manage'];
 async function main() {
   console.log('Seeding database...');
 
-  // 1) Permissions
-  const permissions = [];
+    const permissions = [];
   for (const resource of RESOURCES) {
     for (const action of ACTIONS) {
       permissions.push({
@@ -58,8 +57,7 @@ async function main() {
   const allPermissions = await prisma.permission.findMany();
   console.log(`  ${allPermissions.length} permissions`);
 
-  // 2) Roles
-  for (const name of ROLES) {
+    for (const name of ROLES) {
     await prisma.role.upsert({
       where: { name },
       update: {},
@@ -70,24 +68,20 @@ async function main() {
   const roleByName = Object.fromEntries(roles.map((r) => [r.name, r]));
   console.log(`  ${roles.length} roles`);
 
-  // 3) Role -> Permission mapping
-  // SUPER_ADMIN & ADMIN -> all permissions
-  for (const roleName of ['SUPER_ADMIN', 'ADMIN']) {
+      for (const roleName of ['SUPER_ADMIN', 'ADMIN']) {
     await prisma.rolePermission.createMany({
       data: allPermissions.map((p) => ({ roleId: roleByName[roleName].id, permissionId: p.id })),
       skipDuplicates: true,
     });
   }
-  // CUSTOMER -> read own orders/packages/tracking + create orders
-  const customerPerms = allPermissions.filter((p) =>
+    const customerPerms = allPermissions.filter((p) =>
     ['orders.create', 'orders.read', 'packages.read', 'tracking.read', 'reviews.create', 'payments.read'].includes(p.key),
   );
   await prisma.rolePermission.createMany({
     data: customerPerms.map((p) => ({ roleId: roleByName.CUSTOMER.id, permissionId: p.id })),
     skipDuplicates: true,
   });
-  // DRIVER -> deliveries/tracking
-  const driverPerms = allPermissions.filter((p) =>
+    const driverPerms = allPermissions.filter((p) =>
     ['orders.read', 'tracking.create', 'tracking.read', 'packages.read', 'packages.update'].includes(p.key),
   );
   await prisma.rolePermission.createMany({
@@ -95,8 +89,7 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // OPERATIONS_MANAGER -> orchestrate fulfilment (orders/drivers/packages/tracking/warehouses)
-  const opsPerms = allPermissions.filter((p) =>
+    const opsPerms = allPermissions.filter((p) =>
     ['orders', 'packages', 'drivers', 'tracking', 'warehouses', 'vehicles', 'reports', 'analytics'].includes(
       p.resource,
     ),
@@ -106,8 +99,7 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // WAREHOUSE_MANAGER -> full warehouse domain
-  const whPerms = allPermissions.filter((p) =>
+    const whPerms = allPermissions.filter((p) =>
     ['warehouses', 'packages', 'tracking', 'reports'].includes(p.resource),
   );
   await prisma.rolePermission.createMany({
@@ -115,8 +107,7 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // WAREHOUSE_STAFF -> operate packages/tracking (no manage)
-  const whStaffPerms = allPermissions.filter((p) =>
+    const whStaffPerms = allPermissions.filter((p) =>
     ['packages.read', 'packages.update', 'tracking.read', 'tracking.create', 'warehouses.read'].includes(p.key),
   );
   await prisma.rolePermission.createMany({
@@ -124,8 +115,15 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // FINANCE -> money domain
-  const financePerms = allPermissions.filter((p) =>
+    const branchPerms = allPermissions.filter((p) =>
+    ['packages.read', 'packages.update', 'tracking.read', 'tracking.create', 'orders.read', 'orders.create'].includes(p.key),
+  );
+  await prisma.rolePermission.createMany({
+    data: branchPerms.map((p) => ({ roleId: roleByName.BRANCH_STAFF.id, permissionId: p.id })),
+    skipDuplicates: true,
+  });
+
+    const financePerms = allPermissions.filter((p) =>
     ['payments', 'reports', 'analytics', 'coupons', 'pricing'].includes(p.resource),
   );
   await prisma.rolePermission.createMany({
@@ -133,8 +131,7 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // SUPPORT -> tickets + read customers/orders
-  const supportPerms = allPermissions.filter((p) =>
+    const supportPerms = allPermissions.filter((p) =>
     ['tickets', 'reviews'].includes(p.resource) ||
     ['orders.read', 'customers.read', 'tracking.read'].includes(p.key),
   );
@@ -144,8 +141,11 @@ async function main() {
   });
   console.log('  role-permission mappings done');
 
-  // 4) Users
-  const passwordHash = await bcrypt.hash('Password123!', 10);
+    const demoPassword = process.env.SEED_DEMO_PASSWORD;
+    if (!demoPassword) {
+      throw new Error('Set SEED_DEMO_PASSWORD in your environment before running db:seed.');
+    }
+    const passwordHash = await bcrypt.hash(demoPassword, 10);
 
   const superAdmin = await prisma.user.upsert({
     where: { email: 'superadmin@delivery.local' },
@@ -232,18 +232,18 @@ async function main() {
     },
   });
 
-  // Staff users for the remaining roles (password: Password123!)
-  const staff: Array<{ email: string; phone: string; first: string; last: string; role: string }> = [
+    const staff: Array<{ email: string; phone: string; first: string; last: string; role: string }> = [
     { email: 'ops@delivery.local', phone: '+251900000006', first: 'Olivia', last: 'Operations', role: 'OPERATIONS_MANAGER' },
     { email: 'warehouse.manager@delivery.local', phone: '+251900000007', first: 'Wendy', last: 'Manager', role: 'WAREHOUSE_MANAGER' },
     { email: 'warehouse.staff@delivery.local', phone: '+251900000008', first: 'Sam', last: 'Stock', role: 'WAREHOUSE_STAFF' },
+    { email: 'branch.staff@delivery.local', phone: '+251900000011', first: 'Betty', last: 'Branch', role: 'BRANCH_STAFF' },
     { email: 'support@delivery.local', phone: '+251900000009', first: 'Sara', last: 'Support', role: 'SUPPORT' },
     { email: 'finance@delivery.local', phone: '+251900000010', first: 'Frank', last: 'Finance', role: 'FINANCE' },
   ];
   for (const s of staff) {
     await prisma.user.upsert({
       where: { email: s.email },
-      update: {},
+      update: { status: 'ACTIVE', emailVerifiedAt: new Date() },
       create: {
         email: s.email,
         phone: s.phone,
@@ -257,10 +257,33 @@ async function main() {
     });
   }
 
-  console.log('  users created (password for all: Password123!)');
+  console.log('  demo users created');
 
-  // 5) Vehicle for the driver
-  if (driverUser.driver) {
+    const branches = [
+    { id: 'br_add_bole', code: 'BR-ADD-BOLE', name: 'Guzo Bole', line1: 'Bole Road', city: 'Addis Ababa', latitude: 8.9972, longitude: 38.7897, phone: '+251911000001', openingHours: 'Mon-Sat 8:00-20:00', queueLevel: 2 },
+    { id: 'br_add_piassa', code: 'BR-ADD-PIASSA', name: 'Guzo Piassa', line1: 'Churchill Ave', city: 'Addis Ababa', latitude: 9.0336, longitude: 38.7465, phone: '+251911000002', openingHours: 'Mon-Sat 8:00-20:00', queueLevel: 1 },
+    { id: 'br_haw_center', code: 'BR-HAW-CTR', name: 'Guzo Hawassa', line1: 'Main Street', city: 'Hawassa', latitude: 7.0621, longitude: 38.4764, phone: '+251911000003', openingHours: 'Mon-Sat 8:00-18:00', queueLevel: 0 },
+    { id: 'br_adm_center', code: 'BR-ADM-CTR', name: 'Guzo Adama', line1: 'Station Road', city: 'Adama', latitude: 8.54, longitude: 39.27, phone: '+251911000004', openingHours: 'Mon-Sat 8:00-18:00', queueLevel: 0 },
+  ];
+  for (const b of branches) {
+    await prisma.guzoBranch.upsert({
+      where: { id: b.id },
+      update: {},
+      create: b,
+    });
+  }
+
+  const branchStaffUser = await prisma.user.findUnique({ where: { email: 'branch.staff@delivery.local' } });
+  if (branchStaffUser) {
+    await prisma.guzoBranchStaff.upsert({
+      where: { userId_branchId: { userId: branchStaffUser.id, branchId: 'br_add_bole' } },
+      update: {},
+      create: { userId: branchStaffUser.id, branchId: 'br_add_bole' },
+    });
+    console.log('  branch staff assigned to Guzo Bole (br_add_bole)');
+  }
+
+    if (driverUser.driver) {
     await prisma.vehicle.upsert({
       where: { plateNumber: 'AA-12345' },
       update: {},
@@ -275,8 +298,7 @@ async function main() {
     });
   }
 
-  // 6) Warehouse
-  await prisma.warehouse.upsert({
+    await prisma.warehouse.upsert({
     where: { code: 'WH-ADD-001' },
     update: {},
     create: {
@@ -291,8 +313,7 @@ async function main() {
     },
   });
 
-  // 7) Pricing rules
-  for (const type of [DeliveryType.STANDARD, DeliveryType.EXPRESS, DeliveryType.SAME_DAY]) {
+    for (const type of [DeliveryType.STANDARD, DeliveryType.EXPRESS, DeliveryType.SAME_DAY]) {
     await prisma.pricingRule.create({
       data: {
         name: `${type} pricing`,
@@ -307,8 +328,7 @@ async function main() {
     });
   }
 
-  // 8) Coupon
-  await prisma.coupon.upsert({
+    await prisma.coupon.upsert({
     where: { code: 'WELCOME10' },
     update: {},
     create: {
@@ -321,8 +341,7 @@ async function main() {
     },
   });
 
-  // 9) Global settings
-  const settings: Array<[string, unknown]> = [
+    const settings: Array<[string, unknown]> = [
     ['platform.name', 'Delivery Platform'],
     ['platform.currency', 'ETB'],
     ['platform.supportEmail', 'support@delivery.local'],
@@ -337,8 +356,7 @@ async function main() {
     }
   }
 
-  // 10) Demo support tickets + notifications + customer addresses
-  const supportUser = await prisma.user.findUnique({ where: { email: 'support@delivery.local' } });
+    const supportUser = await prisma.user.findUnique({ where: { email: 'support@delivery.local' } });
   if (supportUser && customerUser) {
     const existingTicket = await prisma.supportTicket.findFirst({ where: { ticketNumber: 'TIC-DEMO-001' } });
     if (!existingTicket) {
@@ -415,9 +433,7 @@ async function main() {
     }
   }
 
-  console.log('Seed complete. Logins (password: Password123!):');
-  console.log('  superadmin@delivery.local / admin@delivery.local');
-  console.log('  customer@delivery.local / driver@delivery.local / merchant@delivery.local');
+  console.log('Seed complete. Demo accounts created (see seeded user emails in the output above).');
   console.log(`  super admin id: ${superAdmin.id}, customer id: ${customerUser.id}`);
 }
 

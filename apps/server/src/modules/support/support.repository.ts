@@ -71,7 +71,6 @@ export class SupportTicketRepository {
     });
   }
 
-  /** Bumps updatedAt so the ticket surfaces at the top of the queue after a reply. */
   touch(id: string, data: Prisma.SupportTicketUpdateInput = {}) {
     return prisma.supportTicket.update({ where: { id }, data, include: ticketInclude });
   }

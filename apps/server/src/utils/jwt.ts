@@ -37,12 +37,10 @@ export function verifyRefreshToken(token: string): RefreshTokenClaims {
   return jwt.verify(token, env.jwt.refreshSecret) as RefreshTokenClaims;
 }
 
-/** Refresh tokens are stored only as a SHA-256 hash. */
 export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-/** Convert an expiry like "7d"/"15m" into a future Date. */
 export function expiryToDate(expiresIn: string): Date {
   const match = /^(\d+)([smhd])$/.exec(expiresIn);
   const now = Date.now();

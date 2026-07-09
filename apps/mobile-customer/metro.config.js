@@ -6,7 +6,6 @@ const workspaceRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// Watch shared packages only — not the whole monorepo node_modules tree (crashes Metro on Windows).
 config.watchFolders = [
   path.resolve(workspaceRoot, 'packages/mobile-shared'),
   path.resolve(workspaceRoot, 'packages/mobile-ui'),
@@ -18,7 +17,7 @@ config.resolver.nodeModulesPaths = [
 ];
 config.resolver.disableHierarchicalLookup = true;
 
-const mapsStub = path.resolve(projectRoot, 'lib/maps.web.tsx');
+const mapsStub = path.resolve(workspaceRoot, 'packages/mobile-ui/src/maps.web.tsx');
 const defaultResolve = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (platform === 'web' && moduleName === 'react-native-maps') {

@@ -1,17 +1,24 @@
 export type DeliveryType = 'STANDARD' | 'EXPRESS' | 'SAME_DAY' | 'SCHEDULED' | 'INTERNATIONAL';
 
 export type OrderStatus =
+  | 'DRAFT'
   | 'PENDING_PAYMENT'
   | 'CONFIRMED'
   | 'ASSIGNED'
   | 'PICKED_UP'
   | 'IN_TRANSIT'
+  | 'AT_BRANCH'
   | 'AT_WAREHOUSE'
+  | 'AT_DESTINATION_BRANCH'
+  | 'READY_FOR_PICKUP'
   | 'OUT_FOR_DELIVERY'
   | 'DELIVERED'
   | 'FAILED'
   | 'CANCELLED'
   | 'RETURNED';
+
+export type PickupMethod = 'COMPANY_PICKUP' | 'DROP_AT_BRANCH' | 'BRANCH_PICKUP';
+export type PaymentMethod = 'FAKE' | 'CASH_ON_DELIVERY' | 'TELEBIRR' | 'CBE' | 'CHAPA' | 'CARD';
 
 export interface AddressInput {
   line1: string;
@@ -41,9 +48,16 @@ export interface CreateOrderInput {
   pickup: AddressInput;
   dropoff: AddressInput;
   package: PackageInput;
+  paymentMethod?: PaymentMethod;
+  pickupMethod?: PickupMethod;
+  receiverPhone?: string;
+  receiverGuzoId?: string;
+  originBranchId?: string;
+  destinationBranchId?: string;
+  hasInsurance?: boolean;
+  insuranceAmount?: number;
   couponCode?: string;
   notes?: string;
-  /** ISO datetime — used with deliveryType SCHEDULED */
   scheduledPickupAt?: string;
 }
 
@@ -85,11 +99,22 @@ export interface Order {
   estimatedDeliveryAt?: string | null;
   pickupAddress: Address;
   dropoffAddress: Address;
-  packages: Array<{ id: string; trackingNumber: string; weightKg: number; description?: string | null }>;
+  packages: Array<{
+    id: string;
+    trackingNumber: string;
+    weightKg: number;
+    description?: string | null;
+    pickupPin?: string | null;
+    qrCode?: string | null;
+  }>;
   trackingEvents?: Array<{ id: string; type: string; status: string; description?: string | null; createdAt: string }>;
   payment?: { status: string; amount: number; currency: string } | null;
   delivery?: {
-    driver?: { user?: { firstName: string; lastName: string; phone?: string | null } | null } | null;
+    driver?: {
+      currentLat?: number | null;
+      currentLng?: number | null;
+      user?: { firstName: string; lastName: string; phone?: string | null } | null;
+    } | null;
   } | null;
 }
 
@@ -101,6 +126,12 @@ export interface DriverSummary {
   rating: number;
   activeDeliveries: number;
   completedDeliveries: number;
+  today?: {
+    pickups: number;
+    deliveries: number;
+    intercity: number;
+    available: number;
+  };
 }
 
 export interface MerchantSummary {
@@ -117,15 +148,27 @@ export interface MerchantSummary {
 
 export interface CustomerSummary {
   totals: { orders: number; inTransit: number; delivered: number; openTickets: number };
+  parcels?: {
+    active: number;
+    incoming: number;
+    readyForPickup: number;
+    delivered: number;
+    draft: number;
+  };
+  recentOrders?: Array<{ id: string; orderNumber: string; status: string; createdAt: string }>;
 }
 
 export const ORDER_STATUS_LABELS: Record<string, string> = {
+  DRAFT: 'Draft',
   PENDING_PAYMENT: 'Pending payment',
   CONFIRMED: 'Confirmed',
   ASSIGNED: 'Driver assigned',
   PICKED_UP: 'Picked up',
   IN_TRANSIT: 'In transit',
+  AT_BRANCH: 'At branch',
   AT_WAREHOUSE: 'At warehouse',
+  AT_DESTINATION_BRANCH: 'At destination branch',
+  READY_FOR_PICKUP: 'Ready for pickup',
   OUT_FOR_DELIVERY: 'Out for delivery',
   DELIVERED: 'Delivered',
   FAILED: 'Failed',
@@ -138,4 +181,14 @@ export const DRIVER_NEXT_STATUS: Partial<Record<OrderStatus, { next: OrderStatus
   PICKED_UP: { next: 'IN_TRANSIT', label: 'Start transit' },
   IN_TRANSIT: { next: 'OUT_FOR_DELIVERY', label: 'Out for delivery' },
   OUT_FOR_DELIVERY: { next: 'DELIVERED', label: 'Mark delivered' },
+  FAILED: { next: 'OUT_FOR_DELIVERY', label: 'Reattempt delivery' },
+};
+
+export const DRIVER_ALT_STATUS: Partial<Record<OrderStatus, Array<{ next: OrderStatus; label: string }>>> = {
+  PICKED_UP: [
+    { next: 'AT_BRANCH', label: 'Drop at branch' },
+    { next: 'AT_WAREHOUSE', label: 'Deliver to warehouse' },
+  ],
+  IN_TRANSIT: [{ next: 'AT_WAREHOUSE', label: 'Arrive at warehouse' }],
+  OUT_FOR_DELIVERY: [{ next: 'FAILED', label: 'Mark failed delivery' }],
 };

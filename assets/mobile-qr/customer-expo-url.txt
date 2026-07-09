@@ -1,0 +1,6 @@
+GUZO Customer
+exp://192.168.100.4:8081
+
+iPhone: Expo Go -> Scan QR
+Samsung: Expo Go -> Scan QR
+Same Wi-Fi as PC required
