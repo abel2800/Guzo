@@ -25,7 +25,7 @@
 
 <br/>
 
-[Overview](#overview) | [Architecture](#architecture) | [Applications](#applications) | [Data layer](#data-layer) | [API](#api-server) | [Auth & RBAC](#authentication--rbac) | [Quick start](#quick-start) | [Demo logins](#demo-accounts) | [Documentation](doc/README.md) | [Changelog](doc/CHANGELOG.md)
+[Overview](#overview) | [Architecture](#architecture) | [Applications](#applications) | [Data layer](#data-layer) | [API](#api-server) | [Auth & RBAC](#authentication--rbac) | [Quick start](#quick-start) | [Demo logins](#demo-accounts) | [Contact](#contact) | [Documentation](doc/README.md) | [Changelog](doc/CHANGELOG.md)
 
 <br/>
 
@@ -810,6 +810,19 @@ Local demo users are created by `npm run db:seed`. Set `SEED_DEMO_PASSWORD` in `
 | Branch staff | Counter, receive, shelf (web + mobile) |
 | Admin | Full web dashboard |
 | Super admin | All permissions |
+
+---
+
+## Contact
+
+Questions about GUZO, contributions, or partnerships? Reach the project maintainer:
+
+| | |
+|---|---|
+| **Email** | [absir28@gmail.com](mailto:absir28@gmail.com) |
+| **GitHub** | [@abel2800](https://github.com/abel2800) |
+
+For product or business inquiries, see the marketing site contact page at `/contact` when running `apps/marketing` locally.
 
 ---
 
