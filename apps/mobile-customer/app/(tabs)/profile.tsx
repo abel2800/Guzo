@@ -65,6 +65,8 @@ export default function ProfileScreen() {
 
       <Text style={[styles.sectionLabel, { marginTop: 20 }]}>Settings</Text>
       <GlassCard>
+        <MenuItem icon="person-outline" label="Edit profile & photo" onPress={() => router.push('/settings')} />
+        <View style={styles.divider} />
         <View style={styles.settingRow}>
           <Ionicons name="notifications-outline" size={20} color={colors.textMuted} />
           <Text style={styles.settingLabel}>Push notifications</Text>

@@ -48,11 +48,11 @@ export function MerchantInvoices() {
             <Card key={inv.id}>
               <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
                 <div>
-                  <p className="font-mono font-semibold text-white">{inv.invoiceNumber}</p>
+                  <p className="font-mono font-semibold text-foreground">{inv.invoiceNumber}</p>
                   <p className="text-sm text-muted-foreground">Order {inv.order?.orderNumber}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-white">{inv.currency} {num(inv.total).toLocaleString()}</p>
+                  <p className="font-semibold text-foreground">{inv.currency} {num(inv.total).toLocaleString()}</p>
                   <Badge variant={INVOICE_STATUS_META[inv.status]?.variant ?? 'outline'}>
                     {INVOICE_STATUS_META[inv.status]?.label ?? inv.status}
                   </Badge>

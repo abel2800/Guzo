@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { EmptyPanel, FuturisticHero } from '@/components/dashboard/futuristic-primitives';
+import { EmptyPanel, FuturisticHero, PanelSelect } from '@/components/dashboard/futuristic-primitives';
 
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'success'> = {
   DRAFT: 'outline',
@@ -146,16 +146,12 @@ export function WarehouseManifests() {
               {tab === 'outbound' && (
                 <div className="space-y-3 rounded-lg border p-3">
                   <Label>Destination warehouse (optional)</Label>
-                  <select
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                    value={destWarehouseId}
-                    onChange={(e) => setDestWarehouseId(e.target.value)}
-                  >
+                  <PanelSelect value={destWarehouseId} onChange={(e) => setDestWarehouseId(e.target.value)}>
                     <option value="">— Select —</option>
                     {warehouses?.filter((w) => w.id !== warehouseId).map((w) => (
                       <option key={w.id} value={w.id}>{w.name} ({w.city})</option>
                     ))}
-                  </select>
+                  </PanelSelect>
                   <Button onClick={() => create.mutate()} disabled={create.isPending}>
                     {create.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     New manifest

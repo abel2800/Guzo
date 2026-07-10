@@ -1,6 +1,8 @@
 import { prisma, type Prisma, type OrderStatus } from '@delivery/database';
 import { generateReference } from '@delivery/utils';
 
+const DRIVER_AVAILABLE_STATUSES = ['CONFIRMED', 'AT_BRANCH'] as const;
+
 const orderInclude = {
   customer: { include: { user: true } },
   merchant: true,
@@ -9,7 +11,12 @@ const orderInclude = {
   packages: true,
   delivery: {
     include: {
-      driver: { include: { user: true } },
+      driver: {
+        include: {
+          user: { include: { avatar: true } },
+        },
+      },
+      vehicle: true,
       proofFile: true,
       signatureFile: true,
     },
@@ -17,7 +24,7 @@ const orderInclude = {
   payment: true,
   invoice: true,
   trackingEvents: { orderBy: { createdAt: 'asc' as const } },
-} satisfies Prisma.OrderInclude;
+} as Prisma.OrderInclude;
 
 export class OrdersRepository {
   async list(params: {
@@ -26,6 +33,7 @@ export class OrdersRepository {
     search?: string;
     status?: string;
     customerId?: string;
+    customerAccess?: Prisma.OrderWhereInput;
     merchantId?: string;
     driverId?: string;
     unassigned?: boolean;
@@ -34,10 +42,15 @@ export class OrdersRepository {
   }) {
     const where: Prisma.OrderWhereInput = {
       ...(params.status ? { status: params.status as Prisma.EnumOrderStatusFilter['equals'] } : {}),
-      ...(params.customerId ? { customerId: params.customerId } : {}),
+      ...(params.customerAccess ? params.customerAccess : params.customerId ? { customerId: params.customerId } : {}),
       ...(params.merchantId ? { merchantId: params.merchantId } : {}),
             ...(params.driverId ? { delivery: { driverId: params.driverId } } : {}),
-            ...(params.unassigned ? { delivery: { is: null }, status: 'CONFIRMED' } : {}),
+            ...(params.unassigned
+              ? {
+                  delivery: { is: null },
+                  status: { in: [...DRIVER_AVAILABLE_STATUSES] },
+                }
+              : {}),
       ...(params.search
         ? {
             OR: [
@@ -135,4 +148,4 @@ export class OrdersRepository {
 }
 
 export const ordersRepository = new OrdersRepository();
-export { orderInclude };
+export { orderInclude, DRIVER_AVAILABLE_STATUSES };

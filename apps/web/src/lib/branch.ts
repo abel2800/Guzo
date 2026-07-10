@@ -124,6 +124,37 @@ export async function lookupBranchShelf(branchId: string, shelfCode: string): Pr
   return apiGet<BranchInventoryItem[]>(`/branches/${branchId}/shelf/${encodeURIComponent(shelfCode)}`);
 }
 
+export async function listBranches(city?: string) {
+  const q = city ? `?city=${encodeURIComponent(city)}` : '';
+  return apiGet<Array<{ id: string; code: string; name: string; city: string; line1: string; phone?: string | null }>>(`/branches${q}`);
+}
+
+export async function quoteBranchRegister(
+  branchId: string,
+  input: {
+    senderPhone: string;
+    senderName?: string;
+    receiverPhone: string;
+    receiverName?: string;
+    destinationBranchId?: string;
+    dropoffCity?: string;
+    dropoffLine1?: string;
+    weightKg: number;
+  },
+) {
+  const { data } = await api.post<ApiResponse<{
+    distanceKm: number;
+    baseFee: number;
+    distanceFee: number;
+    weightFee: number;
+    totalAmount: number;
+    currency: string;
+    tax: number;
+  }>>(`/branches/${branchId}/register-quote`, input);
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
 export async function registerParcelAtBranch(
   branchId: string,
   input: {
@@ -131,12 +162,14 @@ export async function registerParcelAtBranch(
     senderName: string;
     receiverPhone: string;
     receiverName: string;
-    dropoffCity: string;
+    destinationBranchId?: string;
+    dropoffCity?: string;
     dropoffLine1?: string;
     weightKg: number;
     description?: string;
     fragile?: boolean;
     paymentMethod?: string;
+    payLater?: boolean;
   },
 ) {
   const { data } = await api.post<ApiResponse<BranchInventoryItem & { label?: ParcelLabel }>>(`/branches/${branchId}/register`, input);

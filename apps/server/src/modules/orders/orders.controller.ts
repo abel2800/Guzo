@@ -6,6 +6,7 @@ import { ApiError } from '../../utils/ApiError.js';
 import { ok, created } from '../../utils/ApiResponse.js';
 import { parseListQuery } from '../../utils/pagination.js';
 import { ROLES } from '../../constants/index.js';
+import { serializeOrder, serializeOrders } from './orders.serializer.js';
 
 function isAdmin(req: Request) {
   return !!req.user?.roles.some(
@@ -38,15 +39,21 @@ export const ordersController = {
     } else if (isMerchant(req)) {
       scope = { merchantUserId: req.user!.id };
     } else {
-      scope = { customerUserId: req.user!.id };
+      const scopeParam = typeof req.query.scope === 'string' ? req.query.scope : undefined;
+      const customerOrderScope =
+        scopeParam === 'incoming' ? 'incoming' : scopeParam === 'all' ? 'all' : 'sent';
+      scope = {
+        customerUserId: req.user!.id,
+        customerOrderScope,
+      };
     }
     const { items, meta } = await ordersService.list(parseListQuery(req), scope);
-    return ok(res, items, ORDER_MESSAGES.FETCHED, meta);
+    return ok(res, serializeOrders(items as never[]), ORDER_MESSAGES.FETCHED, meta);
   }),
 
   getById: asyncHandler(async (req: Request, res: Response) => {
     const order = await ordersService.getById(req.params.id);
-    return ok(res, order, ORDER_MESSAGES.FOUND);
+    return ok(res, serializeOrder(order as never), ORDER_MESSAGES.FOUND);
   }),
 
   create: asyncHandler(async (req: Request, res: Response) => {
@@ -77,7 +84,7 @@ export const ordersController = {
 
   track: asyncHandler(async (req: Request, res: Response) => {
     const order = await ordersService.track(req.params.reference);
-    return ok(res, order, 'Tracking details');
+    return ok(res, serializeOrder(order as never), 'Tracking details');
   }),
 
   updateStatus: asyncHandler(async (req: Request, res: Response) => {
@@ -134,6 +141,27 @@ export const ordersController = {
     if (!branchId || !trackingNumber) throw ApiError.badRequest('branchId and trackingNumber are required');
     const order = await ordersService.branchHandoff(req.params.id, req.user!.id, { branchId, trackingNumber });
     return ok(res, order, 'Dropped at branch');
+  }),
+
+  scanPickup: asyncHandler(async (req: Request, res: Response) => {
+    const reference = typeof req.body?.reference === 'string' ? req.body.reference.trim() : '';
+    if (!reference) throw ApiError.badRequest('reference is required (tracking number or QR code)');
+    const toNum = (v: unknown) => (v !== undefined && v !== '' ? Number(v) : undefined);
+    const order = await ordersService.scanPickup(req.params.id, req.user!.id, {
+      reference,
+      latitude: toNum(req.body.latitude),
+      longitude: toNum(req.body.longitude),
+    });
+    return ok(res, serializeOrder(order as never), 'Pickup confirmed');
+  }),
+
+  notifyArrived: asyncHandler(async (req: Request, res: Response) => {
+    const toNum = (v: unknown) => (v !== undefined && v !== '' ? Number(v) : undefined);
+    const order = await ordersService.notifyDriverArrived(req.params.id, req.user!.id, {
+      latitude: toNum(req.body.latitude),
+      longitude: toNum(req.body.longitude),
+    });
+    return ok(res, serializeOrder(order as never), 'Receiver notified');
   }),
 
   markFailed: asyncHandler(async (req: Request, res: Response) => {

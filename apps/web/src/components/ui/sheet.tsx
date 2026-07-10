@@ -16,14 +16,14 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     ref={ref}
-    className={cn('fixed inset-0 z-50 bg-black/60 backdrop-blur-sm', className)}
+    className={cn('fixed inset-0 z-50 bg-black/50 backdrop-blur-sm', className)}
     {...props}
   />
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  'fixed z-50 gap-4 border-white/10 bg-guzo-bg/95 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl transition ease-in-out',
+  'fixed z-50 gap-4 border border-border bg-background p-6 text-foreground shadow-xl backdrop-blur-xl transition ease-in-out',
   {
     variants: {
       side: {

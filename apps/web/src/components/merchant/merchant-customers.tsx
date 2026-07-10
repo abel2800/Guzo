@@ -35,9 +35,9 @@ export function MerchantCustomers() {
             <Card key={`${c.contactPhone}-${i}`}>
               <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
                 <div>
-                  <p className="font-semibold text-white">{c.contactName || 'Recipient'}</p>
+                  <p className="font-semibold text-foreground">{c.contactName || 'Recipient'}</p>
                   <p className="text-sm text-muted-foreground">{c.contactPhone || 'No phone'}</p>
-                  <p className="text-xs text-slate-400">{c.line1}, {c.city}</p>
+                  <p className="text-xs text-muted-foreground">{c.line1}, {c.city}</p>
                 </div>
                 <Badge>{c.orderCount} orders</Badge>
               </CardContent>

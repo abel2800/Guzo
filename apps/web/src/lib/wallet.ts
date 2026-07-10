@@ -25,11 +25,9 @@ export async function getWallet(): Promise<WalletSummary> {
 }
 
 export async function listWalletTransactions(params: { page?: number; limit?: number } = {}) {
-  const { data } = await api.get<ApiResponse<{ items: WalletTransaction[]; meta: unknown }>>('/wallet/transactions', {
-    params,
-  });
+  const { data } = await api.get<ApiResponse<WalletTransaction[]>>('/wallet/transactions', { params });
   if (!data.success) throw new Error(data.message);
-  return data.data;
+  return { items: data.data, meta: data.meta };
 }
 
 export async function topUpWallet(amount: number, description?: string) {

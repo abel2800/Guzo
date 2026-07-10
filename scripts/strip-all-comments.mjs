@@ -20,7 +20,7 @@ const SKIP_DIRS = new Set([
   '.git',
 ]);
 
-const SKIP_FILES = new Set(['next-env.d.ts', 'expo-env.d.ts']);
+const SKIP_FILES = new Set(['next-env.d.ts', 'expo-env.d.ts', 'tailwind.config.ts']);
 
 function walk(dir, files = []) {
   if (!fs.existsSync(dir)) return files;
@@ -156,7 +156,7 @@ function stripPs1Comments(sourceText) {
 
 function stripInlineAndJsxComments(sourceText) {
   let result = sourceText.replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, '');
-  result = result.replace(/\/\*[\s\S]*?\*\
+  result = result.replace(/\/\*(?!\*)[\s\S]*?\*\//g, '');
   const lines = result.split('\n');
   result = lines
     .map((line) => {

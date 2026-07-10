@@ -80,15 +80,15 @@ export function DriverHistory() {
               {orders.map((o) => (
                 <div key={o.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
                   <div className="min-w-0">
-                    <p className="font-semibold text-white">{o.orderNumber}</p>
-                    <p className="flex items-center gap-1 text-xs text-slate-400">
+                    <p className="font-semibold text-foreground">{o.orderNumber}</p>
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
                       <MapPin className="h-3 w-3 shrink-0" />
                       {o.pickupAddress?.city} → {o.dropoffAddress?.city}
                     </p>
-                    <p className="text-xs text-slate-500">{new Date(o.createdAt).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(o.createdAt).toLocaleString()}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-300">ETB {Number(o.totalAmount).toLocaleString()}</span>
+                    <span className="text-sm font-medium text-muted-foreground">ETB {Number(o.totalAmount).toLocaleString()}</span>
                     <Badge variant={STATUS_VARIANT[o.status] ?? 'outline'}>{formatStatus(o.status)}</Badge>
                   </div>
                 </div>

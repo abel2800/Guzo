@@ -100,8 +100,8 @@ export function WarehouseDispatch() {
                 {dispatched.map((item) => (
                   <div key={item.id} className="dashboard-list-row flex items-center justify-between gap-3 px-5 py-3 text-sm">
                     <div>
-                      <p className="font-semibold text-white">{item.package.trackingNumber}</p>
-                      <p className="flex items-center gap-1 text-xs text-slate-400">
+                      <p className="font-semibold text-foreground">{item.package.trackingNumber}</p>
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
                         <MapPin className="h-3 w-3" /> {item.package.order.dropoffAddress?.city ?? '—'} ·{' '}
                         {item.package.order.orderNumber}
                       </p>

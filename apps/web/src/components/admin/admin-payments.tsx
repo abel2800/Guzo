@@ -44,9 +44,9 @@ export function AdminPayments() {
           <CardHeader><CardTitle>Ledger by status</CardTitle></CardHeader>
           <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {data.byStatus.map((row) => (
-              <div key={row.status} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                <p className="text-xs uppercase text-slate-400">{row.status}</p>
-                <p className="text-lg font-semibold text-white">{row.count}</p>
+              <div key={row.status} className="rounded-xl border border-border bg-muted/40 p-3">
+                <p className="text-xs uppercase text-muted-foreground">{row.status}</p>
+                <p className="text-lg font-semibold text-foreground">{row.count}</p>
                 <p className="text-sm text-emerald-400">ETB {row.amount.toLocaleString()}</p>
               </div>
             ))}

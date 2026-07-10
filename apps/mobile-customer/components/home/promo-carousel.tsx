@@ -1,15 +1,16 @@
 import { useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { colors, gradients, radius } from '@/lib/design';
 
 const { width } = Dimensions.get('window');
 const CARD_W = width - 48;
 
 const PROMOS = [
-  { id: '1', title: 'Free express upgrade', sub: 'On your next 3 orders', gradient: gradients.promo1 },
-  { id: '2', title: '20% off groceries', sub: 'This weekend only', gradient: gradients.promo2 },
-  { id: '3', title: 'Refer & earn 100 ETB', sub: 'Invite friends to GUZO', gradient: ['#312E81', '#0F172A'] as const },
+  { id: '1', title: 'Free express upgrade', sub: 'On your next 3 orders', gradient: gradients.promo1, route: '/(tabs)/book' as const },
+  { id: '2', title: '20% off groceries', sub: 'This weekend only', gradient: gradients.promo2, route: '/(tabs)/book' as const },
+  { id: '3', title: 'Refer & earn 100 ETB', sub: 'Invite friends to GUZO', gradient: ['#312E81', '#0F172A'] as const, route: '/wallet' as const },
 ];
 
 export function PromoCarousel() {
@@ -36,7 +37,7 @@ export function PromoCarousel() {
         contentContainerStyle={{ gap: 12 }}
       >
         {PROMOS.map((p) => (
-          <Pressable key={p.id}>
+          <Pressable key={p.id} onPress={() => router.push(p.route)}>
             <LinearGradient colors={[...p.gradient]} style={[styles.card, { width: CARD_W }]}>
               <Text style={styles.title}>{p.title}</Text>
               <Text style={styles.sub}>{p.sub}</Text>

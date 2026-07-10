@@ -24,12 +24,13 @@ if ($lanIp) {
   $env:REACT_NATIVE_PACKAGER_HOSTNAME = $lanIp
 }
 
-$env:EXPO_OFFLINE = '1'
 $env:EXPO_NO_TELEMETRY = '1'
+# Skip Expo's online dependency check (often fails with JSON parse errors and blocks Metro from starting).
+$env:EXPO_OFFLINE = '1'
 if (-not $env:EXPO_PUBLIC_API_URL) {
   $env:EXPO_PUBLIC_API_URL = 'http://localhost:4010/api/v1'
 }
 
 Write-Host "[$AppDir] Expo on port $Port (LAN: ${lanIp})" -ForegroundColor DarkCyan
 
-npx expo start --go --port $Port --offline -c
+npx expo start --go --port $Port --lan -c

@@ -5,7 +5,7 @@ export interface RegisterDto {
   firstName: string;
   lastName: string;
   phone?: string;
-  role?: 'CUSTOMER' | 'MERCHANT' | 'DRIVER';
+  role?: 'CUSTOMER' | 'MERCHANT' | 'DRIVER' | 'BRANCH_STAFF';
 }
 
 export interface LoginDto {
@@ -18,12 +18,16 @@ export interface RefreshDto {
 }
 
 export interface ForgotPasswordDto {
-  email: string;
+  email?: string;
+  phone?: string;
 }
 
 export interface ResetPasswordDto {
-  token: string;
+  email?: string;
+  phone?: string;
   password: string;
+  /** @deprecated JWT link flow — use OTP verification instead */
+  token?: string;
 }
 
 export interface UpdateProfileDto {

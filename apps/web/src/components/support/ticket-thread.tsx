@@ -75,19 +75,19 @@ export function TicketThread({ ticketId, isAgent }: { ticketId: string; isAgent:
       <div className="space-y-3 pb-4">
         <SheetTitle className="pr-8">{ticket.subject}</SheetTitle>
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="font-mono text-slate-400">{ticket.ticketNumber}</span>
+          <span className="font-mono text-muted-foreground">{ticket.ticketNumber}</span>
           <Badge variant={sm.variant}>{sm.label}</Badge>
           <Badge variant={pm.variant}>{pm.label}</Badge>
           {ticket.category && <Badge variant="outline">{ticket.category}</Badge>}
         </div>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           From {ticket.requester.firstName} {ticket.requester.lastName}
           {ticket.assignee ? ` · Assigned to ${ticket.assignee.firstName}` : ' · Unassigned'}
         </p>
 
         {isAgent && (
-          <div className="flex flex-wrap items-end gap-2 rounded-lg border border-white/10 bg-white/5 p-3">
-            <label className="flex flex-col gap-1 text-xs text-slate-300">
+          <div className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-muted/40 p-3">
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
               Status
               <PanelSelect
                 value={ticket.status}
@@ -100,7 +100,7 @@ export function TicketThread({ ticketId, isAgent }: { ticketId: string; isAgent:
                 ))}
               </PanelSelect>
             </label>
-            <label className="flex flex-col gap-1 text-xs text-slate-300">
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
               Priority
               <PanelSelect
                 value={ticket.priority}
@@ -168,11 +168,11 @@ export function TicketThread({ ticketId, isAgent }: { ticketId: string; isAgent:
           onChange={(e) => setBody(e.target.value)}
           rows={3}
           placeholder={isAgent ? 'Reply to the customer…' : 'Write a message…'}
-          className="w-full resize-none rounded-md border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:ring-2 focus:ring-guzo-primary/40"
+          className="w-full resize-none rounded-md border border-border bg-muted/40 p-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-guzo-primary/40"
         />
         <div className="flex items-center justify-between">
           {isAgent ? (
-            <label className="flex items-center gap-2 text-xs text-slate-400">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
               <input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} />
               <Lock className="h-3 w-3" /> Internal note
             </label>

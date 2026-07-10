@@ -117,9 +117,9 @@ export function MerchantApiKeys() {
           <CardHeader><CardTitle>Active keys</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {keysQ.isLoading ? <Skeleton className="h-20" /> : keysQ.data?.map((k) => (
-              <div key={k.id} className="flex items-center justify-between rounded-lg border border-white/10 p-3">
+              <div key={k.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div>
-                  <p className="font-medium text-white">{k.label}</p>
+                  <p className="font-medium text-foreground">{k.label}</p>
                   <p className="font-mono text-xs text-muted-foreground">{k.keyPrefix}…</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -137,8 +137,8 @@ export function MerchantApiKeys() {
           <CardHeader><CardTitle>Webhooks</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {hooksQ.isLoading ? <Skeleton className="h-20" /> : hooksQ.data?.map((w) => (
-              <div key={w.id} className="flex items-center justify-between rounded-lg border border-white/10 p-3">
-                <p className="truncate text-sm text-slate-300">{w.url}</p>
+              <div key={w.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <p className="truncate text-sm text-muted-foreground">{w.url}</p>
                 <Button size="sm" variant="outline" onClick={() => toggleHook.mutate({ id: w.id, isActive: !w.isActive })}>
                   {w.isActive ? 'Pause' : 'Enable'}
                 </Button>

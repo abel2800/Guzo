@@ -28,6 +28,8 @@ export default function ProfileScreen() {
       </View>
 
       <GlassCard>
+        <MenuRow icon="person-outline" label="Edit profile & photo" onPress={() => router.push('/settings')} />
+        <View style={styles.divider} />
         <MenuRow icon="bar-chart-outline" label="Analytics" onPress={() => router.push('/analytics')} />
         <View style={styles.divider} />
         <MenuRow icon="people-outline" label="Customers" onPress={() => router.push('/customers')} />
@@ -40,7 +42,7 @@ export default function ProfileScreen() {
         <View style={styles.divider} />
         <MenuRow icon="layers-outline" label="Bulk upload" onPress={() => router.push('/(tabs)/bulk')} />
         <View style={styles.divider} />
-        <MenuRow icon="help-circle-outline" label="Help & support" />
+        <MenuRow icon="help-circle-outline" label="Help & support" onPress={() => router.push('/settings')} />
       </GlassCard>
 
       <Pressable

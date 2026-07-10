@@ -108,6 +108,18 @@ export async function updateBranch(id: string, body: Partial<BranchRow>) {
   return data.data;
 }
 
+export async function assignBranchStaff(userId: string, branchId: string) {
+  const { data } = await api.post<ApiResponse<{ userId: string; branchId: string }>>('/branch-staff', { userId, branchId });
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export async function listBranchStaff(branchId: string) {
+  const { data } = await api.get<ApiResponse<Array<{ userId: string; branchId: string; assignedAt: string }>>>(`/branch-staff/branch/${branchId}`);
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
 export interface PricingRule {
   id: string;
   name: string;

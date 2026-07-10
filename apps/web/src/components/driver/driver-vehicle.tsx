@@ -57,7 +57,7 @@ export function DriverVehicle() {
       <Card>
         <CardContent className="p-6">
           {vehicle ? (
-            <p className="text-lg font-bold text-white">{vehicle.plateNumber} · {vehicle.brand} {vehicle.model}</p>
+            <p className="text-lg font-bold text-foreground">{vehicle.plateNumber} · {vehicle.brand} {vehicle.model}</p>
           ) : (
             <EmptyPanel icon={Car} title="No vehicle assigned" description="Contact dispatch to assign a vehicle." />
           )}
@@ -91,10 +91,10 @@ export function DriverVehicle() {
             {logs!.map((l) => (
               <div key={l.id} className="flex justify-between px-6 py-3 text-sm">
                 <div>
-                  <p className="font-medium text-white">{l.type}</p>
-                  <p className="text-slate-400">{l.note ?? '—'} · {new Date(l.loggedAt).toLocaleDateString()}</p>
+                  <p className="font-medium text-foreground">{l.type}</p>
+                  <p className="text-muted-foreground">{l.note ?? '—'} · {new Date(l.loggedAt).toLocaleDateString()}</p>
                 </div>
-                <p className="text-slate-300">
+                <p className="text-muted-foreground">
                   {l.odometerKm != null ? `${l.odometerKm} km` : ''}
                   {l.amount != null ? ` · ETB ${l.amount}` : ''}
                 </p>

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { AuthUser } from '@delivery/types';
+import type { AuthUser, LoginResponse } from '@delivery/types';
 import {
   initMobileApi,
   login as apiLogin,
@@ -26,8 +26,10 @@ interface AuthState {
   user: AuthUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  completeSession: (res: LoginResponse) => Promise<void>;
   signInWithBiometrics: () => Promise<void>;
   signOut: () => Promise<void>;
+  updateUser: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -69,6 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setUser(res.user);
       },
+      async completeSession(res) {
+        requireMerchant(res.user);
+        await tokenStorage.setTokens(res.tokens.accessToken, res.tokens.refreshToken);
+        setUser(res.user);
+      },
       async signInWithBiometrics() {
         const token = await tokenStorage.getAccessToken();
         if (!token) throw new Error('No saved session');
@@ -85,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await clearBiometricPrefs(APP_SCOPE);
         setUser(null);
       },
+      updateUser: setUser,
     }),
     [user, loading],
   );

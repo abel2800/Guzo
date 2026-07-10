@@ -95,6 +95,20 @@ export interface LoginResponse {
   tokens: AuthTokens;
 }
 
+export interface RegisterPendingResponse {
+  pending: true;
+  message: string;
+  user: Pick<AuthUser, 'id' | 'email' | 'firstName' | 'lastName' | 'roles'>;
+}
+
+export type RegisterResponse = LoginResponse | RegisterPendingResponse;
+
+export function isRegisterPending(
+  response: RegisterResponse,
+): response is RegisterPendingResponse {
+  return 'pending' in response && response.pending === true;
+}
+
 export interface JwtPayload {
   sub: string;   email: string;
   roles: Role[];

@@ -51,7 +51,7 @@ export function CustomerRatings() {
               <Card key={o.id}>
                 <CardContent className="space-y-3 p-4">
                   <div>
-                    <p className="font-semibold text-white">{o.orderNumber}</p>
+                    <p className="font-semibold text-foreground">{o.orderNumber}</p>
                     <p className="text-sm text-muted-foreground">Driver: {name}</p>
                   </div>
                   <div className="flex gap-2">

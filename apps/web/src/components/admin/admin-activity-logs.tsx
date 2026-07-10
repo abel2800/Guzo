@@ -36,12 +36,12 @@ export function AdminActivityLogs() {
             <Card key={log.id}>
               <CardContent className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-mono text-sm font-semibold text-white">{log.action}</p>
-                  <p className="text-xs text-slate-500">{new Date(log.createdAt).toLocaleString()}</p>
+                  <p className="font-mono text-sm font-semibold text-foreground">{log.action}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(log.createdAt).toLocaleString()}</p>
                 </div>
-                {log.user?.email && <p className="text-xs text-slate-400">{log.user.email}</p>}
+                {log.user?.email && <p className="text-xs text-muted-foreground">{log.user.email}</p>}
                 {log.metadata && Object.keys(log.metadata).length > 0 && (
-                  <p className="mt-1 font-mono text-xs text-slate-500">
+                  <p className="mt-1 font-mono text-xs text-muted-foreground">
                     {JSON.stringify(log.metadata)}
                   </p>
                 )}

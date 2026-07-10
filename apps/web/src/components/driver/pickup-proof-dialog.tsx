@@ -149,14 +149,14 @@ export function PickupProofDialog({ order, open, onOpenChange, onCompleted }: Pr
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetTitle>Pickup proof</SheetTitle>
-        {order && <p className="mt-1 text-sm text-slate-400">{order.orderNumber} · {order.pickupAddress?.city}</p>}
+        {order && <p className="mt-1 text-sm text-muted-foreground">{order.orderNumber} · {order.pickupAddress?.city}</p>}
 
         {!photo ? (
           <div className="mt-4 space-y-3">
             {cameraError ? (
-              <label className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed border-white/20 p-8">
-                <Upload className="h-8 w-8 text-slate-400" />
-                <span className="text-sm text-slate-400">Upload pickup photo</span>
+              <label className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed border-border p-8">
+                <Upload className="h-8 w-8 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Upload pickup photo</span>
                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (!f) return;
@@ -168,7 +168,7 @@ export function PickupProofDialog({ order, open, onOpenChange, onCompleted }: Pr
             ) : (
               <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-black">
                 <video ref={videoRef} className="h-full w-full object-cover" playsInline muted />
-                {!cameraReady && <p className="absolute inset-0 flex items-center justify-center text-sm text-white/70">Starting camera…</p>}
+                {!cameraReady && <p className="absolute inset-0 flex items-center justify-center text-sm text-foreground/">Starting camera…</p>}
               </div>
             )}
             <div className="flex gap-2">
@@ -190,7 +190,7 @@ export function PickupProofDialog({ order, open, onOpenChange, onCompleted }: Pr
             ref={sigRef}
             width={320}
             height={120}
-            className="w-full touch-none rounded-lg border border-white/15 bg-white"
+            className="w-full touch-none rounded-lg border border-border bg-background"
             onPointerDown={sigDown}
             onPointerMove={sigMove}
             onPointerUp={sigUp}

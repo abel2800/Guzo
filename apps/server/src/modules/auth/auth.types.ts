@@ -1,6 +1,6 @@
-import type { Role, LoginResponse } from '@delivery/types';
+import type { Role, LoginResponse, RegisterResponse } from '@delivery/types';
 
-export type { LoginResponse };
+export type { LoginResponse, RegisterResponse };
 
 export interface AuthenticatedPrincipal {
   id: string;

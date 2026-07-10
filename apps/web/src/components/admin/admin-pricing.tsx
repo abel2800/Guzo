@@ -90,7 +90,7 @@ export function AdminPricing() {
               <Card key={r.id}>
                 <CardContent className="flex items-center justify-between p-4">
                   <div>
-                    <p className="font-medium text-white">{r.name}</p>
+                    <p className="font-medium text-foreground">{r.name}</p>
                     <p className="text-sm text-muted-foreground">{r.deliveryType} · ETB {num(r.baseFee)}</p>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => toggleRule.mutate({ id: r.id, isActive: !r.isActive })}>
@@ -119,7 +119,7 @@ export function AdminPricing() {
               <Card key={z.id}>
                 <CardContent className="flex items-center justify-between p-4">
                   <div>
-                    <p className="font-medium text-white">{z.city}</p>
+                    <p className="font-medium text-foreground">{z.city}</p>
                     <p className="text-sm text-muted-foreground">{z.zoneName} · ×{num(z.multiplier)}</p>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => toggleZone.mutate({ id: z.id, isActive: !z.isActive })}>

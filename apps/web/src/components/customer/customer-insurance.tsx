@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { EmptyPanel, FuturisticHero } from '@/components/dashboard/futuristic-primitives';
+import { EmptyPanel, FuturisticHero, PanelSelect } from '@/components/dashboard/futuristic-primitives';
 
 export function CustomerInsuranceClaims() {
   const qc = useQueryClient();
@@ -49,16 +49,12 @@ export function CustomerInsuranceClaims() {
         <CardContent className="space-y-3 p-4">
           <div>
             <Label>Insured order</Label>
-            <select
-              className="mt-1 w-full rounded-md border border-white/10 bg-black/20 p-2 text-sm"
-              value={orderId}
-              onChange={(e) => setOrderId(e.target.value)}
-            >
+            <PanelSelect className="mt-1" value={orderId} onChange={(e) => setOrderId(e.target.value)}>
               <option value="">Select order…</option>
               {insuredOrders.map((o) => (
                 <option key={o.id} value={o.id}>{o.orderNumber}</option>
               ))}
-            </select>
+            </PanelSelect>
           </div>
           <div>
             <Label>Description</Label>
@@ -77,7 +73,7 @@ export function CustomerInsuranceClaims() {
             <Card key={c.id}>
               <CardContent className="flex items-center justify-between p-4">
                 <div>
-                  <p className="font-mono text-white">{c.order?.orderNumber}</p>
+                  <p className="font-mono text-foreground">{c.order?.orderNumber}</p>
                   <p className="text-sm text-muted-foreground">{c.description}</p>
                 </div>
                 <Badge>{c.status}</Badge>

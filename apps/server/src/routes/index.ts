@@ -37,6 +37,9 @@ import insuranceClaimsRoutes from '../modules/insurance-claims/insurance-claims.
 import merchantPlatformRoutes from '../modules/merchant-platform/merchant-platform.routes.js';
 import merchantApiRoutes from '../modules/merchant-platform/merchant-api.routes.js';
 import mapsRoutes from '../modules/maps/maps.routes.js';
+import walletRoutes from '../modules/wallet/wallet.routes.js';
+import otpRoutes from '../modules/otp/otp.routes.js';
+import receiversRoutes from '../modules/receivers/receivers.routes.js';
 
 const router = Router();
 
@@ -78,6 +81,9 @@ const modules: Array<[string, Router]> = [
   ['/merchant-platform', merchantPlatformRoutes],
   ['/merchant-api', merchantApiRoutes],
   ['/maps', mapsRoutes],
+  ['/wallet', walletRoutes],
+  ['/otp', otpRoutes],
+  ['/receivers', receiversRoutes],
 ];
 
 for (const [path, moduleRouter] of modules) {

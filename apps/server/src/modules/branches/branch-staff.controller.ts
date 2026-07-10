@@ -18,7 +18,7 @@ export const branchStaffController = {
   }),
 
   me: asyncHandler(async (req: Request, res: Response) => {
-    const data = await branchStaffService.myBranches(req.user!.id);
+    const data = await branchStaffService.myBranches(req.user!.id, req.user!.roles);
     return ok(res, data, 'My branches');
   }),
 };

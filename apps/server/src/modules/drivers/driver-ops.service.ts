@@ -2,6 +2,9 @@ import { prisma } from '@delivery/database';
 import { haversineKm } from '@delivery/utils';
 import { ApiError } from '../../utils/ApiError.js';
 import { manifestsService } from '../manifests/manifests.service.js';
+import { storage } from '../../providers/storage/index.js';
+import { UPLOAD_FOLDERS } from '../../constants/index.js';
+import { filePublicUrl } from '../../utils/file-url.js';
 
 export class DriverOpsService {
   private async requireDriver(userId: string) {
@@ -95,9 +98,12 @@ export class DriverOpsService {
     const driver = await this.requireDriver(userId);
     const vehicle = await prisma.vehicle.findFirst({
       where: { driverId: driver.id },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
     });
     if (!vehicle) return null;
+    const photoFile = vehicle.photoFileId
+      ? await prisma.file.findUnique({ where: { id: vehicle.photoFileId } })
+      : null;
     return {
       id: vehicle.id,
       plateNumber: vehicle.plateNumber,
@@ -106,6 +112,104 @@ export class DriverOpsService {
       brand: vehicle.brand,
       model: vehicle.model,
       color: vehicle.color,
+      photoUrl: filePublicUrl(photoFile?.storageKey),
+    };
+  }
+
+  async upsertMyVehicle(
+    userId: string,
+    input: {
+      type: string;
+      plateNumber: string;
+      brand?: string;
+      model?: string;
+      color?: string;
+    },
+  ) {
+    const driver = await this.requireDriver(userId);
+    const plate = input.plateNumber.trim().toUpperCase();
+    if (!plate) throw ApiError.badRequest('Plate number is required');
+
+    const existing = await prisma.vehicle.findFirst({ where: { driverId: driver.id } });
+    const data = {
+      type: input.type as never,
+      plateNumber: plate,
+      brand: input.brand?.trim() || null,
+      model: input.model?.trim() || null,
+      color: input.color?.trim() || null,
+      status: 'ACTIVE' as const,
+    };
+
+    const vehicle = existing
+      ? await prisma.vehicle.update({ where: { id: existing.id }, data })
+      : await prisma.vehicle.create({ data: { ...data, driverId: driver.id } });
+
+    const photoFile = vehicle.photoFileId
+      ? await prisma.file.findUnique({ where: { id: vehicle.photoFileId } })
+      : null;
+
+    return {
+      id: vehicle.id,
+      plateNumber: vehicle.plateNumber,
+      type: vehicle.type,
+      status: vehicle.status,
+      brand: vehicle.brand,
+      model: vehicle.model,
+      color: vehicle.color,
+      photoUrl: filePublicUrl(photoFile?.storageKey),
+    };
+  }
+
+  async uploadVehiclePhoto(
+    userId: string,
+    file: { path: string; filename: string; originalname: string; mimetype: string; size: number },
+  ) {
+    const driver = await this.requireDriver(userId);
+    let vehicle = await prisma.vehicle.findFirst({ where: { driverId: driver.id } });
+    if (!vehicle) {
+      vehicle = await prisma.vehicle.create({
+        data: {
+          driverId: driver.id,
+          type: 'MOTORCYCLE',
+          plateNumber: `TMP-${driver.driverCode}`,
+          status: 'ACTIVE',
+        },
+      });
+    }
+
+    const saved = await storage.save({
+      absolutePath: file.path,
+      folder: UPLOAD_FOLDERS.VEHICLE_PHOTOS,
+      filename: file.filename,
+    });
+
+    const fileRow = await prisma.file.create({
+      data: {
+        uploaderId: userId,
+        category: 'IMAGE',
+        originalName: file.originalname,
+        storedName: file.filename,
+        mimeType: file.mimetype,
+        sizeBytes: file.size,
+        storageKey: saved.storageKey,
+        storageDriver: saved.driver,
+      },
+    });
+
+    const updated = await prisma.vehicle.update({
+      where: { id: vehicle.id },
+      data: { photoFileId: fileRow.id },
+    });
+
+    return {
+      id: updated.id,
+      plateNumber: updated.plateNumber,
+      type: updated.type,
+      status: updated.status,
+      brand: updated.brand,
+      model: updated.model,
+      color: updated.color,
+      photoUrl: filePublicUrl(saved.storageKey),
     };
   }
 

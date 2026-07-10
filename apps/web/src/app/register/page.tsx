@@ -8,24 +8,28 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import type { ApiResponse, LoginResponse } from '@delivery/types';
+import type { ApiResponse, RegisterResponse } from '@delivery/types';
+import { isRegisterPending } from '@delivery/types';
 import { api } from '@/lib/api';
 import { sendOtp, verifyOtp } from '@/lib/otp';
 import { useAuthStore } from '@/lib/auth-store';
 import { GuzoLogo } from '@/components/guzo-logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { PanelSelect } from '@/components/dashboard/futuristic-primitives';
+import { getApiErrorMessage, passwordSchema, PASSWORD_HINT } from '@/lib/validation';
+import { OTP_DEV_TERMINAL_HINT, useOtpResendCooldown } from '@/hooks/use-otp-resend';
 
 const schema = z.object({
   firstName: z.string().min(1, 'Required'),
   lastName: z.string().min(1, 'Required'),
   email: z.string().email('Enter a valid email'),
-  phone: z.string().min(9, 'Phone required for customers'),
-  password: z.string().min(8, 'At least 8 characters').regex(/\d/, 'Include a number'),
-  role: z.enum(['CUSTOMER', 'MERCHANT', 'DRIVER']),
+  phone: z.string().min(9, 'Phone required'),
+  password: passwordSchema,
+  role: z.enum(['CUSTOMER', 'MERCHANT', 'DRIVER', 'BRANCH_STAFF']),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -35,6 +39,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [otp, setOtp] = useState('');
   const [otpBusy, setOtpBusy] = useState(false);
+  const { canResend, startCooldown, countdownLabel } = useOtpResendCooldown();
 
   const {
     register,
@@ -46,7 +51,7 @@ export default function RegisterPage() {
     defaultValues: { firstName: '', lastName: '', email: '', phone: '', password: '', role: 'CUSTOMER' },
   });
 
-  async function onSendOtp() {
+  async function onSendOtp(isResend = false) {
     const phone = getValues('phone')?.trim();
     if (!phone) {
       toast.error('Enter your phone number first');
@@ -55,8 +60,10 @@ export default function RegisterPage() {
     setOtpBusy(true);
     try {
       await sendOtp(phone);
-      toast.success('OTP sent — check server logs in dev');
+      toast.success('OTP sent — check the API server terminal for your code');
       setStep(2);
+      startCooldown();
+      if (isResend) setOtp('');
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -90,16 +97,18 @@ export default function RegisterPage() {
 
   async function onSubmit(values: FormValues) {
     try {
-      const { data } = await api.post<ApiResponse<LoginResponse>>('/auth/register', values);
+      const { data } = await api.post<ApiResponse<RegisterResponse>>('/auth/register', values);
       if (!data.success) throw new Error(data.message);
+      if (isRegisterPending(data.data)) {
+        toast.success(data.data.message);
+        router.replace('/login');
+        return;
+      }
       setSession(data.data.user, data.data.tokens);
       toast.success('Account created — welcome to GUZO');
       router.replace('/dashboard');
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Registration failed.';
-      toast.error(message);
+      toast.error(getApiErrorMessage(err, 'Registration failed.'));
     }
   }
 
@@ -112,12 +121,12 @@ export default function RegisterPage() {
         <div className="mb-6 flex justify-center">
           <GuzoLogo />
         </div>
-        <Card className="border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+        <Card className="border-border bg-muted/40 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
           <CardContent className="space-y-6 p-8">
             <div className="space-y-2 text-center">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-guzo-primary">Join GUZO</p>
-              <h1 className="text-2xl font-bold text-white">Create your account</h1>
-              <p className="text-sm text-slate-400">Step {step} of 3</p>
+              <h1 className="text-2xl font-bold text-foreground">Create your account</h1>
+              <p className="text-sm text-muted-foreground">Step {step} of 3</p>
             </div>
 
             {step === 1 && (
@@ -127,20 +136,34 @@ export default function RegisterPage() {
                   <Input id="phone" {...register('phone')} placeholder="09…" />
                   {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
                 </div>
-                <Button type="button" className="w-full" disabled={otpBusy} onClick={onSendOtp}>
+                <Button type="button" className="w-full" disabled={otpBusy} onClick={() => onSendOtp(false)}>
                   {otpBusy ? 'Sending…' : 'Send OTP'}
                 </Button>
+                <p className="text-xs text-muted-foreground">{OTP_DEV_TERMINAL_HINT}</p>
               </div>
             )}
 
             {step === 2 && (
               <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Code sent to <span className="font-medium text-foreground">{getValues('phone')}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">{OTP_DEV_TERMINAL_HINT}</p>
                 <div className="space-y-2">
                   <Label htmlFor="otp">Verification code</Label>
                   <Input id="otp" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} placeholder="000000" />
                 </div>
                 <Button type="button" className="w-full" disabled={otpBusy || otp.length < 6} onClick={onVerifyOtp}>
                   {otpBusy ? 'Verifying…' : 'Verify phone'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={otpBusy || !canResend}
+                  onClick={() => onSendOtp(true)}
+                >
+                  {otpBusy ? 'Sending…' : canResend ? 'Send OTP again' : `Send again in ${countdownLabel}`}
                 </Button>
               </div>
             )}
@@ -166,16 +189,21 @@ export default function RegisterPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" {...register('password')} />
+                  <PasswordInput id="password" {...register('password')} />
+                  <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
                   {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">I am a</Label>
                   <PanelSelect id="role" {...register('role')}>
-                    <option value="CUSTOMER">Customer</option>
-                    <option value="MERCHANT">Merchant</option>
-                    <option value="DRIVER">Driver</option>
+                    <option value="CUSTOMER">Customer — instant access</option>
+                    <option value="MERCHANT">Merchant — requires admin approval</option>
+                    <option value="DRIVER">Driver — requires admin approval</option>
+                    <option value="BRANCH_STAFF">Branch staff — requires admin approval</option>
                   </PanelSelect>
+                  <p className="text-xs text-muted-foreground">
+                    Drivers, merchants, and branch staff cannot sign in until an admin activates the account.
+                  </p>
                 </div>
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                   {isSubmitting ? 'Creating account...' : 'Create account'}
@@ -183,7 +211,7 @@ export default function RegisterPage() {
               </form>
             )}
 
-            <p className="text-center text-sm text-slate-400">
+            <p className="text-center text-sm text-muted-foreground">
               Already have an account?{' '}
               <Link href="/login" className="font-medium text-guzo-primary hover:underline">
                 Sign in

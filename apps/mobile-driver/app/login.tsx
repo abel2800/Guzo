@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -11,10 +12,11 @@ import {
 } from '@guzo/mobile-shared';
 import { tokenStorage } from '@/lib/storage';
 import { useAuth } from '@/lib/auth';
-import { GradientButton, GlassCard, GuzoBrandLogo } from '@guzo/mobile-ui';
+import { GradientButton, GlassCard, GuzoBrandLogo, PasswordField } from '@guzo/mobile-ui';
 import { colors, gradients, radius, spacing } from '@/lib/design';
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const { signIn, signInWithBiometrics } = useAuth();
   const [email, setEmail] = useState('driver@delivery.local');
   const [password, setPassword] = useState('');
@@ -61,7 +63,13 @@ export default function LoginScreen() {
   return (
     <LinearGradient colors={[...gradients.hero]} style={styles.bg}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.lg },
+          ]}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.brandBlock}>
             <GuzoBrandLogo source={require('@/assets/guzo-mark.png')} width={240} height={160} />
             <Text style={styles.tagline}>Driver — earn on every delivery</Text>
@@ -78,11 +86,20 @@ export default function LoginScreen() {
             <Text style={styles.label}>Email</Text>
             <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholderTextColor={colors.textDim} />
             <Text style={styles.label}>Password</Text>
-            <TextInput style={styles.input} value={password} onChangeText={setPassword} secureTextEntry placeholderTextColor={colors.textDim} />
+            <PasswordField value={password} onChangeText={setPassword} containerStyle={{ marginBottom: 14 }} />
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <GradientButton label={busy ? 'Signing in…' : 'Sign in'} onPress={onSubmit} disabled={busy} loading={busy} />
+
+            <Pressable onPress={() => router.push('/forgot-password')} style={styles.linkRow}>
+              <Text style={styles.linkText}>Forgot password?</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push('/signup')} style={styles.registerLink}>
+              <Text style={styles.registerText}>
+                New driver? <Text style={styles.registerBold}>Apply now</Text>
+              </Text>
+            </Pressable>
           </GlassCard>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -92,7 +109,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   bg: { flex: 1 },
-  scroll: { flexGrow: 1, justifyContent: 'center', padding: spacing.lg, minHeight: '100%' },
+  scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: spacing.lg, minHeight: '100%' },
   brandBlock: { alignItems: 'center', marginBottom: 32 },
   tagline: { color: colors.textMuted, fontSize: 14, marginTop: 4 },
   formCard: { marginTop: 8 },
@@ -110,4 +127,9 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   error: { color: colors.error, marginBottom: 12, textAlign: 'center', fontSize: 14 },
+  linkRow: { marginTop: 12, alignItems: 'center' },
+  linkText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
+  registerLink: { marginTop: 16, alignItems: 'center' },
+  registerText: { color: colors.textMuted, fontSize: 14 },
+  registerBold: { color: colors.primary, fontWeight: '700' },
 });

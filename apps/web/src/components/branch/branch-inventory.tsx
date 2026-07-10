@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Boxes, MapPin } from 'lucide-react';
@@ -82,9 +84,11 @@ export function BranchInventory() {
 
 function InventoryRow({ item }: { item: BranchInventoryItem }) {
   const pkg = item.package;
+  const tracking = pkg?.trackingNumber;
   return (
-    <Card>
-      <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+    <Link href={tracking ? `/dashboard/branch/shelf?tracking=${encodeURIComponent(tracking)}` : '/dashboard/branch/shelf'} className="block">
+      <Card className="transition-colors hover:border-guzo-primary/40">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
         <div>
           <p className="font-mono font-semibold">{pkg?.trackingNumber}</p>
           <p className="flex items-center gap-1 text-muted-foreground">
@@ -97,6 +101,7 @@ function InventoryRow({ item }: { item: BranchInventoryItem }) {
           <Badge variant="secondary">{pkg?.status}</Badge>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+    </Link>
   );
 }

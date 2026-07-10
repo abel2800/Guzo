@@ -52,6 +52,9 @@ export class UsersService {
   async update(id: string, dto: UpdateUserDto): Promise<PublicUser> {
     await this.getById(id);
     const user = await this.repo.update(id, dto);
+    if (dto.status === 'ACTIVE') {
+      await this.repo.approveLinkedProfiles(id);
+    }
     return toPublic(user);
   }
 

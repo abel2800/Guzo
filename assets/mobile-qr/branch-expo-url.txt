@@ -2,5 +2,7 @@ GUZO Branch
 exp://192.168.100.4:8084
 
 iPhone: Expo Go -> Scan QR
-Samsung: Expo Go -> Scan QR
+Android: Expo Go -> Scan QR
 Same Wi-Fi as PC required
+If Android shows old app: Expo Go menu -> Reload, or turn off mobile data
+Regenerate QRs after IP change: npm run mobile:qr

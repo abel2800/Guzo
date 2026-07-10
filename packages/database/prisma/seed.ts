@@ -275,12 +275,14 @@ async function main() {
 
   const branchStaffUser = await prisma.user.findUnique({ where: { email: 'branch.staff@delivery.local' } });
   if (branchStaffUser) {
-    await prisma.guzoBranchStaff.upsert({
-      where: { userId_branchId: { userId: branchStaffUser.id, branchId: 'br_add_bole' } },
-      update: {},
-      create: { userId: branchStaffUser.id, branchId: 'br_add_bole' },
-    });
-    console.log('  branch staff assigned to Guzo Bole (br_add_bole)');
+    for (const branchId of ['br_add_bole', 'br_add_piassa']) {
+      await prisma.guzoBranchStaff.upsert({
+        where: { userId_branchId: { userId: branchStaffUser.id, branchId } },
+        update: {},
+        create: { userId: branchStaffUser.id, branchId },
+      });
+    }
+    console.log('  branch staff assigned to Guzo Bole + Piassa');
   }
 
     if (driverUser.driver) {

@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
-import { EmptyPanel, FilterChip, FuturisticHero, SearchField } from '@/components/dashboard/futuristic-primitives';
+import { EmptyPanel, FilterChip, FuturisticHero, PanelSelect, SearchField } from '@/components/dashboard/futuristic-primitives';
 
 const STATUS_FILTERS = ['', 'CONFIRMED', 'ASSIGNED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'];
 const LIST_KEY = 'admin-orders';
@@ -104,7 +104,7 @@ export function AdminOrders() {
             <EmptyPanel icon={Package} title="No orders found" />
           ) : (
             <div className="divide-y">
-              <div className="hidden grid-cols-12 gap-4 px-6 py-3 text-xs font-medium uppercase text-slate-400 md:grid">
+              <div className="hidden grid-cols-12 gap-4 px-6 py-3 text-xs font-medium uppercase text-muted-foreground md:grid">
                 <div className="col-span-3">Order</div>
                 <div className="col-span-3">Customer</div>
                 <div className="col-span-2">Driver</div>
@@ -119,18 +119,18 @@ export function AdminOrders() {
                   <button
                     key={o.id}
                     onClick={() => setSelectedId(o.id)}
-                    className="grid w-full grid-cols-2 items-center gap-4 px-6 py-4 text-left text-sm transition-colors hover:bg-white/5 md:grid-cols-12"
+                    className="grid w-full grid-cols-2 items-center gap-4 px-6 py-4 text-left text-sm transition-colors hover:bg-muted/40 md:grid-cols-12"
                   >
                     <div className="md:col-span-3">
-                      <p className="font-semibold text-white">{o.orderNumber}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="font-semibold text-foreground">{o.orderNumber}</p>
+                      <p className="text-xs text-muted-foreground">
                         {new Date(o.createdAt).toLocaleDateString()} · {o.deliveryType}
                       </p>
                     </div>
-                    <div className="hidden text-slate-300 md:col-span-3 md:block">
+                    <div className="hidden text-muted-foreground md:col-span-3 md:block">
                       {customer ? `${customer.firstName} ${customer.lastName}` : '—'}
                     </div>
-                    <div className="hidden text-slate-300 md:col-span-2 md:block">
+                    <div className="hidden text-muted-foreground md:col-span-2 md:block">
                       {driver ? `${driver.firstName} ${driver.lastName}` : <span className="text-amber-600">Unassigned</span>}
                     </div>
                     <div className="md:col-span-2">
@@ -149,7 +149,7 @@ export function AdminOrders() {
 
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Page {meta.page} of {meta.totalPages} · {meta.total} orders
           </p>
           <div className="flex gap-2">
@@ -235,10 +235,10 @@ function OrderDetail({ order, onChanged }: { order: Order; onChanged: () => void
       <div className="space-y-2">
         <label className="text-sm font-medium">Assign driver</label>
         <div className="flex gap-2">
-          <select
+          <PanelSelect
             value={driverId}
             onChange={(e) => setDriverId(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-9"
           >
             <option value="">Select a driver…</option>
             {(drivers ?? []).map((d) => (
@@ -246,7 +246,7 @@ function OrderDetail({ order, onChanged }: { order: Order; onChanged: () => void
                 {d.user ? `${d.user.firstName} ${d.user.lastName}` : d.driverCode} ({d.driverCode})
               </option>
             ))}
-          </select>
+          </PanelSelect>
           <Button onClick={() => assignMut.mutate()} disabled={!driverId || assignMut.isPending}>
             {assignMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Assign'}
           </Button>
@@ -256,17 +256,17 @@ function OrderDetail({ order, onChanged }: { order: Order; onChanged: () => void
       <div className="space-y-2">
         <label className="text-sm font-medium">Update status</label>
         <div className="flex gap-2">
-          <select
+          <PanelSelect
             value={nextStatus}
             onChange={(e) => setNextStatus(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-9"
           >
             {ADMIN_STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
                 {ORDER_STATUS_META[s]?.label ?? s}
               </option>
             ))}
-          </select>
+          </PanelSelect>
           <Button
             onClick={() => statusMut.mutate()}
             disabled={nextStatus === order.status || statusMut.isPending}

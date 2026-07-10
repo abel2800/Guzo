@@ -55,7 +55,7 @@ export function AdminVehicles() {
             <Card key={v.id}>
               <CardContent className="flex items-center justify-between p-4">
                 <div>
-                  <p className="font-mono font-semibold text-white">{v.plateNumber}</p>
+                  <p className="font-mono font-semibold text-foreground">{v.plateNumber}</p>
                   <p className="text-sm text-muted-foreground">{v.type} {v.brand ? `· ${v.brand}` : ''}</p>
                 </div>
                 <Badge>{v.status}</Badge>

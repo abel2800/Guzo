@@ -1,17 +1,14 @@
 import { useState } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { listBranchInventory, type BranchInventoryItem } from '@guzo/mobile-shared';
 import { GlassCard, colors, designStyles, radius, spacing } from '@guzo/mobile-ui';
 import { useBranch } from '@/lib/branch';
 
 export default function InventoryScreen() {
-  const insets = useSafeAreaInsets();
   const { branchId } = useBranch();
-  const [state, setState] = useState<'in-stock' | 'all'>('in-stock');
+  const [state, setState] = useState<'in-stock' | 'incoming-today' | 'picked-up-today' | 'all'>('in-stock');
 
   const { data, refetch, isRefetching, isLoading } = useQuery({
     queryKey: ['branch-inventory', branchId, state],
@@ -22,18 +19,15 @@ export default function InventoryScreen() {
   const items = data?.items ?? [];
 
   return (
-    <View style={[designStyles.screen, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Pressable>
-        <Text style={styles.title}>Branch inventory</Text>
-      </View>
+    <View style={designStyles.screen}>
+      <Text style={[styles.title, { paddingHorizontal: spacing.lg, paddingTop: spacing.md }]}>Branch inventory</Text>
 
       <View style={styles.filters}>
-        {(['in-stock', 'all'] as const).map((s) => (
+        {(['in-stock', 'incoming-today', 'picked-up-today', 'all'] as const).map((s) => (
           <Pressable key={s} onPress={() => setState(s)} style={[styles.chip, state === s && styles.chipActive]}>
-            <Text style={[styles.chipText, state === s && styles.chipTextActive]}>{s === 'in-stock' ? 'In stock' : 'All'}</Text>
+            <Text style={[styles.chipText, state === s && styles.chipTextActive]}>
+              {s === 'in-stock' ? 'In stock' : s === 'incoming-today' ? 'Today in' : s === 'picked-up-today' ? 'Picked up' : 'All'}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -46,7 +40,11 @@ export default function InventoryScreen() {
         ListEmptyComponent={
           <Text style={styles.empty}>{isLoading ? 'Loading…' : 'No parcels in inventory'}</Text>
         }
-        renderItem={({ item }) => <InventoryRow item={item} />}
+        renderItem={({ item }) => (
+          <Pressable onPress={() => router.push({ pathname: '/shelf', params: { tracking: item.package?.trackingNumber ?? '' } })}>
+            <InventoryRow item={item} />
+          </Pressable>
+        )}
       />
     </View>
   );

@@ -21,8 +21,11 @@ import {
   type DeliveryType,
   type PackageInput,
   type PriceBreakdown,
+  type PickupMethod,
 } from '@/lib/orders';
+import { listBranches } from '@/lib/branch';
 import { fetchRoute, geocodeAddress } from '@/lib/maps';
+import { PanelSelect } from '@/components/dashboard/futuristic-primitives';
 
 const STEPS = [
   { title: 'Route', icon: MapPin },
@@ -48,6 +51,16 @@ export function BookShipment() {
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('STANDARD');
   const [couponCode, setCouponCode] = useState('');
   const [quote, setQuote] = useState<PriceBreakdown | null>(null);
+  const [pickupMethod, setPickupMethod] = useState<PickupMethod>('COMPANY_PICKUP');
+  const [dropoffMode, setDropoffMode] = useState<'address' | 'branch'>('address');
+  const [originBranchId, setOriginBranchId] = useState('');
+  const [destinationBranchId, setDestinationBranchId] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('PAY_LATER');
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches-directory'],
+    queryFn: () => listBranches(),
+  });
 
   const markers = [
     pickup.latitude && pickup.longitude
@@ -103,7 +116,19 @@ export function BookShipment() {
     }
   }
 
-  const input = { deliveryType, pickup, dropoff, package: pkg, couponCode: couponCode || undefined };
+  const input = {
+    deliveryType,
+    pickup,
+    dropoff,
+    package: pkg,
+    couponCode: couponCode || undefined,
+    pickupMethod,
+    paymentMethod,
+    payLater: paymentMethod === 'PAY_LATER',
+    originBranchId: pickupMethod === 'DROP_AT_BRANCH' ? originBranchId || undefined : undefined,
+    destinationBranchId: dropoffMode === 'branch' ? destinationBranchId || undefined : undefined,
+    receiverPhone: dropoff.contactPhone || undefined,
+  };
 
   const quoteMut = useMutation({
     mutationFn: () => quoteOrder(input),
@@ -164,15 +189,15 @@ export function BookShipment() {
                   'flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition-colors',
                   done && 'border-guzo-primary bg-guzo-primary text-black',
                   active && 'border-guzo-primary text-guzo-primary',
-                  !done && !active && 'border-white/10 text-slate-400',
+                  !done && !active && 'border-border text-muted-foreground',
                 )}
               >
                 {done ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
               </div>
-              <span className={cn('hidden text-sm font-medium sm:block', active ? 'text-white' : 'text-slate-400')}>
+              <span className={cn('hidden text-sm font-medium sm:block', active ? 'text-foreground' : 'text-muted-foreground')}>
                 {s.title}
               </span>
-              {i < STEPS.length - 1 && <div className="mx-2 h-px flex-1 bg-white/10" />}
+              {i < STEPS.length - 1 && <div className="mx-2 h-px flex-1 bg-muted/50" />}
             </div>
           );
         })}
@@ -213,7 +238,7 @@ export function BookShipment() {
                 <Map markers={markers} route={route} onMapClick={handleMapClick} />
               </div>
               {routeData && (
-                <div className="border-t border-white/10 px-4 py-2 text-xs text-slate-400">
+                <div className="border-t border-border px-4 py-2 text-xs text-muted-foreground">
                   Route: {routeData.distanceKm.toFixed(1)} km · ~{routeData.durationMin} min drive
                 </div>
               )}
@@ -238,14 +263,58 @@ export function BookShipment() {
                         'rounded-2xl border p-4 text-left transition-colors',
                         deliveryType === d.value
                           ? 'border-guzo-primary/40 bg-guzo-primary/10 shadow-[0_0_30px_rgba(34,197,94,0.12)]'
-                          : 'border-white/10 bg-white/5 hover:bg-white/[0.08]',
+                          : 'border-border bg-muted/40 hover:bg-accent',
                       )}
                     >
-                      <p className="font-semibold text-white">{d.label}</p>
-                      <p className="text-xs text-slate-400">{d.desc}</p>
+                      <p className="font-semibold text-foreground">{d.label}</p>
+                      <p className="text-xs text-muted-foreground">{d.desc}</p>
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="mb-2 block">Pickup method</Label>
+                <div className="flex flex-wrap gap-2">
+                  {(['COMPANY_PICKUP', 'DROP_AT_BRANCH'] as PickupMethod[]).map((m) => (
+                    <Button key={m} type="button" size="sm" variant={pickupMethod === m ? 'default' : 'outline'} onClick={() => setPickupMethod(m)}>
+                      {m === 'COMPANY_PICKUP' ? 'Door pickup' : 'Drop at branch'}
+                    </Button>
+                  ))}
+                </div>
+                {pickupMethod === 'DROP_AT_BRANCH' ? (
+                  <PanelSelect value={originBranchId} onChange={(e) => setOriginBranchId(e.target.value)} className="mt-2">
+                    <option value="">Select drop-off branch</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name} — {b.city}</option>
+                    ))}
+                  </PanelSelect>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="mb-2 block">Delivery to</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" size="sm" variant={dropoffMode === 'address' ? 'default' : 'outline'} onClick={() => setDropoffMode('address')}>Home / address</Button>
+                  <Button type="button" size="sm" variant={dropoffMode === 'branch' ? 'default' : 'outline'} onClick={() => { setDropoffMode('branch'); setPickupMethod('BRANCH_PICKUP'); }}>Collect at branch</Button>
+                </div>
+                {dropoffMode === 'branch' ? (
+                  <PanelSelect
+                    value={destinationBranchId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setDestinationBranchId(id);
+                      const b = branches.find((x) => x.id === id);
+                      if (b) setDropoff({ line1: b.line1, city: b.city, contactName: '', contactPhone: '' });
+                    }}
+                    className="mt-2"
+                  >
+                    <option value="">Select pickup branch</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name} — {b.city}</option>
+                    ))}
+                  </PanelSelect>
+                ) : null}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -299,10 +368,10 @@ export function BookShipment() {
                 />
               </div>
 
-              <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
+              <div className="flex items-center justify-between rounded-2xl border border-border bg-muted/40 p-3">
                 <div>
-                  <p className="text-sm font-medium text-white">Fragile</p>
-                  <p className="text-xs text-slate-400">Handle with care</p>
+                  <p className="text-sm font-medium text-foreground">Fragile</p>
+                  <p className="text-xs text-muted-foreground">Handle with care</p>
                 </div>
                 <input
                   type="checkbox"
@@ -344,7 +413,7 @@ export function BookShipment() {
                     {quote.surge > 0 && <Row label="Surge" value={`ETB ${quote.surge}`} />}
                     {quote.discount > 0 && <Row label="Discount" value={`- ETB ${quote.discount}`} accent />}
                     <Row label="Tax" value={`ETB ${quote.tax}`} />
-                    <div className="my-2 h-px bg-white/10" />
+                    <div className="my-2 h-px bg-muted/50" />
                     <div className="flex items-center justify-between text-base font-bold">
                       <span>Total</span>
                       <span>
@@ -374,6 +443,17 @@ export function BookShipment() {
                 <div className="h-40 overflow-hidden rounded-lg">
                   <Map markers={markers} route={route} />
                 </div>
+                <div className="space-y-2">
+                  <Label>Payment method</Label>
+                  <PanelSelect value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                    <option value="PAY_LATER">Pay later</option>
+                    <option value="CASH_ON_DELIVERY">Cash on delivery</option>
+                    <option value="FAKE">Pay now (demo)</option>
+                    <option value="TELEBIRR">Telebirr</option>
+                    <option value="CBE">CBE</option>
+                    <option value="CHAPA">Chapa</option>
+                  </PanelSelect>
+                </div>
                 <Button
                   className="w-full"
                   size="lg"
@@ -388,7 +468,7 @@ export function BookShipment() {
                     <>Pay {quote ? `${quote.currency} ${quote.totalAmount}` : ''} & Book</>
                   )}
                 </Button>
-                <p className="text-center text-xs text-slate-400">
+                <p className="text-center text-xs text-muted-foreground">
                   Uses the sandbox payment provider — no real charge.
                 </p>
               </CardContent>

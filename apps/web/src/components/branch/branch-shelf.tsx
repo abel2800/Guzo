@@ -79,7 +79,7 @@ export function BranchShelf() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardContent className="space-y-4 p-6">
-            <h2 className="font-semibold text-white">Assign shelf</h2>
+            <h2 className="font-semibold text-foreground">Assign shelf</h2>
             <BarcodeScanner value={tracking} onChange={setTracking} label="Tracking number" />
             <div className="space-y-2">
               <Label>Shelf code</Label>
@@ -92,7 +92,7 @@ export function BranchShelf() {
         </Card>
         <Card>
           <CardContent className="space-y-4 p-6">
-            <h2 className="font-semibold text-white">Shelf lookup</h2>
+            <h2 className="font-semibold text-foreground">Shelf lookup</h2>
             <div className="space-y-2">
               <Label>Shelf code</Label>
               <Input value={lookupCode} onChange={(e) => setLookupCode(e.target.value)} placeholder="B-12" />
@@ -102,7 +102,7 @@ export function BranchShelf() {
             </Button>
             <div className="space-y-2">
               {lookupResults.map((item) => (
-                <div key={item.id} className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm">
+                <div key={item.id} className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
                   <p className="font-mono font-semibold">{item.package?.trackingNumber}</p>
                   <p className="text-muted-foreground">
                     {item.package?.order?.orderNumber} · {item.package?.order?.status}

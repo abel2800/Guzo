@@ -1,8 +1,9 @@
 import { View, Text, FlatList, Pressable, RefreshControl, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { listNotifications, markNotificationRead } from '@guzo/mobile-shared';
+import { listNotifications, markNotificationRead, trackOrder, extractTrackingReference, isOrderNotification } from '@guzo/mobile-shared';
 import { GlassCard } from '@guzo/mobile-ui';
 import { colors, designStyles, radius, spacing } from '@/lib/design';
 
@@ -25,6 +26,24 @@ export default function NotificationsScreen() {
     mutationFn: markNotificationRead,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
+
+  async function openNotification(item: { id: string; type: string; body: string; readAt?: string | null }) {
+    if (!item.readAt) readMut.mutate(item.id);
+    if (isOrderNotification(item.type)) {
+      const ref = extractTrackingReference(item.body);
+      if (ref) {
+        try {
+          const order = await trackOrder(ref);
+          router.push(`/order/${order.id}`);
+          return;
+        } catch {
+          router.push('/scan');
+          return;
+        }
+      }
+    }
+    router.push('/(tabs)/orders');
+  }
 
   const unread = data?.items.filter((n) => !n.readAt).length ?? 0;
 
@@ -60,7 +79,7 @@ export default function NotificationsScreen() {
                 <View style={[styles.timelineDot, { backgroundColor: style.color }]} />
                 {!isLast && <View style={styles.timelineLine} />}
               </View>
-              <Pressable style={{ flex: 1, marginBottom: 12 }} onPress={() => !item.readAt && readMut.mutate(item.id)}>
+              <Pressable style={{ flex: 1, marginBottom: 12 }} onPress={() => void openNotification(item)}>
                 <GlassCard glow={!item.readAt} style={styles.card}>
                   <View style={styles.cardHeader}>
                     <View style={[styles.iconWrap, { backgroundColor: style.bg }]}>

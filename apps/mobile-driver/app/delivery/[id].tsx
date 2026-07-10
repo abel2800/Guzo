@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Linking, Platform, StyleSheet, TextInput, Modal } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -22,14 +21,15 @@ import {
   handoffAtBranch,
   markDeliveryFailed,
   reattemptDelivery,
+  scanPickup,
+  notifyDriverArrived,
   type OrderStatus,
 } from '@guzo/mobile-shared';
 import { TrackingScanner } from '@/components/tracking-scanner';
-import { LiveTrackingMap, OfflineBanner, GlassCard, GradientButton, colors, designStyles, radius, SignatureCapture, strokesToSignatureUpload } from '@guzo/mobile-ui';
+import { LiveTrackingMap, OfflineBanner, GlassCard, GradientButton, colors, designStyles, radius, SignatureCapture, strokesToSignatureUpload, SlideToConfirm } from '@guzo/mobile-ui';
 
 export default function DeliveryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const [error, setError] = useState('');
   const [myLocation, setMyLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -43,6 +43,7 @@ export default function DeliveryScreen() {
   const [showPodSig, setShowPodSig] = useState(false);
   const [pickupStrokes, setPickupStrokes] = useState<Array<Array<{ x: number; y: number }>>>([]);
   const [podStrokes, setPodStrokes] = useState<Array<Array<{ x: number; y: number }>>>([]);
+  const [arrivedSent, setArrivedSent] = useState(false);
 
   const { data: order, refetch } = useQuery({
     queryKey: ['delivery', id],
@@ -140,6 +141,31 @@ export default function DeliveryScreen() {
     onError: (e: Error) => setError(e.message),
   });
 
+  const scanMut = useMutation({
+    mutationFn: async () => {
+      const loc = await Location.getCurrentPositionAsync({});
+      return scanPickup(id!, {
+        reference: scannedTracking,
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['delivery', id] }); refetch(); },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const arrivedMut = useMutation({
+    mutationFn: async () => {
+      const loc = await Location.getCurrentPositionAsync({});
+      return notifyDriverArrived(id!, {
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+    },
+    onSuccess: () => { setArrivedSent(true); refetch(); },
+    onError: (e: Error) => setError(e.message),
+  });
+
   const podMut = useMutation({
     mutationFn: async () => {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -172,7 +198,7 @@ export default function DeliveryScreen() {
 
   if (!order) {
     return (
-      <View style={[designStyles.screen, designStyles.screenPad, { paddingTop: insets.top }]}>
+      <View style={[designStyles.screen, designStyles.screenPad]}>
         <Text style={{ color: colors.textMuted }}>Loading…</Text>
       </View>
     );
@@ -180,9 +206,21 @@ export default function DeliveryScreen() {
 
   const next = DRIVER_NEXT_STATUS[order.status];
   const altActions = DRIVER_ALT_STATUS[order.status] ?? [];
-  const isAvailable = order.status === 'CONFIRMED';
-  const expectedTracking = order.packages[0]?.trackingNumber ?? '';
-  const trackingOk = !expectedTracking || scannedTracking === expectedTracking || scannedTracking === '';
+  const isAvailable = order.status === 'CONFIRMED' || order.status === 'AT_BRANCH';
+  const pkg = order.packages[0];
+  const expectedTracking = pkg?.trackingNumber ?? '';
+  const pickupHint =
+    order.pickupMethod === 'DROP_AT_BRANCH'
+      ? 'Go to the branch and scan the sticker on the package.'
+      : order.pickupMethod === 'COMPANY_PICKUP'
+        ? 'Ask the sender to show the barcode on their phone, then scan it.'
+        : 'Scan the package barcode or QR code on the label.';
+  const trackingOk =
+    !!scannedTracking &&
+    (scannedTracking === expectedTracking ||
+      scannedTracking === pkg?.qrCode ||
+      scannedTracking === pkg?.pickupPin ||
+      (pkg?.qrCode && scannedTracking.includes(expectedTracking)));
 
   function openMaps(address: { line1: string; city: string; latitude?: number | null; longitude?: number | null }) {
     const q = address.latitude && address.longitude
@@ -202,7 +240,7 @@ export default function DeliveryScreen() {
   }
 
   return (
-    <ScrollView style={designStyles.screen} contentContainerStyle={[designStyles.screenPad, { paddingTop: insets.top, paddingBottom: 40 }]}>
+    <ScrollView style={designStyles.screen} contentContainerStyle={[designStyles.screenPad, { paddingBottom: 40 }]}>
       <OfflineBanner />
       {queuedPings > 0 && (
         <View style={styles.queueBanner}>
@@ -234,9 +272,10 @@ export default function DeliveryScreen() {
         </GlassCard>
       )}
 
-      {['ASSIGNED', 'PICKED_UP'].includes(order.status) && (
+      {order.status === 'ASSIGNED' && (
         <GlassCard style={{ marginBottom: 12 }}>
-          <Text style={styles.sectionLabel}>Scan parcel</Text>
+          <Text style={styles.sectionLabel}>Pickup scan</Text>
+          <Text style={styles.hint}>{pickupHint}</Text>
           <Text style={styles.hint}>Expected: {expectedTracking || '—'}</Text>
           <TrackingScanner
             value={scannedTracking}
@@ -244,10 +283,32 @@ export default function DeliveryScreen() {
             onScanned={setScannedTracking}
           />
           {scannedTracking && !trackingOk ? (
-            <Text style={styles.warn}>Tracking mismatch — verify parcel label</Text>
+            <Text style={styles.warn}>Code mismatch — verify the parcel label</Text>
           ) : scannedTracking ? (
-            <Text style={styles.ok}>Parcel verified</Text>
+            <Text style={styles.ok}>Parcel verified — slide to confirm pickup</Text>
           ) : null}
+          {trackingOk && (
+            <View style={{ marginTop: 12 }}>
+              <SlideToConfirm
+                label="Slide to confirm pickup"
+                onConfirm={() => scanMut.mutateAsync()}
+                loading={scanMut.isPending}
+                disabled={scanMut.isPending}
+              />
+            </View>
+          )}
+        </GlassCard>
+      )}
+
+      {['PICKED_UP'].includes(order.status) && (
+        <GlassCard style={{ marginBottom: 12 }}>
+          <Text style={styles.sectionLabel}>Scan parcel (optional)</Text>
+          <Text style={styles.hint}>Expected: {expectedTracking || '—'}</Text>
+          <TrackingScanner
+            value={scannedTracking}
+            onChange={setScannedTracking}
+            onScanned={setScannedTracking}
+          />
         </GlassCard>
       )}
 
@@ -278,7 +339,7 @@ export default function DeliveryScreen() {
         {order.dropoffAddress.contactPhone && (
           <Pressable style={styles.callRow} onPress={() => callPhone(order.dropoffAddress.contactPhone)}>
             <Ionicons name="call" size={16} color={colors.primary} />
-            <Text style={styles.callText}>{order.dropoffAddress.contactPhone}</Text>
+            <Text style={styles.callText}>Call receiver · {order.dropoffAddress.contactPhone}</Text>
           </Pressable>
         )}
         <Pressable style={styles.navBtn} onPress={() => openMaps(order.dropoffAddress)}>
@@ -313,11 +374,21 @@ export default function DeliveryScreen() {
             </Pressable>
             <Pressable style={styles.podBtn} onPress={() => pickupProofMut.mutate()} disabled={pickupProofMut.isPending}>
               <Ionicons name="camera" size={20} color={colors.primary} />
-              <Text style={styles.podText}>{pickupProofMut.isPending ? 'Uploading…' : 'Capture pickup proof'}</Text>
+              <Text style={styles.podText}>{pickupProofMut.isPending ? 'Uploading…' : 'Photo proof (optional)'}</Text>
             </Pressable>
           </>
         )}
-        {next && (
+        {next?.slide ? (
+          <SlideToConfirm
+            label={next.label}
+            onConfirm={async () => {
+              if (order.status === 'FAILED') await reattemptMut.mutateAsync();
+              else await statusMut.mutateAsync(next.next);
+            }}
+            loading={statusMut.isPending || reattemptMut.isPending}
+            disabled={statusMut.isPending || reattemptMut.isPending}
+          />
+        ) : next ? (
           <GradientButton
             label={
               order.status === 'FAILED'
@@ -325,9 +396,25 @@ export default function DeliveryScreen() {
                 : (statusMut.isPending ? 'Updating…' : next.label)
             }
             onPress={() => (order.status === 'FAILED' ? reattemptMut.mutate() : statusMut.mutate(next.next))}
-            disabled={statusMut.isPending || reattemptMut.isPending || !!(['ASSIGNED', 'PICKED_UP'].includes(order.status) && scannedTracking && !trackingOk)}
+            disabled={statusMut.isPending || reattemptMut.isPending}
             loading={statusMut.isPending || reattemptMut.isPending}
           />
+        ) : null}
+        {order.status === 'OUT_FOR_DELIVERY' && (
+          <>
+            <SlideToConfirm
+              label={arrivedSent ? 'Receiver notified' : 'Slide — I have arrived'}
+              onConfirm={() => arrivedMut.mutateAsync()}
+              loading={arrivedMut.isPending}
+              disabled={arrivedMut.isPending || arrivedSent}
+              tone="warning"
+            />
+            <Text style={styles.hint}>Call the receiver and wait for them to collect the package.</Text>
+            <Pressable style={styles.callRow} onPress={() => callPhone(order.dropoffAddress.contactPhone ?? order.receiverPhone)}>
+              <Ionicons name="call" size={18} color={colors.warning} />
+              <Text style={[styles.callText, { color: colors.warning }]}>Call receiver now</Text>
+            </Pressable>
+          </>
         )}
         {altActions.map((alt) => (
           alt.next === 'AT_BRANCH' ? (

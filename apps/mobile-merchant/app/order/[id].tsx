@@ -1,13 +1,11 @@
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { getOrder, ORDER_STATUS_LABELS } from '@guzo/mobile-shared';
 import { GlassCard, colors, designStyles, spacing } from '@guzo/mobile-ui';
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const insets = useSafeAreaInsets();
   const { data: order, isLoading } = useQuery({
     queryKey: ['merchant-order', id],
     queryFn: () => getOrder(id!),
@@ -16,7 +14,7 @@ export default function OrderDetailScreen() {
 
   if (isLoading || !order) {
     return (
-      <View style={[designStyles.screen, styles.center, { paddingTop: insets.top }]}>
+      <View style={[designStyles.screen, styles.center]}>
         <Text style={styles.muted}>Loading order…</Text>
       </View>
     );
@@ -25,7 +23,7 @@ export default function OrderDetailScreen() {
   const tracking = order.packages?.[0]?.trackingNumber;
 
   return (
-    <ScrollView style={[designStyles.screen, { paddingTop: insets.top }]} contentContainerStyle={designStyles.screenPad}>
+    <ScrollView style={designStyles.screen} contentContainerStyle={designStyles.screenPad}>
       <Text style={styles.title}>{order.orderNumber}</Text>
       <Text style={styles.status}>{ORDER_STATUS_LABELS[order.status]}</Text>
 

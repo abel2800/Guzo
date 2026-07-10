@@ -46,6 +46,7 @@ export const UPLOAD_FOLDERS = {
   DRIVER_LICENSE: 'driver-license',
   PROOF_OF_DELIVERY: 'proof-of-delivery',
   PARCEL_IMAGES: 'parcel-images',
+  VEHICLE_PHOTOS: 'vehicle-photos',
 } as const;
 
 export const FRONTEND_PORTS = {

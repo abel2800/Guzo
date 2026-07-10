@@ -5,6 +5,15 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import { ok } from '../../utils/ApiResponse.js';
 import { parseListQuery } from '../../utils/pagination.js';
 import { buildMeta } from '../../utils/ApiResponse.js';
+import { ApiError } from '../../utils/ApiError.js';
+import {
+  approveDriverAccount,
+  approveUserAccount,
+  getDriverAdminDetail,
+  getPendingApprovals,
+  getUserAdminDetail,
+  listLiveDrivers,
+} from './admin.service.js';
 
 export const adminController = {
   summary: asyncHandler(async (_req: Request, res: Response) => {
@@ -127,18 +136,45 @@ export const adminController = {
   }),
 
   approveDriver: asyncHandler(async (req: Request, res: Response) => {
-    const driver = await prisma.driver.update({
-      where: { id: req.params.id },
-      data: { approvalStatus: 'APPROVED', approvedAt: new Date(), approvedById: req.user!.id },
-    });
+    const driver = await approveDriverAccount(req.params.id, req.user!.id);
     return ok(res, driver, 'Driver approved');
   }),
 
   rejectDriver: asyncHandler(async (req: Request, res: Response) => {
-    const driver = await prisma.driver.update({
+    const driver = await prisma.driver.findUnique({
       where: { id: req.params.id },
-      data: { approvalStatus: 'REJECTED', isAvailable: false },
+      select: { id: true },
     });
-    return ok(res, driver, 'Driver rejected');
+    if (!driver) throw ApiError.notFound('Driver not found');
+    const updated = await prisma.driver.update({
+      where: { id: req.params.id },
+      data: { approvalStatus: 'REJECTED', isAvailable: false, status: 'OFFLINE' },
+    });
+    return ok(res, updated, 'Driver rejected');
+  }),
+
+  pendingApprovals: asyncHandler(async (_req: Request, res: Response) => {
+    const data = await getPendingApprovals();
+    return ok(res, data, 'Pending approvals');
+  }),
+
+  approveUser: asyncHandler(async (req: Request, res: Response) => {
+    const user = await approveUserAccount(req.params.id, req.user!.id);
+    return ok(res, user, 'User approved');
+  }),
+
+  userDetail: asyncHandler(async (req: Request, res: Response) => {
+    const user = await getUserAdminDetail(req.params.id);
+    return ok(res, user, 'User profile');
+  }),
+
+  driverDetail: asyncHandler(async (req: Request, res: Response) => {
+    const driver = await getDriverAdminDetail(req.params.id);
+    return ok(res, driver, 'Driver profile');
+  }),
+
+  liveDrivers: asyncHandler(async (_req: Request, res: Response) => {
+    const drivers = await listLiveDrivers();
+    return ok(res, drivers, 'Live drivers');
   }),
 };

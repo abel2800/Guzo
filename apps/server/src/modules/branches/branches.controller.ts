@@ -36,6 +36,14 @@ export const branchesController = {
     return ok(res, items, 'Inventory loaded', meta);
   }),
 
+  orders: asyncHandler(async (req: Request, res: Response) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+    const filter = (req.query.filter as string) || '';
+    const { items, meta } = await branchOpsService.listOrders(req.params.id, filter, page, limit, req.user!);
+    return ok(res, items, 'Branch orders loaded', meta);
+  }),
+
   shelfLookup: asyncHandler(async (req: Request, res: Response) => {
     const items = await branchOpsService.lookupShelf(req.params.id, req.params.shelfCode, req.user!);
     return ok(res, items, 'Shelf lookup');
@@ -65,6 +73,11 @@ export const branchesController = {
   register: asyncHandler(async (req: Request, res: Response) => {
     const data = await branchOpsService.registerParcel(req.params.id, req.body, req.user!);
     return ok(res, data, 'Parcel registered');
+  }),
+
+  registerQuote: asyncHandler(async (req: Request, res: Response) => {
+    const data = await branchOpsService.quoteRegisterParcel(req.params.id, req.body, req.user!);
+    return ok(res, data, 'Quote calculated');
   }),
 
   label: asyncHandler(async (req: Request, res: Response) => {

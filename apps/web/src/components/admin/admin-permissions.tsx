@@ -29,9 +29,9 @@ export function AdminPermissions() {
           {items.map((p) => (
             <Card key={p.id}>
               <CardContent className="p-4">
-                <p className="font-mono text-sm font-semibold text-white">{p.key}</p>
+                <p className="font-mono text-sm font-semibold text-foreground">{p.key}</p>
                 <p className="text-xs text-muted-foreground">{p.resource}.{p.action}</p>
-                {p.description && <p className="mt-1 text-sm text-slate-400">{p.description}</p>}
+                {p.description && <p className="mt-1 text-sm text-muted-foreground">{p.description}</p>}
               </CardContent>
             </Card>
           ))}

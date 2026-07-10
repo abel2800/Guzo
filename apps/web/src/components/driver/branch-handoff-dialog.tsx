@@ -56,7 +56,7 @@ export function BranchHandoffDialog({ order, open, onOpenChange, onCompleted }: 
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md">
         <SheetTitle className="flex items-center gap-2"><Store className="h-5 w-5" /> Branch handoff</SheetTitle>
-        {order && <p className="text-sm text-slate-400">{order.orderNumber}</p>}
+        {order && <p className="text-sm text-muted-foreground">{order.orderNumber}</p>}
         <div className="mt-4 space-y-4">
           <div>
             <Label>Tracking number</Label>
@@ -70,7 +70,7 @@ export function BranchHandoffDialog({ order, open, onOpenChange, onCompleted }: 
                   key={b.id}
                   type="button"
                   onClick={() => setBranchId(b.id)}
-                  className={`w-full rounded-md border px-3 py-2 text-left text-sm ${branchId === b.id ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/10'}`}
+                  className={`w-full rounded-md border px-3 py-2 text-left text-sm ${branchId === b.id ? 'border-emerald-500 bg-emerald-500/10' : 'border-border'}`}
                 >
                   {b.name} · {b.city}
                 </button>

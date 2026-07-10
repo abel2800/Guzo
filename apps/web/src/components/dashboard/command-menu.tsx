@@ -38,11 +38,11 @@ export function CommandMenu({ config }: { config: RoleConfig }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-400 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white md:w-64"
+        className="flex w-full min-w-0 items-center gap-2 rounded-xl border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-guzo-primary/30 hover:bg-accent hover:text-foreground sm:max-w-xs md:max-w-sm lg:w-64"
       >
-        <Search className="h-4 w-4" />
-        <span className="flex-1 text-left">Search modules...</span>
-        <kbd className="hidden rounded border border-white/10 bg-black/30 px-1.5 text-[10px] text-slate-400 md:inline">
+        <Search className="h-4 w-4 shrink-0" />
+        <span className="min-w-0 flex-1 truncate text-left">Search modules...</span>
+        <kbd className="hidden shrink-0 rounded border border-border bg-muted px-1.5 text-[10px] text-muted-foreground lg:inline">
           Ctrl K
         </kbd>
       </button>

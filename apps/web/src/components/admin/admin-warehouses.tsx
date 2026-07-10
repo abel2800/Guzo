@@ -73,9 +73,9 @@ export function AdminWarehouses() {
             <Card key={w.id}>
               <CardContent className="flex items-start justify-between gap-3 p-4">
                 <div>
-                  <p className="font-semibold text-white">{w.name}</p>
+                  <p className="font-semibold text-foreground">{w.name}</p>
                   <p className="text-sm font-mono text-muted-foreground">{w.code}</p>
-                  <p className="text-sm text-slate-400">{w.city} · cap {w.capacity}</p>
+                  <p className="text-sm text-muted-foreground">{w.city} · cap {w.capacity}</p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <Badge variant={w.isActive ? 'success' : 'secondary'}>{w.isActive ? 'Active' : 'Inactive'}</Badge>

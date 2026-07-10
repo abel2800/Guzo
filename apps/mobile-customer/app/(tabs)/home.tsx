@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, RefreshControl, Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +14,7 @@ import { PromoCarousel } from '@/components/home/promo-carousel';
 import { colors, designStyles, spacing } from '@/lib/design';
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['customer-dashboard'],
     queryFn: getCustomerDashboard,
@@ -22,12 +24,15 @@ export default function HomeScreen() {
 
   return (
     <View style={designStyles.screen}>
-      <OfflineBanner />
       <ScrollView
-        contentContainerStyle={[designStyles.screenPad, { paddingTop: spacing.md, paddingBottom: 120 }]}
+        contentContainerStyle={[
+          designStyles.screenPad,
+          { paddingTop: insets.top + spacing.sm, paddingBottom: 120 },
+        ]}
         refreshControl={<RefreshControl refreshing={isLoading || isRefetching} onRefresh={refetch} tintColor={colors.primary} />}
         showsVerticalScrollIndicator={false}
       >
+        <OfflineBanner />
         <HeroSection />
 
         <Text style={styles.sectionTitle}>My parcels</Text>

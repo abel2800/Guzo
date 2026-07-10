@@ -6,7 +6,7 @@
   width: 100%;
   z-index: 0;
   font-family: inherit;
-  background: #0f172a;
+  background: hsl(var(--muted));
 }
 
 .guzo-pin {
@@ -20,26 +20,27 @@
 
 @layer base {
   :root {
-    --background: 224 53% 7%;
-    --foreground: 210 40% 98%;
-    --card: 217 47% 12%;
-    --card-foreground: 210 40% 98%;
-    --popover: 217 47% 10%;
-    --popover-foreground: 210 40% 98%;
+    --background: 210 40% 98%;
+    --foreground: 224 71% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71% 4%;
     --primary: 142 71% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 75%;
-    --accent: 217 33% 20%;
-    --accent-foreground: 210 40% 98%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 224 71% 4%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 224 71% 4%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 217 33% 22%;
-    --input: 217 33% 18%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
     --ring: 142 71% 45%;
     --radius: 0.75rem;
+    color-scheme: light;
   }
 
   .dark {
@@ -62,6 +63,7 @@
     --border: 217 33% 22%;
     --input: 217 33% 18%;
     --ring: 142 71% 45%;
+    color-scheme: dark;
   }
 }
 
@@ -71,50 +73,66 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+
+  :root body {
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(34, 197, 94, 0.08), transparent 28%),
+      radial-gradient(circle at 88% 4%, rgba(16, 185, 129, 0.06), transparent 24%);
+    background-attachment: fixed;
+  }
+
+  .dark body {
     background-image:
       radial-gradient(circle at 18% 18%, rgba(34, 197, 94, 0.16), transparent 24%),
       radial-gradient(circle at 82% 8%, rgba(16, 185, 129, 0.12), transparent 22%),
       radial-gradient(circle at 50% 72%, rgba(59, 130, 246, 0.08), transparent 26%);
     background-attachment: fixed;
   }
+
+  select {
+    color-scheme: light;
+  }
+
+  .dark select {
+    color-scheme: dark;
+  }
 }
 
 /* Shared GUZO glass styles for the dashboard experience */
 @layer components {
   .glass {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--card) / 0.85);
     backdrop-filter: blur(24px);
   }
 
   .dashboard-shell {
     min-height: 100vh;
-    background-color: #050816;
-    color: #fff;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    overflow-x: clip;
+  }
+
+  .dashboard-content {
+    overflow-x: clip;
+    max-width: 100%;
   }
 
   .dashboard-grid {
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      linear-gradient(hsl(var(--border) / 0.45) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.45) 1px, transparent 1px);
     background-size: 36px 36px;
     mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 92%);
   }
 
   .dashboard-card {
-    @apply rounded-2xl text-card-foreground backdrop-blur-xl;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+    @apply rounded-2xl border border-border bg-card/80 text-card-foreground shadow-lg backdrop-blur-xl;
   }
 
   .dashboard-hero {
-    @apply relative overflow-hidden backdrop-blur-xl md:p-8;
-    border-radius: 28px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: rgba(255, 255, 255, 0.05);
-    padding: 1.5rem;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+    @apply relative overflow-hidden rounded-[28px] border border-border bg-card/80 p-6 text-card-foreground shadow-xl backdrop-blur-xl md:p-8;
   }
 
   .dashboard-hero::before {
@@ -138,7 +156,7 @@
   }
 
   .dashboard-divide > * + * {
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid hsl(var(--border));
   }
 
   .dashboard-list-row {
@@ -146,35 +164,33 @@
   }
 
   .dashboard-list-row:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: hsl(var(--accent) / 0.5);
   }
 
   .dashboard-table-head {
-    @apply hidden gap-4 px-6 py-3 text-xs font-medium uppercase tracking-wider text-slate-400 md:grid;
+    @apply hidden gap-4 px-6 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground md:grid;
   }
 
   .dashboard-select {
-    @apply flex h-10 w-full rounded-md px-3 py-2 text-sm text-white outline-none;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: rgba(255, 255, 255, 0.05);
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none;
+    color-scheme: inherit;
   }
 
   .dashboard-select:focus-visible {
-    outline: 2px solid rgba(34, 197, 94, 0.4);
-    outline-offset: 2px;
+    @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
   .dashboard-select option {
-    background-color: #050816;
-    color: #fff;
+    background-color: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
   }
 
   .auth-shell {
     position: relative;
     min-height: 100vh;
     overflow: hidden;
-    background-color: #050816;
-    color: #fff;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 
   .auth-orb {

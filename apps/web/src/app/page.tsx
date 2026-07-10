@@ -37,7 +37,7 @@ export default function LandingPage() {
       <div className="auth-orb -left-24 top-0 h-72 w-72 bg-guzo-primary/20" />
       <div className="auth-orb right-0 top-1/3 h-96 w-96 bg-emerald-500/10" />
 
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-guzo-bg/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-border bg-guzo-bg/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between">
           <GuzoLogo />
           <div className="flex items-center gap-2">
@@ -56,10 +56,10 @@ export default function LandingPage() {
           <span className="inline-flex items-center gap-2 rounded-full border border-guzo-primary/25 bg-guzo-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-guzo-primary">
             <Truck className="h-3.5 w-3.5" /> Logistics, reimagined
           </span>
-          <h1 className="mt-6 text-5xl font-extrabold leading-tight tracking-tight text-white">
+          <h1 className="mt-6 text-5xl font-extrabold leading-tight tracking-tight text-foreground">
             Moving Ethiopia <span className="text-guzo-primary">Forward.</span>
           </h1>
-          <p className="mt-5 max-w-xl text-lg text-slate-300">
+          <p className="mt-5 max-w-xl text-lg text-muted-foreground">
             GUZO is an enterprise delivery platform connecting customers, drivers, merchants and
             warehouses — with live tracking, smart routing and total operational control.
           </p>
@@ -86,8 +86,8 @@ export default function LandingPage() {
               <div className="flex h-24 w-24 items-center justify-center rounded-3xl border border-guzo-primary/30 bg-guzo-primary/15 text-guzo-primary shadow-[0_0_40px_rgba(34,197,94,0.25)]">
                 <Truck className="h-12 w-12" />
               </div>
-              <p className="text-xl font-bold text-white">GUZO Control Tower</p>
-              <p className="text-sm text-slate-400">
+              <p className="text-xl font-bold text-foreground">GUZO Control Tower</p>
+              <p className="text-sm text-muted-foreground">
                 One platform · ten role portals · real-time everything
               </p>
             </div>
@@ -95,12 +95,12 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      <section className="border-y border-white/10 bg-white/[0.03]">
+      <section className="border-y border-border bg-muted/30">
         <div className="container grid grid-cols-2 gap-6 py-12 md:grid-cols-4">
           {STATS.map(([value, label]) => (
             <div key={label} className="text-center">
               <p className="text-4xl font-extrabold text-guzo-primary">{value}</p>
-              <p className="mt-1 text-sm text-slate-400">{label}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{label}</p>
             </div>
           ))}
         </div>
@@ -108,8 +108,8 @@ export default function LandingPage() {
 
       <section className="container py-20">
         <div className="mx-auto mb-12 max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white">Everything you need to deliver</h2>
-          <p className="mt-3 text-slate-400">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Everything you need to deliver</h2>
+          <p className="mt-3 text-muted-foreground">
             A complete logistics operating system, built on a scalable modular architecture.
           </p>
         </div>
@@ -127,8 +127,8 @@ export default function LandingPage() {
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-guzo-primary/25 bg-guzo-primary/10 text-guzo-primary">
                     <f.icon className="h-5 w-5" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white">{f.title}</h3>
-                  <p className="text-sm text-slate-400">{f.desc}</p>
+                  <h3 className="text-lg font-semibold text-foreground">{f.title}</h3>
+                  <p className="text-sm text-muted-foreground">{f.desc}</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -138,8 +138,8 @@ export default function LandingPage() {
 
       <section className="container pb-20">
         <div className="dashboard-hero overflow-hidden p-12 text-center">
-          <h2 className="text-3xl font-bold text-white">Ready to move forward?</h2>
-          <p className="mx-auto mt-3 max-w-xl text-slate-300">
+          <h2 className="text-3xl font-bold text-foreground">Ready to move forward?</h2>
+          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
             Create an account and book your first shipment, or sign in to your role dashboard.
           </p>
           <div className="mt-8 flex justify-center gap-3">
@@ -153,10 +153,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-white/10">
+      <footer className="border-t border-border">
         <div className="container flex flex-col items-center justify-between gap-4 py-8 sm:flex-row">
           <GuzoLogo showText={false} />
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} GUZO Logistics. Moving Ethiopia Forward.
           </p>
         </div>

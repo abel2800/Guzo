@@ -86,7 +86,7 @@ export function AdminControlTower() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap gap-3 text-xs text-slate-400">
+      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full bg-[#22c55e]" /> Trucks</span>
         <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full bg-[#2563eb]" /> Branches</span>
         <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full bg-[#f97316]" /> Warehouses</span>
@@ -97,7 +97,7 @@ export function AdminControlTower() {
           <Card key={t.id}>
             <CardContent className="flex items-center justify-between p-4">
               <div>
-                <p className="font-mono font-semibold text-white">{t.manifestNumber}</p>
+                <p className="font-mono font-semibold text-foreground">{t.manifestNumber}</p>
                 <p className="text-sm text-muted-foreground">{t.origin?.city} → {t.destination?.city}</p>
               </div>
               <Badge>{t.parcelCount} pkgs</Badge>

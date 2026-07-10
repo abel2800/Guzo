@@ -26,10 +26,19 @@ export default function ReceiptsScreen() {
         contentContainerStyle={designStyles.screenPad}
         ListEmptyComponent={<Text style={styles.empty}>{isLoading ? 'Loading…' : 'No invoices yet'}</Text>}
         renderItem={({ item }) => (
-          <GlassCard style={{ marginBottom: 10 }}>
-            <Text style={styles.ref}>{item.invoiceNumber}</Text>
-            <Text style={styles.meta}>{item.status} · {item.currency} {Number(item.total).toLocaleString()}</Text>
-          </GlassCard>
+          <Pressable
+            style={{ marginBottom: 10 }}
+            onPress={() => {
+              if (item.orderId) router.push(`/order/${item.orderId}`);
+            }}
+            disabled={!item.orderId}
+          >
+            <GlassCard style={{ marginBottom: 0 }}>
+              <Text style={styles.ref}>{item.invoiceNumber}</Text>
+              <Text style={styles.meta}>{item.status} · {item.currency} {Number(item.total).toLocaleString()}</Text>
+              {item.orderId ? <Text style={styles.link}>View order →</Text> : null}
+            </GlassCard>
+          </Pressable>
         )}
       />
     </View>
@@ -42,5 +51,6 @@ const styles = StyleSheet.create({
   title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: colors.text },
   ref: { color: colors.text, fontWeight: '800' },
   meta: { color: colors.textMuted, marginTop: 4 },
+  link: { color: colors.primary, marginTop: 8, fontWeight: '600', fontSize: 13 },
   empty: { color: colors.textMuted, textAlign: 'center', marginTop: 40 },
 });

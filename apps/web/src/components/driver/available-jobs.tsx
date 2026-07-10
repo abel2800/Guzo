@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Package, MapPin, Weight, Loader2, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyPanel, FuturisticHero } from '@/components/dashboard/futuristic-primitives';
 
 export function DriverAvailable() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
@@ -75,42 +77,51 @@ export function DriverAvailable() {
                 <div className="dashboard-orb -right-8 top-2 h-20 w-20 bg-guzo-primary/10" />
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-guzo-primary/15 text-guzo-primary">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-guzo-primary/15 text-guzo-primary">
                       <Package className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="font-semibold text-white">{o.orderNumber}</p>
-                      <p className="text-xs text-slate-400">{o.deliveryType}</p>
+                      <p className="font-semibold text-foreground">{o.orderNumber}</p>
+                      <p className="text-xs text-muted-foreground">{o.deliveryType}</p>
                     </div>
                   </div>
-                  <Badge className="border-white/10 bg-white/10 text-white">{o.currency} {o.totalAmount}</Badge>
+                  <Badge className="border-border bg-muted/50 text-foreground">{o.currency} {o.totalAmount}</Badge>
                 </div>
 
                 <div className="space-y-1.5 text-sm">
-                  <p className="flex items-center gap-2 text-slate-200">
+                  <p className="flex items-center gap-2 text-foreground">
                     <MapPin className="h-4 w-4 text-emerald-600" /> {o.pickupAddress?.city} · {o.pickupAddress?.line1}
                   </p>
-                  <p className="flex items-center gap-2 text-slate-200">
+                  <p className="flex items-center gap-2 text-foreground">
                     <MapPin className="h-4 w-4 text-orange-600" /> {o.dropoffAddress?.city} · {o.dropoffAddress?.line1}
                   </p>
                   {o.distanceKm != null && (
-                    <p className="flex items-center gap-2 text-slate-400">
+                    <p className="flex items-center gap-2 text-muted-foreground">
                       <Weight className="h-4 w-4" /> {o.packages?.[0]?.weightKg ?? '—'} kg · {o.distanceKm} km
                     </p>
                   )}
                 </div>
 
-                <Button
-                  className="w-full"
-                  onClick={() => accept.mutate(o.id)}
-                  disabled={accept.isPending && acceptingId === o.id}
-                >
-                  {accept.isPending && acceptingId === o.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    'Accept job'
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => router.push(`/dashboard/driver/navigation`)}
+                  >
+                    Preview route
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={() => accept.mutate(o.id)}
+                    disabled={accept.isPending && acceptingId === o.id}
+                  >
+                    {accept.isPending && acceptingId === o.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      'Accept job'
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

@@ -80,9 +80,25 @@ Status transitions are enforced server-side. Each change triggers a Socket.IO br
 
 | Method | Flow |
 |--------|------|
-| COMPANY_PICKUP | Driver collects from sender address |
-| DROP_AT_BRANCH | Sender drops package at branch office |
-| BRANCH_PICKUP | Receiver collects from destination branch |
+| COMPANY_PICKUP | Driver collects from sender address; sender shows barcode/QR/PIN; driver scans via `POST /orders/:id/scan-pickup` |
+| DROP_AT_BRANCH | Sender drops package at branch; order enters driver pool at `AT_BRANCH` |
+| BRANCH_PICKUP | Receiver collects from destination branch; notified when package is `READY_FOR_PICKUP` after branch receive |
+
+### 2.4 Pickup Codes & Driver Journey
+
+When a customer creates an order, the platform assigns pickup reference codes (barcode, QR, short PIN). These appear on the customer web dashboard and customer mobile order detail screen.
+
+| Step | Actor | Action |
+|------|-------|--------|
+| 1 | Customer | Books shipment; pickup codes generated |
+| 2 | Driver | Accepts job from pool (`CONFIRMED` or `AT_BRANCH`) |
+| 3 | Driver | Scans sender code or branch handoff → `PICKED_UP` |
+| 4 | Driver | Slide-to-confirm start trip / in transit updates |
+| 5 | Driver | Slide-to-confirm arrival → `POST /orders/:id/arrived` notifies receiver |
+| 6 | Driver | Completes delivery with POD |
+| Branch path | Branch staff | Receive package → receiver notified for counter pickup |
+
+Customer tracking shows driver photo, vehicle type, and license plate when a driver is assigned.
 
 ---
 
@@ -112,6 +128,8 @@ Status transitions are enforced server-side. Each change triggers a Socket.IO br
 |---------|-----|--------|-----|
 | Book shipment | Yes | Yes | POST /orders |
 | Track by reference | Yes | Yes | GET /orders/track/:ref |
+| Pickup QR/barcode | Yes | Yes | Shown on order detail after booking |
+| Driver on map | Yes | Yes | Photo, vehicle type, plate when assigned |
 | Order history | Yes | Yes | GET /orders |
 | Saved addresses | Yes | — | /addresses |
 | Wallet | Yes | — | /payments |
@@ -127,12 +145,15 @@ Status transitions are enforced server-side. Each change triggers a Socket.IO br
 
 | Feature | Web | Mobile | API |
 |---------|-----|--------|-----|
-| Browse jobs | Yes | Yes | GET /orders (available) |
+| Browse jobs | Yes | Yes | GET /orders (`CONFIRMED`, `AT_BRANCH` pool) |
 | Accept job | Yes | Yes | POST /orders/:id/accept |
+| Scan pickup | Yes | Yes | POST /orders/:id/scan-pickup |
+| Notify arrival | Yes | Yes | POST /orders/:id/arrived |
 | GPS tracking | Yes | Yes | Socket.IO driver:location |
 | Navigation | Yes | Yes | /drivers/me/route |
 | Proof of delivery | Yes | Yes | POST /orders/:id/pod |
 | Pickup proof | Yes | Yes | POST /orders/:id/pickup-proof |
+| Vehicle profile | Yes | Yes | PUT /drivers/me/vehicle, POST …/photo |
 | Manifests | Yes | Yes | /drivers/me/manifests |
 | Vehicle logs | Yes | — | /drivers/me/vehicle/logs |
 | Earnings | Yes | — | /drivers/me/earnings |
@@ -179,6 +200,7 @@ Status transitions are enforced server-side. Each change triggers a Socket.IO br
 | Counter operations | Yes | Yes | /branch-staff/counter |
 | Package registration | Yes | Yes | /branch-staff/register |
 | Receive packages | Yes | Yes | /branch-staff/receive |
+| Receiver notify | — | Yes | SMS + in-app when ready for pickup |
 | Customer pickup | Yes | Yes | /branch-staff/pickup |
 | Shelf management | Yes | Yes | /branch-staff/shelf |
 | Branch inventory | Yes | Yes | /branch-staff/inventory |
@@ -260,6 +282,7 @@ Status transitions are enforced server-side. Each change triggers a Socket.IO br
 | Loyalty | Points accumulation and redemption |
 | Offline mobile | Queued operations with auto-retry |
 | Biometric login | Face ID / fingerprint on mobile |
+| Phone OTP | Signup and password reset (web + mobile) |
 | Audit trail | All sensitive changes logged |
 
 ---

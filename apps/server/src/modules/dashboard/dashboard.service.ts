@@ -1,5 +1,6 @@
 import { prisma } from '@delivery/database';
 import { branchOpsService } from '../branches/branch-ops.service.js';
+import { customerOrderAccessFilter, linkOrdersToCustomerAccount } from '../customers/customer-link.service.js';
 
 export class DashboardService {
   async adminSummary() {
@@ -19,6 +20,8 @@ export class DashboardService {
       warehouses,
       branches,
       merchants,
+      pendingUsers,
+      pendingDrivers,
       ordersLast7d,
       ordersPrev7d,
       revenueLast7d,
@@ -33,6 +36,8 @@ export class DashboardService {
       prisma.warehouse.count({ where: { isActive: true } }),
       prisma.guzoBranch.count({ where: { isActive: true } }),
       prisma.merchant.count(),
+      prisma.user.count({ where: { deletedAt: null, status: 'PENDING' } }),
+      prisma.driver.count({ where: { approvalStatus: 'PENDING' } }),
       prisma.order.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
       prisma.order.count({ where: { createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } } }),
       prisma.payment.aggregate({
@@ -62,6 +67,8 @@ export class DashboardService {
         warehouses,
         branches,
         merchants,
+        pendingUsers,
+        pendingDrivers,
       },
       growth: {
         ordersLast7d,
@@ -208,22 +215,95 @@ export class DashboardService {
 
   async customerSummary(userId: string) {
     const customer = await prisma.customer.findUnique({ where: { userId } });
-    if (!customer) return { totals: { orders: 0, inTransit: 0, delivered: 0, openTickets: 0 }, ordersByStatus: [] };
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { phone: true } });
+    if (!customer) {
+      return {
+        totals: { orders: 0, inTransit: 0, delivered: 0, openTickets: 0 },
+        ordersByStatus: [],
+        parcels: { active: 0, incoming: 0, readyForPickup: 0, delivered: 0, draft: 0 },
+        recentOrders: [],
+      };
+    }
 
-    const where = { customerId: customer.id };
-    const inTransit = ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'AT_WAREHOUSE'] as const;
+    if (user?.phone) {
+      await linkOrdersToCustomerAccount(userId, user.phone);
+    }
 
-    const [orders, delivered, active, openTickets, ordersByStatus] = await Promise.all([
-      prisma.order.count({ where }),
-      prisma.order.count({ where: { ...where, status: 'DELIVERED' } }),
-      prisma.order.count({ where: { ...where, status: { in: [...inTransit] } } }),
-      prisma.supportTicket.count({ where: { requesterId: userId, status: { in: ['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER'] } } }),
-      prisma.order.groupBy({ by: ['status'], _count: { _all: true }, where }),
+    const accessAll = customerOrderAccessFilter({
+      customerId: customer.id,
+      userId,
+      phone: user?.phone,
+      scope: 'all',
+    });
+    const accessIncoming = customerOrderAccessFilter({
+      customerId: customer.id,
+      userId,
+      phone: user?.phone,
+      scope: 'incoming',
+    });
+
+    const inTransitStatuses = [
+      'ASSIGNED',
+      'PICKED_UP',
+      'IN_TRANSIT',
+      'OUT_FOR_DELIVERY',
+      'AT_WAREHOUSE',
+      'AT_BRANCH',
+      'AT_DESTINATION_BRANCH',
+      'READY_FOR_PICKUP',
+    ] as const;
+    const activeStatuses = ['CONFIRMED', ...inTransitStatuses] as const;
+    const readyStatuses = ['READY_FOR_PICKUP', 'AT_DESTINATION_BRANCH'] as const;
+
+    const [
+      orders,
+      delivered,
+      active,
+      openTickets,
+      ordersByStatus,
+      incomingCount,
+      activeCount,
+      readyCount,
+      deliveredCount,
+      draftCount,
+      recentOrders,
+    ] = await Promise.all([
+      prisma.order.count({ where: accessAll }),
+      prisma.order.count({ where: { ...accessAll, status: 'DELIVERED' } }),
+      prisma.order.count({ where: { ...accessAll, status: { in: [...inTransitStatuses] } } }),
+      prisma.supportTicket.count({
+        where: { requesterId: userId, status: { in: ['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER'] } },
+      }),
+      prisma.order.groupBy({ by: ['status'], _count: { _all: true }, where: accessAll }),
+      prisma.order.count({ where: accessIncoming }),
+      prisma.order.count({ where: { ...accessAll, status: { in: [...activeStatuses] } } }),
+      prisma.order.count({ where: { ...accessAll, status: { in: [...readyStatuses] } } }),
+      prisma.order.count({ where: { ...accessAll, status: 'DELIVERED' } }),
+      prisma.order.count({ where: { ...accessAll, status: 'PENDING_PAYMENT' } }),
+      prisma.order.findMany({
+        where: accessAll,
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { id: true, orderNumber: true, status: true, createdAt: true },
+      }),
     ]);
 
     return {
       totals: { orders, inTransit: active, delivered, openTickets },
       ordersByStatus: ordersByStatus.map((r) => ({ status: r.status, count: r._count._all })),
+      parcels: {
+        active: activeCount,
+        incoming: incomingCount,
+        readyForPickup: readyCount,
+        delivered: deliveredCount,
+        draft: draftCount,
+      },
+      recentOrders: recentOrders.map((o) => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        status: o.status,
+        createdAt: o.createdAt.toISOString(),
+      })),
     };
   }
 
@@ -273,7 +353,9 @@ export class DashboardService {
         prisma.transportManifest.count({
           where: { driverId: driver.id, status: { in: ['DRAFT', 'SEALED', 'IN_TRANSIT'] } },
         }),
-        prisma.order.count({ where: { status: 'CONFIRMED', delivery: null } }),
+        prisma.order.count({
+          where: { status: { in: ['CONFIRMED', 'AT_BRANCH'] }, delivery: null },
+        }),
       ]);
 
     return {

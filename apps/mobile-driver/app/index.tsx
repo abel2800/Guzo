@@ -6,5 +6,5 @@ export default function Index() {
   const { user, loading } = useAuth();
   if (loading) return <GuzoSplashLoading splashSource={require('@/assets/splash.png')} />;
   if (!user?.roles.includes('DRIVER')) return <Redirect href="/login" />;
-  return <Redirect href={'/(tabs)/home' as '/'} />;
+  return <Redirect href="/(tabs)/home" />;
 }

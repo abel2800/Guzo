@@ -52,15 +52,15 @@ export function CustomerWallet() {
             <Skeleton className="h-20 w-full" />
           ) : (
             <div className="text-center">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Available balance</p>
-              <p className="mt-2 text-4xl font-black text-white">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Available balance</p>
+              <p className="mt-2 text-4xl font-black text-foreground">
                 {currency} {balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </div>
           )}
 
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Quick top-up</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Quick top-up</p>
             <div className="flex flex-wrap gap-2">
               {TOP_UP_AMOUNTS.map((amt) => (
                 <Button
@@ -89,12 +89,12 @@ export function CustomerWallet() {
           ) : (txns?.items ?? []).length === 0 ? (
             <EmptyPanel icon={Wallet} title="No transactions yet" description="Top up your wallet to get started." />
           ) : (
-            <ul className="divide-y divide-white/10">
+            <ul className="divide-y divide-border">
               {(txns?.items ?? []).map((txn) => (
                 <li key={txn.id} className="flex items-center justify-between px-6 py-4">
                   <div>
-                    <p className="font-semibold text-white">{txn.type}</p>
-                    <p className="text-xs text-slate-400">{txn.description || txn.reference}</p>
+                    <p className="font-semibold text-foreground">{txn.type}</p>
+                    <p className="text-xs text-muted-foreground">{txn.description || txn.reference}</p>
                   </div>
                   <p className={txn.type === 'CREDIT' ? 'font-bold text-guzo-primary' : 'font-bold text-red-400'}>
                     {txn.type === 'CREDIT' ? '+' : '-'}

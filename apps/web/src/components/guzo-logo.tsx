@@ -9,8 +9,8 @@ export function GuzoLogo({ className, showText = true }: { className?: string; s
       </div>
       {showText && (
         <div className="leading-tight">
-          <span className="block text-lg font-extrabold tracking-tight text-white">GUZO</span>
-          <span className="block text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+          <span className="block text-lg font-extrabold tracking-tight text-foreground">GUZO</span>
+          <span className="block text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
             Moving Ethiopia Forward
           </span>
         </div>

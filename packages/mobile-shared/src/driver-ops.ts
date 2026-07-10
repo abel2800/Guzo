@@ -96,6 +96,20 @@ export function reattemptDelivery(orderId: string): Promise<Order> {
   return apiPost<Order>(`/orders/${orderId}/reattempt`, {});
 }
 
+export function scanPickup(
+  orderId: string,
+  input: { reference: string; latitude?: number; longitude?: number },
+): Promise<Order> {
+  return apiPost<Order>(`/orders/${orderId}/scan-pickup`, input);
+}
+
+export function notifyDriverArrived(
+  orderId: string,
+  input: { latitude?: number; longitude?: number } = {},
+): Promise<Order> {
+  return apiPost<Order>(`/orders/${orderId}/arrived`, input);
+}
+
 export interface DriverEarnings {
   balance: number;
   totalDeliveries: number;
@@ -122,6 +136,7 @@ export interface DriverVehicle {
   brand?: string | null;
   model?: string | null;
   color?: string | null;
+  photoUrl?: string | null;
 }
 
 export interface VehicleLogEntry {
@@ -135,6 +150,31 @@ export interface VehicleLogEntry {
 
 export function getDriverVehicle(): Promise<DriverVehicle | null> {
   return apiGet<DriverVehicle | null>('/drivers/me/vehicle');
+}
+
+export function saveDriverVehicle(input: {
+  type: 'BICYCLE' | 'MOTORCYCLE' | 'ELECTRIC_BIKE' | 'CAR' | 'VAN' | 'TRUCK' | 'SCOOTER';
+  plateNumber: string;
+  brand?: string;
+  model?: string;
+  color?: string;
+}): Promise<DriverVehicle> {
+  return getApi()
+    .put<ApiResponse<DriverVehicle>>('/drivers/me/vehicle', input)
+    .then((res) => {
+      if (!res.data.success) throw new Error(res.data.message);
+      return res.data.data;
+    });
+}
+
+export async function uploadDriverVehiclePhoto(photo: PodUpload): Promise<DriverVehicle> {
+  const form = new FormData();
+  form.append('photo', { uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob);
+  const { data } = await getApi().post<ApiResponse<DriverVehicle>>('/drivers/me/vehicle/photo', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  if (!data.success) throw new Error(data.message);
+  return data.data;
 }
 
 export function listVehicleLogs(): Promise<VehicleLogEntry[]> {

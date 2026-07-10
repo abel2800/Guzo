@@ -12,13 +12,19 @@ export default function ProfileScreen() {
   const { branch } = useBranch();
 
   return (
-    <View style={[designStyles.screen, { paddingTop: insets.top, padding: spacing.lg }]}>
+    <View style={[designStyles.screen, { paddingTop: insets.top, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg }]}>
       <Text style={styles.title}>Profile</Text>
       <GlassCard style={{ marginBottom: 16 }}>
         <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
         <Text style={styles.email}>{user?.email}</Text>
         <Text style={styles.branch}>{branch?.name ?? 'No branch assigned'}</Text>
       </GlassCard>
+      <Pressable onPress={() => router.push('/settings')}>
+        <GlassCard style={styles.row}>
+          <Ionicons name="person-outline" size={20} color={colors.primary} />
+          <Text style={styles.rowText}>Edit profile & settings</Text>
+        </GlassCard>
+      </Pressable>
       <Pressable onPress={() => router.push('/shelf')}>
         <GlassCard style={styles.row}>
           <Ionicons name="layers-outline" size={20} color={colors.primary} />

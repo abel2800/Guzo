@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { EmptyPanel, FuturisticHero, SearchField } from '@/components/dashboard/futuristic-primitives';
+import { ParcelQrCard } from '@/components/shared/parcel-qr-card';
 
 const STATUS_TO_STEP: Record<string, number> = {
   PENDING_PAYMENT: -1,
@@ -167,9 +168,9 @@ function TrackingDetails({ order }: { order: Order }) {
       <Card>
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-6">
           <div>
-            <p className="text-xs text-slate-400">Order</p>
-            <p className="text-lg font-bold text-white">{order.orderNumber}</p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">Order</p>
+            <p className="text-lg font-bold text-foreground">{order.orderNumber}</p>
+            <p className="text-xs text-muted-foreground">
               {order.pickupAddress?.city} → {order.dropoffAddress?.city} · {order.deliveryType}
               {routeData ? ` · ${routeData.distanceKm.toFixed(1)} km · ~${routeData.durationMin} min` : ''}
             </p>
@@ -184,7 +185,7 @@ function TrackingDetails({ order }: { order: Order }) {
               <Badge variant={meta.variant}>{meta.label}</Badge>
             </div>
             {order.estimatedDeliveryAt && (
-              <p className="mt-1 flex items-center justify-end gap-1 text-xs text-slate-400">
+              <p className="mt-1 flex items-center justify-end gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" /> ETA {new Date(order.estimatedDeliveryAt).toLocaleString()}
               </p>
             )}
@@ -212,10 +213,10 @@ function TrackingDetails({ order }: { order: Order }) {
                       {done ? (
                         <CheckCircle2 className={cn('h-6 w-6 shrink-0', isCurrent ? 'text-primary' : 'text-emerald-500')} />
                       ) : (
-                        <Circle className="h-6 w-6 shrink-0 text-slate-500/40" />
+                        <Circle className="h-6 w-6 shrink-0 text-muted-foreground/40" />
                       )}
                       <div className="pt-0.5">
-                        <p className={cn('text-sm font-medium', !done && 'text-slate-400')}>{s.label}</p>
+                        <p className={cn('text-sm font-medium', !done && 'text-muted-foreground')}>{s.label}</p>
                         {isCurrent && <p className="text-xs text-primary">Current status</p>}
                       </div>
                     </li>
@@ -224,18 +225,40 @@ function TrackingDetails({ order }: { order: Order }) {
               </ol>
             )}
 
+            {order.packages[0] && ['CONFIRMED', 'ASSIGNED', 'PENDING_PAYMENT'].includes(order.status) && (
+              <div className="mt-6 rounded-lg border p-4">
+                <p className="mb-3 text-xs font-medium text-muted-foreground">Pickup barcode — show driver on arrival</p>
+                <ParcelQrCard
+                  value={order.packages[0].qrCode ?? order.packages[0].trackingNumber}
+                  trackingNumber={order.packages[0].trackingNumber}
+                  pickupPin={order.packages[0].pickupPin}
+                />
+              </div>
+            )}
+
             {driverName && (
               <div className="mt-6 flex items-center gap-3 rounded-lg border p-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Truck className="h-4 w-4" />
-                </div>
+                {order.delivery?.driver?.user?.avatarUrl ? (
+                  <img
+                    src={order.delivery.driver.user.avatarUrl}
+                    alt={driverName}
+                    className="h-12 w-12 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Truck className="h-5 w-5" />
+                  </div>
+                )}
                 <div>
-                  <p className="text-xs text-slate-400">Driver</p>
+                  <p className="text-xs text-muted-foreground">Your driver</p>
                   <p className="text-sm font-medium">{driverName}</p>
-                  {driverPos && (
-                    <p className="text-xs text-slate-500">
-                      {driverPos.lat.toFixed(4)}, {driverPos.lng.toFixed(4)}
+                  {order.delivery?.vehicle && (
+                    <p className="text-xs text-muted-foreground">
+                      {order.delivery.vehicle.type.replace(/_/g, ' ')} · {order.delivery.vehicle.plateNumber}
                     </p>
+                  )}
+                  {driverPos && (
+                    <p className="text-xs text-muted-foreground">Live on map</p>
                   )}
                 </div>
               </div>
@@ -246,14 +269,14 @@ function TrackingDetails({ order }: { order: Order }) {
         <Card className="overflow-hidden lg:col-span-2">
           <div className="relative h-[420px] w-full">
             {routeLoading && markers.length > 0 && (
-              <div className="absolute right-3 top-3 z-[500] rounded-full bg-black/60 px-2 py-1 text-xs text-white">
+              <div className="absolute right-3 top-3 z-[500] rounded-full bg-black/50 px-2 py-1 text-xs text-foreground">
                 Loading route…
               </div>
             )}
             {markers.length ? (
               <Map markers={markers} route={route} />
             ) : (
-              <div className="flex h-full items-center justify-center text-sm text-slate-400">
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 No location data available for this shipment.
               </div>
             )}
@@ -278,19 +301,19 @@ function TrackingDetails({ order }: { order: Order }) {
             <div className="space-y-3 text-sm">
               {order.delivery.recipientName && (
                 <div>
-                  <p className="text-xs text-slate-400">Received by</p>
+                  <p className="text-xs text-muted-foreground">Received by</p>
                   <p className="font-medium">{order.delivery.recipientName}</p>
                 </div>
               )}
               {order.delivery.deliveredAt && (
                 <div>
-                  <p className="text-xs text-slate-400">Delivered at</p>
+                  <p className="text-xs text-muted-foreground">Delivered at</p>
                   <p className="font-medium">{new Date(order.delivery.deliveredAt).toLocaleString()}</p>
                 </div>
               )}
               {order.delivery.signatureFile && (
                 <div>
-                  <p className="text-xs text-slate-400">Signature</p>
+                  <p className="text-xs text-muted-foreground">Signature</p>
 
                   <img
                     src={fileUrl(order.delivery.signatureFile.storageKey)}
@@ -317,13 +340,13 @@ function TrackingDetails({ order }: { order: Order }) {
                   <Navigation className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                   <div>
                     <p className="text-sm font-medium">{statusLabel}</p>
-                    {e.description && <p className="text-xs text-slate-400">{e.description}</p>}
+                    {e.description && <p className="text-xs text-muted-foreground">{e.description}</p>}
                     {e.latitude != null && e.longitude != null && (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         {e.latitude.toFixed(4)}, {e.longitude.toFixed(4)}
                       </p>
                     )}
-                    <p className="text-xs text-slate-400">{new Date(e.createdAt).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(e.createdAt).toLocaleString()}</p>
                   </div>
                 </li>
               );

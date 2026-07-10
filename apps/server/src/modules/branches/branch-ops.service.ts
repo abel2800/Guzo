@@ -12,6 +12,11 @@ import { assignPickupCodes, verifyPickup } from './pickup-code.service.js';
 import type { PodFile } from '../orders/orders.service.js';
 import { writeActivity } from '../../utils/activity.js';
 import { eventBus, DOMAIN_EVENTS } from '../../events/eventBus.js';
+import { smsProvider } from '../../providers/notification/sms.provider.js';
+import { ordersService } from '../orders/orders.service.js';
+import { resolveCustomerByPhone, resolveReceiverUserId } from './branch-customer.util.js';
+import { normalizePhone } from '../../utils/phone.js';
+import type { PriceBreakdown } from '../orders/orders.types.js';
 
 type AuthUser = { id: string; roles: string[] };
 
@@ -23,11 +28,12 @@ export interface BranchRegisterInput {
   receiverGuzoId?: string;
   destinationBranchId?: string;
   dropoffLine1?: string;
-  dropoffCity: string;
+  dropoffCity?: string;
   weightKg?: number;
   description?: string;
   fragile?: boolean;
   paymentMethod?: string;
+  payLater?: boolean;
 }
 
 const TERMINAL_ORDER = new Set(['DELIVERED', 'CANCELLED', 'RETURNED']);
@@ -40,7 +46,13 @@ export class BranchOpsService {
   async assertBranchAccess(user: AuthUser, branchId: string) {
     const branch = await prisma.guzoBranch.findUnique({ where: { id: branchId } });
     if (!branch) throw ApiError.notFound('Branch not found');
-    if (user.roles.includes(ROLES.ADMIN) || user.roles.includes(ROLES.SUPER_ADMIN)) return;
+    if (
+      user.roles.includes(ROLES.ADMIN) ||
+      user.roles.includes(ROLES.SUPER_ADMIN) ||
+      user.roles.includes(ROLES.OPERATIONS_MANAGER)
+    ) {
+      return;
+    }
     if (!user.roles.includes(ROLES.BRANCH_STAFF)) {
       throw ApiError.forbidden('Branch staff access required');
     }
@@ -205,7 +217,48 @@ export class BranchOpsService {
       action: 'branch.receive',
       metadata: { branchId, trackingNumber: pkg.trackingNumber },
     });
+
+    const updatedOrder = await prisma.order.findUnique({
+      where: { id: order.id },
+      include: { packages: { take: 1, select: { trackingNumber: true, pickupPin: true } } },
+    });
+    if (updatedOrder?.status === 'READY_FOR_PICKUP') {
+      eventBus.publish(DOMAIN_EVENTS.ORDER_STATUS_CHANGED, { orderId: order.id, status: 'READY_FOR_PICKUP' });
+      await this.notifyReceiverPickupReady(updatedOrder, branchId);
+    }
+
     return this.toInventoryDto(inv, refreshed);
+  }
+
+  private async notifyReceiverPickupReady(
+    order: {
+      id: string;
+      orderNumber: string;
+      receiverUserId: string | null;
+      receiverPhone: string | null;
+      packages: Array<{ trackingNumber: string; pickupPin: string | null }>;
+    },
+    branchId: string,
+  ) {
+    const branch = await prisma.guzoBranch.findUnique({ where: { id: branchId } });
+    const tracking = order.packages[0]?.trackingNumber ?? order.orderNumber;
+    const pin = order.packages[0]?.pickupPin;
+    const branchLabel = branch ? `${branch.name} (${branch.city})` : 'your GUZO branch';
+    const body = `Your parcel is ready at ${branchLabel}.${pin ? ` Pickup PIN: ${pin}.` : ''} Tracking: ${tracking}`;
+
+    if (order.receiverUserId) {
+      eventBus.publish(DOMAIN_EVENTS.NOTIFICATION_REQUESTED, {
+        userId: order.receiverUserId,
+        type: 'READY_FOR_PICKUP',
+        title: 'Parcel ready for pickup',
+        body,
+        sms: true,
+      });
+    }
+
+    if (order.receiverPhone) {
+      await smsProvider.send({ to: order.receiverPhone, body: `Guzo: ${body}` });
+    }
   }
 
   async receiveIntake(
@@ -268,29 +321,114 @@ export class BranchOpsService {
     return label;
   }
 
+  async quoteRegisterParcel(branchId: string, req: BranchRegisterInput, user: AuthUser): Promise<PriceBreakdown> {
+    await this.assertBranchAccess(user, branchId);
+    const { pickup, dropoff, weightKg } = await this.resolveRegisterAddresses(branchId, req);
+    return ordersService.quote({
+      deliveryType: 'STANDARD',
+      pickup,
+      dropoff,
+      package: { weightKg },
+    });
+  }
+
+  private async resolveRegisterAddresses(branchId: string, req: BranchRegisterInput) {
+    const branch = await prisma.guzoBranch.findUniqueOrThrow({ where: { id: branchId } });
+    const weightKg = req.weightKg ?? 1;
+
+    const pickup = {
+      line1: branch.line1,
+      city: branch.city,
+      state: branch.state ?? undefined,
+      country: branch.country,
+      latitude: branch.latitude ?? undefined,
+      longitude: branch.longitude ?? undefined,
+      contactName: req.senderName ?? 'Sender',
+      contactPhone: req.senderPhone,
+    };
+
+    let dropoff: {
+      line1: string;
+      city: string;
+      country?: string;
+      latitude?: number;
+      longitude?: number;
+      contactName?: string;
+      contactPhone?: string;
+    };
+
+    if (req.destinationBranchId) {
+      const dest = await prisma.guzoBranch.findUnique({ where: { id: req.destinationBranchId } });
+      if (!dest) throw ApiError.badRequest('Destination branch not found');
+      dropoff = {
+        line1: dest.line1,
+        city: dest.city,
+        country: dest.country,
+        latitude: dest.latitude ?? undefined,
+        longitude: dest.longitude ?? undefined,
+        contactName: req.receiverName ?? 'Receiver',
+        contactPhone: req.receiverPhone,
+      };
+    } else {
+      if (!req.dropoffCity?.trim()) throw ApiError.badRequest('Destination city or branch is required');
+      dropoff = {
+        line1: req.dropoffLine1?.trim() || req.dropoffCity.trim(),
+        city: req.dropoffCity.trim(),
+        country: 'ET',
+        contactName: req.receiverName ?? 'Receiver',
+        contactPhone: req.receiverPhone,
+      };
+    }
+
+    return { pickup, dropoff, weightKg };
+  }
+
   async registerParcel(branchId: string, req: BranchRegisterInput, user: AuthUser) {
     await this.assertBranchAccess(user, branchId);
     const branch = await prisma.guzoBranch.findUniqueOrThrow({ where: { id: branchId } });
 
     if (!req.senderPhone?.trim()) throw ApiError.badRequest('Sender phone is required');
-    const sender = await prisma.user.findFirst({ where: { phone: req.senderPhone.trim() } });
-    if (!sender) throw ApiError.badRequest('Sender must have a GUZO account with this phone number');
-    const customer = await prisma.customer.findUnique({ where: { userId: sender.id } });
-    if (!customer) throw ApiError.badRequest('Sender is not registered as a customer');
+    if (!req.receiverPhone?.trim()) throw ApiError.badRequest('Receiver phone is required');
 
-    const weight = req.weightKg ?? 1;
+    const { user: senderUser, customer } = await resolveCustomerByPhone(req.senderPhone.trim(), req.senderName);
+    const receiverUserId = await resolveReceiverUserId(req.receiverPhone);
+    const { pickup, dropoff, weightKg } = await this.resolveRegisterAddresses(branchId, req);
+    const price = await ordersService.quote({
+      deliveryType: 'STANDARD',
+      pickup,
+      dropoff,
+      package: { weightKg, description: req.description, isFragile: req.fragile },
+    });
+
+    const deliverToBranch = !!req.destinationBranchId;
+    const payLater = req.payLater || req.paymentMethod?.toUpperCase() === 'PAY_LATER';
+    const methodRaw = (req.paymentMethod ?? 'CASH_ON_DELIVERY').toUpperCase();
+    const method =
+      payLater || methodRaw === 'PAY_LATER'
+        ? 'CASH_ON_DELIVERY'
+        : (methodRaw as 'CASH_ON_DELIVERY' | 'FAKE' | 'TELEBIRR' | 'CBE' | 'CHAPA' | 'CARD' | 'MOBILE_MONEY');
+
     const orderNumber = generateReference('ORD');
     const trackingNumber = generateTrackingNumber();
     const paymentReference = generateReference('PAY');
-    const method = (req.paymentMethod?.toUpperCase() as 'CASH_ON_DELIVERY' | 'FAKE') ?? 'CASH_ON_DELIVERY';
-    const charge = await paymentProvider.charge({
-      amount: 50 + weight * 5,
-      currency: 'ETB',
-      reference: paymentReference,
-      description: `Payment for order ${orderNumber}`,
-    });
-    const paid = charge.status === 'PAID';
     const now = new Date();
+
+    let chargeStatus: 'PAID' | 'PENDING' = 'PENDING';
+    let provider = 'internal';
+    let providerRef = paymentReference;
+    if (!payLater && method !== 'CASH_ON_DELIVERY') {
+      const charge = await paymentProvider.charge({
+        amount: price.totalAmount,
+        currency: price.currency,
+        reference: paymentReference,
+        description: `Payment for order ${orderNumber}`,
+      });
+      chargeStatus = charge.status === 'PAID' ? 'PAID' : 'PENDING';
+      provider = charge.provider;
+      providerRef = charge.providerRef;
+    }
+    const paid = chargeStatus === 'PAID';
+    const orderStatus = payLater || method === 'CASH_ON_DELIVERY' || paid ? 'CONFIRMED' : 'PENDING_PAYMENT';
 
     const order = await prisma.$transaction(async (tx) => {
       return tx.order.create({
@@ -298,44 +436,52 @@ export class BranchOpsService {
           orderNumber,
           customer: { connect: { id: customer.id } },
           deliveryType: 'STANDARD',
-          status: paid ? 'CONFIRMED' : 'PENDING_PAYMENT',
-          pickupMethod: 'DROP_AT_BRANCH',
+          status: orderStatus,
+          pickupMethod: deliverToBranch ? 'BRANCH_PICKUP' : 'DROP_AT_BRANCH',
           originBranchId: branchId,
           destinationBranchId: req.destinationBranchId ?? null,
-          receiverPhone: req.receiverPhone,
+          receiverPhone: normalizePhone(req.receiverPhone),
+          receiverUserId,
           receiverGuzoId: req.receiverGuzoId ?? null,
-          baseFee: 50,
-          weightFee: weight * 5,
-          totalAmount: 50 + weight * 5,
-          currency: 'ETB',
+          distanceKm: price.distanceKm,
+          baseFee: price.baseFee,
+          distanceFee: price.distanceFee,
+          weightFee: price.weightFee,
+          surge: price.surge,
+          discount: price.discount,
+          tax: price.tax,
+          totalAmount: price.totalAmount,
+          currency: price.currency,
           pickupAddress: {
             create: {
               type: 'PICKUP' as const,
-              line1: branch.line1,
-              city: branch.city,
+              line1: pickup.line1,
+              city: pickup.city,
               state: branch.state,
               country: branch.country,
-              latitude: branch.latitude,
-              longitude: branch.longitude,
-              contactName: req.senderName ?? sender.firstName ?? 'Sender',
-              contactPhone: req.senderPhone,
+              latitude: pickup.latitude,
+              longitude: pickup.longitude,
+              contactName: req.senderName ?? senderUser.firstName ?? 'Sender',
+              contactPhone: req.senderPhone.trim(),
             },
           },
           dropoffAddress: {
             create: {
               type: 'DROPOFF' as const,
-              line1: req.dropoffLine1?.trim() || req.dropoffCity,
-              city: req.dropoffCity,
-              country: 'ET',
-              contactName: req.receiverName ?? 'Receiver',
-              contactPhone: req.receiverPhone,
+              line1: dropoff.line1,
+              city: dropoff.city,
+              country: dropoff.country ?? 'ET',
+              latitude: dropoff.latitude,
+              longitude: dropoff.longitude,
+              contactName: dropoff.contactName ?? 'Receiver',
+              contactPhone: dropoff.contactPhone ?? req.receiverPhone.trim(),
             },
           },
           packages: {
             create: {
               trackingNumber,
               description: req.description,
-              weightKg: weight,
+              weightKg,
               isFragile: req.fragile ?? false,
               barcode: trackingNumber,
               status: 'CREATED',
@@ -344,12 +490,12 @@ export class BranchOpsService {
           payment: {
             create: {
               reference: paymentReference,
-              provider: charge.provider,
-              providerRef: charge.providerRef,
+              provider,
+              providerRef,
               method,
-              status: method === 'CASH_ON_DELIVERY' ? 'PENDING' : charge.status,
-              amount: 50 + weight * 5,
-              currency: 'ETB',
+              status: paid ? 'PAID' : 'PENDING',
+              amount: price.totalAmount,
+              currency: price.currency,
               paidAt: paid ? now : undefined,
             },
           },
@@ -364,7 +510,7 @@ export class BranchOpsService {
       branchId,
       {
         trackingNumber,
-        weightKg: String(weight),
+        weightKg: String(weightKg),
         description: req.description,
       },
       user,
@@ -377,9 +523,23 @@ export class BranchOpsService {
     });
 
     eventBus.publish(DOMAIN_EVENTS.ORDER_CREATED, { orderId: order.id, orderNumber: order.orderNumber });
+    eventBus.publish(DOMAIN_EVENTS.NOTIFICATION_REQUESTED, {
+      userId: senderUser.id,
+      type: 'ORDER_CREATED',
+      title: 'Parcel registered',
+      body: `Your parcel ${trackingNumber} was registered at ${branch.name}.`,
+    });
+    if (receiverUserId) {
+      eventBus.publish(DOMAIN_EVENTS.NOTIFICATION_REQUESTED, {
+        userId: receiverUserId,
+        type: 'ORDER_CREATED',
+        title: 'Incoming delivery',
+        body: `A parcel is on the way to you. Tracking: ${trackingNumber}`,
+      });
+    }
     if (paid) eventBus.publish(DOMAIN_EVENTS.PAYMENT_SUCCEEDED, { orderId: order.id });
 
-    return { ...receiveResult, label };
+    return { ...receiveResult, label, quote: price };
   }
 
   async assignShelf(branchId: string, input: { trackingNumber: string; shelfCode: string; zone?: string }, user: AuthUser) {
@@ -522,10 +682,17 @@ export class BranchOpsService {
     await this.assertBranchAccess(user, branchId);
     const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
     const take = Math.max(limit, 1);
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
     const where =
       state === 'all'
         ? { branchId }
-        : { branchId, pickedUpAt: null };
+        : state === 'incoming-today'
+          ? { branchId, receivedAt: { gte: startOfDay } }
+          : state === 'picked-up-today'
+            ? { branchId, pickedUpAt: { gte: startOfDay } }
+            : { branchId, pickedUpAt: null };
 
     const [rows, total] = await Promise.all([
       prisma.guzoBranchInventory.findMany({
@@ -589,6 +756,57 @@ export class BranchOpsService {
     return {
       totals: { inStock, incomingToday, outgoing, readyForPickup, pickedUpToday },
     };
+  }
+
+  async listOrders(branchId: string, filter: string, page: number, limit: number, user: AuthUser) {
+    await this.assertBranchAccess(user, branchId);
+    const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1);
+    const take = Math.max(limit, 1);
+
+    const where: Prisma.OrderWhereInput =
+      filter === 'ready-pickup'
+        ? { destinationBranchId: branchId, status: 'READY_FOR_PICKUP' }
+        : filter === 'outgoing'
+          ? {
+              originBranchId: branchId,
+              status: { in: ['IN_TRANSIT', 'AT_WAREHOUSE', 'OUT_FOR_DELIVERY'] },
+            }
+          : (null as unknown as Prisma.OrderWhereInput);
+
+    if (filter !== 'ready-pickup' && filter !== 'outgoing') {
+      throw ApiError.badRequest('Invalid order filter');
+    }
+
+    const [rows, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take,
+        include: {
+          packages: { take: 1, orderBy: { createdAt: 'asc' } },
+          dropoffAddress: true,
+          payment: true,
+        },
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    const items = rows.map((order) => ({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      receiverPhone: order.receiverPhone ?? order.dropoffAddress?.contactPhone ?? null,
+      receiverName: order.dropoffAddress?.contactName ?? null,
+      codAmount: order.payment?.amount != null ? Number(order.payment.amount) : null,
+      updatedAt: order.updatedAt,
+      trackingNumber: order.packages[0]?.trackingNumber ?? null,
+      packageStatus: order.packages[0]?.status ?? null,
+      dropoffCity: order.dropoffAddress?.city ?? null,
+      dropoffLine1: order.dropoffAddress?.line1 ?? null,
+    }));
+
+    return { items, meta: buildMeta(page, limit, total) };
   }
 }
 

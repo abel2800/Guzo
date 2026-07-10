@@ -13,4 +13,6 @@ export function Map(props: LeafletMapProps) {
   return <LeafletMap {...props} />;
 }
 
+export { Map as LeafletMap };
+
 export type { MapMarker, LeafletMapProps } from './leaflet-map';

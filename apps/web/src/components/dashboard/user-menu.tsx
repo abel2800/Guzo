@@ -39,20 +39,20 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="outline-none">
-        <Avatar className="border border-white/20 bg-white/10">
+        <Avatar className="border border-border bg-muted/50">
           {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="Profile" /> : null}
-          <AvatarFallback className="bg-transparent text-white">
+          <AvatarFallback className="bg-transparent text-foreground">
             {initials(user?.firstName, user?.lastName)}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 border-white/10 bg-guzo-bg/95 backdrop-blur-xl">
+      <DropdownMenuContent align="end" className="w-56 border-border bg-guzo-bg/95 backdrop-blur-xl">
         <DropdownMenuLabel>
           <div className="flex flex-col">
             <span className="text-sm font-semibold">
               {user?.firstName} {user?.lastName}
             </span>
-            <span className="text-xs font-normal text-slate-400">{user?.email}</span>
+            <span className="text-xs font-normal text-muted-foreground">{user?.email}</span>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

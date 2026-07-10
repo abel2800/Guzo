@@ -28,7 +28,7 @@ export function DriverNavigation() {
     refetchInterval: 20_000,
   });
 
-  const { data: route } = useQuery({
+  const { data: driverRoute } = useQuery({
     queryKey: ['driver-route'],
     queryFn: getDriverRoute,
     refetchInterval: 30_000,
@@ -53,7 +53,7 @@ export function DriverNavigation() {
     return list;
   }, [selected]);
 
-  const route: Array<[number, number]> = useMemo(
+  const mapRoute: Array<[number, number]> = useMemo(
     () => markers.map((m) => [m.lat, m.lng] as [number, number]),
     [markers],
   );
@@ -74,8 +74,8 @@ export function DriverNavigation() {
         description="Active delivery routes with pickup and drop-off pins. Open in Google Maps for directions."
         stats={[
           { label: 'Active', value: String(active.length) },
-          { label: 'Route stops', value: String(route?.totalStops ?? 0) },
-          { label: 'Est. km', value: route?.estimatedKm != null ? String(route.estimatedKm) : '—' },
+          { label: 'Route stops', value: String(driverRoute?.totalStops ?? 0) },
+          { label: 'Est. km', value: driverRoute?.estimatedKm != null ? String(driverRoute.estimatedKm) : '—' },
         ]}
       />
 
@@ -85,13 +85,13 @@ export function DriverNavigation() {
         <EmptyPanel icon={Navigation} title="No routes to navigate" description="Accept a delivery from Available jobs first." />
       ) : (
         <>
-          {route && route.stops.length > 0 && (
+          {driverRoute && driverRoute.stops.length > 0 && (
             <Card>
               <CardContent className="p-4">
-                <p className="mb-2 text-xs font-semibold uppercase text-slate-400">Optimized stop order (P3-10)</p>
+                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Optimized stop order (P3-10)</p>
                 <ol className="space-y-1 text-sm">
-                  {route.stops.map((s, i) => (
-                    <li key={`${s.orderId}-${s.type}`} className="text-slate-300">
+                  {driverRoute.stops.map((s, i) => (
+                    <li key={`${s.orderId}-${s.type}`} className="text-muted-foreground">
                       {i + 1}. {s.type === 'pickup' ? 'Pickup' : 'Drop'} · {s.orderNumber} · {s.city}
                     </li>
                   ))}
@@ -108,13 +108,13 @@ export function DriverNavigation() {
                   key={o.id}
                   type="button"
                   onClick={() => setSelectedId(o.id)}
-                  className={`w-full rounded-lg border p-4 text-left transition ${selected?.id === o.id ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-white/10 hover:border-white/20'}`}
+                  className={`w-full rounded-lg border p-4 text-left transition ${selected?.id === o.id ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-border hover:border-border'}`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-white">{o.orderNumber}</span>
+                    <span className="font-semibold text-foreground">{o.orderNumber}</span>
                     <Badge variant={m.variant}>{m.label}</Badge>
                   </div>
-                  <p className="mt-1 text-xs text-slate-400">{o.pickupAddress?.city} → {o.dropoffAddress?.city}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{o.pickupAddress?.city} → {o.dropoffAddress?.city}</p>
                 </button>
               );
             })}
@@ -154,11 +154,11 @@ export function DriverNavigation() {
                       </Button>
                     )}
                   </div>
-                  <div className="h-72 overflow-hidden rounded-lg border border-white/10">
+                  <div className="h-72 overflow-hidden rounded-lg border border-border">
                     {markers.length > 0 ? (
-                      <LeafletMap markers={markers} route={route.length > 1 ? route : undefined} className="h-full w-full" />
+                      <LeafletMap markers={markers} route={mapRoute.length > 1 ? mapRoute : undefined} className="h-full w-full" />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-slate-400">
+                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                         No coordinates — use external maps links above
                       </div>
                     )}

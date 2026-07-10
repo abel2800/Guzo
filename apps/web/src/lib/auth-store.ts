@@ -23,16 +23,26 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       hydrated: false,
       setSession: (user, tokens) =>
-        set({ user, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }),
+        set({
+          user,
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          hydrated: true,
+        }),
       setTokens: (tokens) =>
-        set({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }),
+        set({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, hydrated: true }),
       setUser: (user) => set({ user }),
-      clear: () => set({ user: null, accessToken: null, refreshToken: null }),
+      clear: () => set({ user: null, accessToken: null, refreshToken: null, hydrated: true }),
     }),
     {
       name: 'guzo-auth',
-      onRehydrateStorage: () => (state) => {
-        if (state) state.hydrated = true;
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+      }),
+      onRehydrateStorage: () => () => {
+        useAuthStore.setState({ hydrated: true });
       },
     },
   ),

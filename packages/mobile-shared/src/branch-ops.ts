@@ -76,15 +76,27 @@ export interface BranchRegisterInput {
   receiverGuzoId?: string;
   destinationBranchId?: string;
   dropoffLine1?: string;
-  dropoffCity: string;
+  dropoffCity?: string;
   weightKg: number;
   description?: string;
   fragile?: boolean;
   paymentMethod?: string;
+  payLater?: boolean;
 }
 
 export interface BranchRegisterResult extends BranchInventoryItem {
   label?: ParcelLabel;
+  quote?: {
+    distanceKm: number;
+    baseFee: number;
+    distanceFee: number;
+    weightFee: number;
+    surge: number;
+    discount: number;
+    tax: number;
+    totalAmount: number;
+    currency: string;
+  };
 }
 
 export function getMyBranches(): Promise<BranchStaffAssignment[]> {
@@ -93,6 +105,24 @@ export function getMyBranches(): Promise<BranchStaffAssignment[]> {
 
 export function getBranchStats(branchId: string): Promise<BranchStats> {
   return apiGet<BranchStats>(`/branches/${branchId}/stats`);
+}
+
+export interface BranchOrderItem {
+  id: string;
+  orderNumber: string;
+  status: string;
+  receiverPhone?: string | null;
+  receiverName?: string | null;
+  codAmount?: number | null;
+  updatedAt: string;
+  trackingNumber?: string | null;
+  packageStatus?: string | null;
+  dropoffCity?: string | null;
+  dropoffLine1?: string | null;
+}
+
+export function listBranchOrders(branchId: string, filter: 'ready-pickup' | 'outgoing', params: { page?: number; limit?: number } = {}) {
+  return apiList<BranchOrderItem>(`/branches/${branchId}/orders`, { filter, ...params });
 }
 
 export function listBranchInventory(branchId: string, params: { page?: number; limit?: number; state?: string } = {}) {
@@ -109,6 +139,17 @@ export function getParcelLabel(branchId: string, tracking: string): Promise<Parc
 
 export function registerParcelAtBranch(branchId: string, input: BranchRegisterInput): Promise<BranchRegisterResult> {
   return apiPost<BranchRegisterResult>(`/branches/${branchId}/register`, input);
+}
+
+export function quoteBranchRegister(
+  branchId: string,
+  input: Omit<BranchRegisterInput, 'paymentMethod' | 'payLater' | 'fragile' | 'description'> & {
+    weightKg: number;
+    description?: string;
+    fragile?: boolean;
+  },
+): Promise<BranchRegisterResult['quote']> {
+  return apiPost<NonNullable<BranchRegisterResult['quote']>>(`/branches/${branchId}/register-quote`, input);
 }
 
 export function receiveAtBranch(

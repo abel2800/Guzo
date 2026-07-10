@@ -75,28 +75,36 @@ export default function DashboardScreen() {
         </Pressable>
       </View>
 
-      <GlassCard glow style={styles.mainStat}>
-        <Text style={styles.statLabel}>Total orders</Text>
-        <Text style={styles.mainStatValue}>{t?.orders ?? 0}</Text>
-      </GlassCard>
+      <Pressable onPress={() => router.push('/(tabs)/orders')}>
+        <GlassCard glow style={styles.mainStat}>
+          <Text style={styles.statLabel}>Total orders</Text>
+          <Text style={styles.mainStatValue}>{t?.orders ?? 0}</Text>
+        </GlassCard>
+      </Pressable>
 
       <View style={styles.statsRow}>
-        <GlassCard style={styles.statCard}>
-          <Ionicons name="bicycle-outline" size={20} color={colors.primary} />
-          <Text style={styles.statLabel}>In transit</Text>
-          <Text style={styles.statValue}>{t?.inTransit ?? 0}</Text>
-        </GlassCard>
-        <GlassCard style={styles.statCard}>
-          <Ionicons name="checkmark-circle-outline" size={20} color={colors.accent} />
-          <Text style={styles.statLabel}>Delivered</Text>
-          <Text style={styles.statValue}>{t?.delivered ?? 0}</Text>
-        </GlassCard>
+        <Pressable style={{ flex: 1 }} onPress={() => router.push({ pathname: '/(tabs)/orders', params: { status: 'IN_TRANSIT' } })}>
+          <GlassCard style={styles.statCard}>
+            <Ionicons name="bicycle-outline" size={20} color={colors.primary} />
+            <Text style={styles.statLabel}>In transit</Text>
+            <Text style={styles.statValue}>{t?.inTransit ?? 0}</Text>
+          </GlassCard>
+        </Pressable>
+        <Pressable style={{ flex: 1 }} onPress={() => router.push({ pathname: '/(tabs)/orders', params: { status: 'DELIVERED' } })}>
+          <GlassCard style={styles.statCard}>
+            <Ionicons name="checkmark-circle-outline" size={20} color={colors.accent} />
+            <Text style={styles.statLabel}>Delivered</Text>
+            <Text style={styles.statValue}>{t?.delivered ?? 0}</Text>
+          </GlassCard>
+        </Pressable>
       </View>
 
-      <GlassCard>
-        <Text style={styles.statLabel}>Revenue</Text>
-        <Text style={styles.revenue}>ETB {(t?.revenue ?? 0).toLocaleString()}</Text>
-      </GlassCard>
+      <Pressable onPress={() => router.push('/analytics')}>
+        <GlassCard>
+          <Text style={styles.statLabel}>Revenue</Text>
+          <Text style={styles.revenue}>ETB {(t?.revenue ?? 0).toLocaleString()}</Text>
+        </GlassCard>
+      </Pressable>
     </ScrollView>
   );
 }

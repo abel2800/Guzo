@@ -48,6 +48,8 @@ router.post(
   ordersController.submitPickupProof,
 );
 router.post('/:id/branch-handoff', authorize('DRIVER'), validate(idParamValidator), ordersController.branchHandoff);
+router.post('/:id/scan-pickup', authorize('DRIVER'), validate(idParamValidator), ordersController.scanPickup);
+router.post('/:id/arrived', authorize('DRIVER'), validate(idParamValidator), ordersController.notifyArrived);
 router.post('/:id/failed', authorize('DRIVER'), validate(idParamValidator), ordersController.markFailed);
 router.post('/:id/reattempt', authorize('DRIVER'), validate(idParamValidator), ordersController.reattempt);
 router.post('/:id/cancel', validate(idParamValidator), ordersController.cancel);

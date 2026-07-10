@@ -4,6 +4,8 @@ import { idParamValidator, createDriverValidator, updateDriverValidator } from '
 import { validate } from '../../middlewares/validate.middleware.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { authorize } from '../../middlewares/rbac.middleware.js';
+import { upload, uploadTo } from '../../middlewares/upload.middleware.js';
+import { UPLOAD_FOLDERS } from '../../constants/index.js';
 
 const router = Router();
 router.use(authenticate);
@@ -12,6 +14,14 @@ router.get('/me/route', authorize('DRIVER'), driversController.myRoute);
 router.get('/me/manifests', authorize('DRIVER'), driversController.myManifests);
 router.get('/me/earnings', authorize('DRIVER'), driversController.myEarnings);
 router.get('/me/vehicle', authorize('DRIVER'), driversController.myVehicle);
+router.put('/me/vehicle', authorize('DRIVER'), driversController.upsertMyVehicle);
+router.post(
+  '/me/vehicle/photo',
+  authorize('DRIVER'),
+  uploadTo(UPLOAD_FOLDERS.VEHICLE_PHOTOS),
+  upload.single('photo'),
+  driversController.uploadVehiclePhoto,
+);
 router.get('/me/vehicle/logs', authorize('DRIVER'), driversController.myVehicleLogs);
 router.post('/me/vehicle/logs', authorize('DRIVER'), driversController.createVehicleLog);
 router.get('/me/manifests/:manifestId', authorize('DRIVER'), driversController.myManifestDetail);

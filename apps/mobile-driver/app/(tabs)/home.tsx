@@ -14,10 +14,10 @@ export default function HomeScreen() {
 
   const today = dash.data?.today;
   const stats = [
-    { label: 'Pickups today', value: today?.pickups ?? 0, icon: 'cube-outline' as const },
-    { label: 'Deliveries today', value: today?.deliveries ?? 0, icon: 'checkmark-done-outline' as const },
-    { label: 'Intercity trips', value: today?.intercity ?? manifests.data?.length ?? 0, icon: 'bus-outline' as const },
-    { label: 'Open jobs', value: today?.available ?? 0, icon: 'briefcase-outline' as const },
+    { label: 'Pickups today', value: today?.pickups ?? 0, icon: 'cube-outline' as const, route: '/(tabs)/active' as const },
+    { label: 'Deliveries today', value: today?.deliveries ?? 0, icon: 'checkmark-done-outline' as const, route: '/(tabs)/active' as const },
+    { label: 'Intercity trips', value: today?.intercity ?? manifests.data?.length ?? 0, icon: 'bus-outline' as const, route: manifests.data?.[0] ? `/manifest/${manifests.data[0].id}` as const : '/(tabs)/home' as const },
+    { label: 'Open jobs', value: today?.available ?? 0, icon: 'briefcase-outline' as const, route: '/(tabs)/jobs' as const },
   ];
 
   return (
@@ -33,11 +33,13 @@ export default function HomeScreen() {
       <View style={[designStyles.screenPad, { marginTop: -spacing.md }]}>
         <View style={styles.grid}>
           {stats.map((s) => (
-            <GlassCard key={s.label} style={styles.statCard}>
-              <Ionicons name={s.icon} size={22} color={colors.primary} />
-              <Text style={styles.statValue}>{s.value}</Text>
-              <Text style={styles.statLabel}>{s.label}</Text>
-            </GlassCard>
+            <Pressable key={s.label} onPress={() => router.push(s.route as '/(tabs)/jobs')}>
+              <GlassCard style={styles.statCard}>
+                <Ionicons name={s.icon} size={22} color={colors.primary} />
+                <Text style={styles.statValue}>{s.value}</Text>
+                <Text style={styles.statLabel}>{s.label}</Text>
+              </GlassCard>
+            </Pressable>
           ))}
         </View>
 

@@ -63,7 +63,7 @@ export function PodHistory() {
           {orders.map((o) => (
             <button key={o.id} onClick={() => setSelectedId(o.id)} className="text-left">
               <Card className="overflow-hidden transition-shadow hover:shadow-md">
-                <div className="aspect-[4/3] w-full bg-white/5">
+                <div className="aspect-[4/3] w-full bg-muted/40">
                   
                   <img
                     src={fileUrl(o.delivery!.proofFile!.storageKey)}
@@ -73,14 +73,14 @@ export function PodHistory() {
                 </div>
                 <CardContent className="space-y-1 p-4">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold text-white">{o.orderNumber}</p>
+                    <p className="font-semibold text-foreground">{o.orderNumber}</p>
                     <Badge variant="success">Delivered</Badge>
                   </div>
-                  <p className="flex items-center gap-1 text-xs text-slate-400">
+                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
                     <MapPin className="h-3 w-3" /> {o.dropoffAddress?.city} · {o.dropoffAddress?.line1}
                   </p>
                   {o.delivery?.deliveredAt && (
-                    <p className="flex items-center gap-1 text-xs text-slate-400">
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" /> {new Date(o.delivery.deliveredAt).toLocaleString()}
                     </p>
                   )}
@@ -119,7 +119,7 @@ function PodDetail({ order }: { order: Order }) {
     <div className="space-y-5">
       <div>
         <SheetTitle>{order.orderNumber}</SheetTitle>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-muted-foreground">
           {order.pickupAddress?.city} → {order.dropoffAddress?.city}
         </p>
       </div>
@@ -134,13 +134,13 @@ function PodDetail({ order }: { order: Order }) {
       <div className="space-y-3 rounded-lg border p-4 text-sm">
         {d.recipientName && (
           <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-slate-400" />
+            <User className="h-4 w-4 text-muted-foreground" />
             <span>Received by <span className="font-medium">{d.recipientName}</span></span>
           </div>
         )}
         {d.deliveredAt && (
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-slate-400" />
+            <Clock className="h-4 w-4 text-muted-foreground" />
             <span>{new Date(d.deliveredAt).toLocaleString()}</span>
           </div>
         )}

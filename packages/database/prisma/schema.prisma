@@ -59,6 +59,7 @@ enum DriverApprovalStatus {
 enum VehicleType {
   BICYCLE
   MOTORCYCLE
+  ELECTRIC_BIKE
   CAR
   VAN
   TRUCK
@@ -663,11 +664,14 @@ model Vehicle {
   model        String?
   color        String?
   capacityKg   Decimal?      @db.Decimal(10, 2)
+  photoFileId  String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  driver Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
-  logs   VehicleLog[]
+  driver     Driver?    @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  photo      File?      @relation("VehiclePhoto", fields: [photoFileId], references: [id])
+  logs       VehicleLog[]
+  deliveries Delivery[]
 
   @@index([driverId])
   @@map("vehicles")
@@ -810,6 +814,7 @@ model Delivery {
 
   order        Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
   driver       Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  vehicle      Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
   proofFile    File?  @relation("DeliveryProof", fields: [proofFileId], references: [id])
   signatureFile File? @relation("DeliverySignature", fields: [signatureFileId], references: [id])
   locationPings GpsLocation[]
@@ -1164,6 +1169,7 @@ model File {
   driverLicenses    Driver[]   @relation("DriverLicense")
   deliveryProofs    Delivery[] @relation("DeliveryProof")
   deliverySignatures Delivery[] @relation("DeliverySignature")
+  vehiclePhotos     Vehicle[]  @relation("VehiclePhoto")
 
   @@index([uploaderId])
   @@index([category])
@@ -1268,4 +1274,16 @@ model GuzoBranchInventory {
   @@index([branchId])
   @@index([branchId, shelfCode])
   @@map("guzo_branch_inventory")
+}
+
+model PhoneOtp {
+  id         String    @id @default(cuid())
+  phone      String
+  code       String
+  expiresAt  DateTime  @map("expiresAt")
+  verifiedAt DateTime? @map("verifiedAt")
+  createdAt  DateTime  @default(now()) @map("createdAt")
+
+  @@index([phone])
+  @@map("guzo_phone_otps")
 }

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl, Share, Pressable } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, Share, Pressable, Image } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DriverLocationPayload } from '@delivery/types';
 import { cancelOrder, getOrder, ORDER_STATUS_LABELS, fetchWithCache, cacheOrder, useTrackingMapData } from '@guzo/mobile-shared';
-import { LiveTrackingMap, OfflineBanner, GlassCard, GradientButton } from '@guzo/mobile-ui';
+import { LiveTrackingMap, OfflineBanner, GlassCard, GradientButton, ParcelQrCode } from '@guzo/mobile-ui';
 import { subscribeToOrder } from '@/lib/realtime';
 import { colors, designStyles, spacing } from '@/lib/design';
 
@@ -103,19 +103,24 @@ export default function OrderDetailScreen() {
 
       {order.packages[0] && (
         <GlassCard style={{ marginBottom: 12 }}>
-          <Text style={{ color: colors.textDim, fontSize: 11, fontWeight: '600' }}>Parcel</Text>
-          <Text style={{ color: colors.text, marginTop: 4 }}>Tracking: {order.packages[0].trackingNumber}</Text>
+          <Text style={{ color: colors.textDim, fontSize: 11, fontWeight: '600' }}>Parcel barcode</Text>
+          <View style={{ marginTop: 12 }}>
+            <ParcelQrCode
+              value={order.packages[0].qrCode ?? order.packages[0].trackingNumber}
+              trackingNumber={order.packages[0].trackingNumber}
+              pickupPin={order.packages[0].pickupPin}
+              hint={
+                order.pickupMethod === 'COMPANY_PICKUP'
+                  ? 'Show this code to the driver when they arrive for pickup.'
+                  : 'Share this code with branch staff or the driver when handing over the parcel.'
+              }
+            />
+          </View>
           {order.packages[0].weightKg != null && (
-            <Text style={{ color: colors.textMuted, marginTop: 4 }}>Weight: {order.packages[0].weightKg} kg</Text>
+            <Text style={{ color: colors.textMuted, marginTop: 12 }}>Weight: {order.packages[0].weightKg} kg</Text>
           )}
           {order.packages[0].description && (
             <Text style={{ color: colors.textMuted, marginTop: 4 }}>{order.packages[0].description}</Text>
-          )}
-          {order.packages[0].pickupPin && (
-            <Text style={{ color: colors.primary, marginTop: 8, fontWeight: '700' }}>Pickup PIN: {order.packages[0].pickupPin}</Text>
-          )}
-          {order.packages[0].qrCode && (
-            <Text style={{ color: colors.textDim, marginTop: 4, fontSize: 12 }}>QR: {order.packages[0].qrCode}</Text>
           )}
           <Pressable
             style={{ marginTop: 12 }}
@@ -149,10 +154,28 @@ export default function OrderDetailScreen() {
 
       {order.delivery?.driver?.user && (
         <GlassCard style={{ marginBottom: 12 }}>
-          <Text style={{ color: colors.textDim, fontSize: 11, fontWeight: '600' }}>Driver</Text>
-          <Text style={{ color: colors.text, marginTop: 4 }}>
-            {order.delivery.driver.user.firstName} {order.delivery.driver.user.lastName}
-          </Text>
+          <Text style={{ color: colors.textDim, fontSize: 11, fontWeight: '600' }}>Your driver</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
+            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(34,197,94,0.2)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              {order.delivery.driver.user.avatarUrl ? (
+                <Image source={{ uri: order.delivery.driver.user.avatarUrl }} style={{ width: 48, height: 48 }} />
+              ) : (
+                <Text style={{ color: colors.primary, fontWeight: '800' }}>
+                  {order.delivery.driver.user.firstName?.[0]}{order.delivery.driver.user.lastName?.[0]}
+                </Text>
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>
+                {order.delivery.driver.user.firstName} {order.delivery.driver.user.lastName}
+              </Text>
+              {order.delivery.vehicle && (
+                <Text style={{ color: colors.textMuted, marginTop: 4, fontSize: 13 }}>
+                  {order.delivery.vehicle.type.replace(/_/g, ' ')} · {order.delivery.vehicle.plateNumber}
+                </Text>
+              )}
+            </View>
+          </View>
         </GlassCard>
       )}
 

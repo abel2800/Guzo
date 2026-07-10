@@ -32,6 +32,8 @@ interface AdminOverview {
     warehouses?: number;
     branches?: number;
     merchants?: number;
+    pendingUsers?: number;
+    pendingDrivers?: number;
   };
   growth?: {
     ordersLast7d: number;
@@ -139,9 +141,9 @@ function formatStatusLabel(status: string) {
 
 function SnapshotRow({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2.5">
-      <span className="text-sm text-slate-400">{label}</span>
-      <span className="text-sm font-semibold text-white">{value}</span>
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/40 px-3 py-2.5">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-semibold text-foreground">{value}</span>
     </div>
   );
 }
@@ -154,10 +156,10 @@ function StatusBreakdown({ rows }: { rows: Array<{ status: string; count: number
       {rows.map((row) => (
         <li key={row.status} className="space-y-1.5">
           <div className="flex items-center justify-between gap-2 text-sm">
-            <span className="text-slate-300">{formatStatusLabel(row.status)}</span>
-            <span className="font-semibold text-white">{row.count}</span>
+            <span className="text-muted-foreground">{formatStatusLabel(row.status)}</span>
+            <span className="font-semibold text-foreground">{row.count}</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted/50">
             <div
               className="h-full rounded-full bg-guzo-primary transition-all"
               style={{ width: `${Math.max((row.count / max) * 100, row.count > 0 ? 8 : 0)}%` }}
@@ -331,10 +333,10 @@ export default function OverviewPage() {
               {heroAccent}
             </p>
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight text-white md:text-5xl">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-5xl">
                 {config.label} Dashboard
               </h1>
-              <p className="max-w-2xl text-sm text-slate-300 md:text-base">
+              <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
                 Welcome back{user ? `, ${user.firstName}` : ''}. Your live GUZO workspace combines
                 realtime operations, financial signals, tracking activity, and role-based actions in
                 one futuristic control surface.
@@ -342,17 +344,17 @@ export default function OverviewPage() {
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Role</p>
-              <p className="mt-2 text-lg font-semibold text-white">{config.label}</p>
+            <div className="rounded-2xl border border-border bg-muted/40 p-4">
+              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Role</p>
+              <p className="mt-2 text-lg font-semibold text-foreground">{config.label}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Realtime</p>
-              <p className="mt-2 text-lg font-semibold text-white">Connected workflow</p>
+            <div className="rounded-2xl border border-border bg-muted/40 p-4">
+              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Realtime</p>
+              <p className="mt-2 text-lg font-semibold text-foreground">Connected workflow</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Experience</p>
-              <p className="mt-2 text-lg font-semibold text-white">Glass + glow UI</p>
+            <div className="rounded-2xl border border-border bg-muted/40 p-4">
+              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Experience</p>
+              <p className="mt-2 text-lg font-semibold text-foreground">Glass + glow UI</p>
             </div>
           </div>
         </div>
@@ -367,6 +369,13 @@ export default function OverviewPage() {
             <StatCard label="Paid" value={financeTotals.paidCount} icon={Package} loading={isLoading} />
             <StatCard label="Outstanding Inv." value={financeTotals.outstandingInvoices} icon={Clock} loading={isLoading} />
           </>
+        ) : isBranch && branchTotals ? (
+          <>
+            <StatCard label="In stock" value={branchTotals.inStock} icon={Package} loading={isLoading} href={`/dashboard/${slug}/inventory`} />
+            <StatCard label="Incoming today" value={branchTotals.incomingToday} icon={Activity} loading={isLoading} href={`/dashboard/${slug}/receive`} />
+            <StatCard label="Outgoing" value={branchTotals.outgoing} icon={Truck} loading={isLoading} href={`/dashboard/${slug}/counter`} />
+            <StatCard label="Ready for pickup" value={branchTotals.readyForPickup} icon={CheckCircle2} loading={isLoading} href={`/dashboard/${slug}/counter`} />
+          </>
         ) : isWarehouse && warehouseTotals ? (
           <>
             <StatCard label="In Stock" value={warehouseTotals.inStock} icon={Package} loading={isLoading} />
@@ -376,29 +385,30 @@ export default function OverviewPage() {
           </>
         ) : isMerchant && merchantTotals ? (
           <>
-            <StatCard label="Total Orders" value={merchantTotals.orders} icon={Package} loading={isLoading} />
-            <StatCard label="In Transit" value={merchantTotals.inTransit} icon={Truck} loading={isLoading} />
-            <StatCard label="Delivered" value={merchantTotals.delivered} icon={CheckCircle2} loading={isLoading} />
+            <StatCard label="Total Orders" value={merchantTotals.orders} icon={Package} loading={isLoading} href={`/dashboard/${slug}/orders`} />
+            <StatCard label="In Transit" value={merchantTotals.inTransit} icon={Truck} loading={isLoading} href={`/dashboard/${slug}/orders`} />
+            <StatCard label="Delivered" value={merchantTotals.delivered} icon={CheckCircle2} loading={isLoading} href={`/dashboard/${slug}/orders`} />
             <StatCard
               label="Revenue"
               value={`ETB ${merchantTotals.revenue.toLocaleString()}`}
               icon={Wallet}
               loading={isLoading}
+              href={`/dashboard/${slug}/analytics`}
             />
           </>
         ) : isCustomer && customerTotals ? (
           <>
-            <StatCard label="My Orders" value={customerTotals.orders} icon={Package} loading={isLoading} />
-            <StatCard label="In Transit" value={customerTotals.inTransit} icon={Truck} loading={isLoading} />
-            <StatCard label="Delivered" value={customerTotals.delivered} icon={CheckCircle2} loading={isLoading} />
-            <StatCard label="Open Tickets" value={customerTotals.openTickets} icon={LifeBuoy} loading={isLoading} />
+            <StatCard label="My Orders" value={customerTotals.orders} icon={Package} loading={isLoading} href={`/dashboard/${slug}/orders`} />
+            <StatCard label="In Transit" value={customerTotals.inTransit} icon={Truck} loading={isLoading} href={`/dashboard/${slug}/track`} />
+            <StatCard label="Delivered" value={customerTotals.delivered} icon={CheckCircle2} loading={isLoading} href={`/dashboard/${slug}/orders`} />
+            <StatCard label="Open Tickets" value={customerTotals.openTickets} icon={LifeBuoy} loading={isLoading} href={`/dashboard/${slug}/support`} />
           </>
         ) : isSupport && supportTotals ? (
           <>
-            <StatCard label="Open" value={supportTotals.open} icon={LifeBuoy} loading={isLoading} />
-            <StatCard label="In Progress" value={supportTotals.inProgress} icon={Activity} loading={isLoading} />
-            <StatCard label="Waiting" value={supportTotals.waiting} icon={Clock} loading={isLoading} />
-            <StatCard label="Resolved Today" value={supportTotals.resolvedToday} icon={CheckCircle2} loading={isLoading} />
+            <StatCard label="Open" value={supportTotals.open} icon={LifeBuoy} loading={isLoading} href={`/dashboard/${slug}/tickets`} />
+            <StatCard label="In Progress" value={supportTotals.inProgress} icon={Activity} loading={isLoading} href={`/dashboard/${slug}/tickets`} />
+            <StatCard label="Waiting" value={supportTotals.waiting} icon={Clock} loading={isLoading} href={`/dashboard/${slug}/tickets`} />
+            <StatCard label="Resolved Today" value={supportTotals.resolvedToday} icon={CheckCircle2} loading={isLoading} href={`/dashboard/${slug}/tickets`} />
           </>
         ) : totals ? (
           <>
@@ -411,6 +421,8 @@ export default function OverviewPage() {
             />
             {isAdminOverview ? (
               <>
+                <StatCard label="Pending accounts" value={totals.pendingUsers ?? 0} icon={Users} loading={isLoading} />
+                <StatCard label="Pending drivers" value={totals.pendingDrivers ?? 0} icon={Truck} loading={isLoading} />
                 <StatCard label="Drivers" value={totals.approvedDrivers} icon={Truck} loading={isLoading} />
                 <StatCard label="Branches" value={totals.branches ?? 0} icon={MapPin} loading={isLoading} />
               </>
@@ -423,14 +435,15 @@ export default function OverviewPage() {
           </>
         ) : driver?.earningsBalance !== undefined ? (
           <>
-            <StatCard label="Pickups today" value={overview?.today?.pickups ?? 0} icon={Package} loading={isLoading} />
-            <StatCard label="Deliveries today" value={overview?.today?.deliveries ?? 0} icon={CheckCircle2} loading={isLoading} />
-            <StatCard label="Intercity trips" value={overview?.today?.intercity ?? 0} icon={Truck} loading={isLoading} />
+            <StatCard label="Pickups today" value={overview?.today?.pickups ?? 0} icon={Package} loading={isLoading} href={`/dashboard/${slug}/available`} />
+            <StatCard label="Deliveries today" value={overview?.today?.deliveries ?? 0} icon={CheckCircle2} loading={isLoading} href={`/dashboard/${slug}/accepted`} />
+            <StatCard label="Intercity trips" value={overview?.today?.intercity ?? 0} icon={Truck} loading={isLoading} href={`/dashboard/${slug}/manifests`} />
             <StatCard
               label="Earnings"
               value={`ETB ${(driver.earningsBalance ?? 0).toLocaleString()}`}
               icon={Wallet}
               loading={isLoading}
+              href={`/dashboard/${slug}/earnings`}
             />
           </>
         ) : isLoading ? (
@@ -453,7 +466,7 @@ export default function OverviewPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-white">{chartLabel}</CardTitle>
+            <CardTitle className="text-foreground">{chartLabel}</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -477,7 +490,7 @@ export default function OverviewPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-white">Activity snapshot</CardTitle>
+            <CardTitle className="text-foreground">Activity snapshot</CardTitle>
             <span
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide',
@@ -521,8 +534,8 @@ export default function OverviewPage() {
                 )}
 
                 {chart.length ? (
-                  <div className="space-y-3 border-t border-white/10 pt-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  <div className="space-y-3 border-t border-border pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                       {chartLabel}
                     </p>
                     <StatusBreakdown rows={chart} />
@@ -530,8 +543,8 @@ export default function OverviewPage() {
                 ) : null}
 
                 {isAdminOverview && growth ? (
-                  <div className="space-y-3 border-t border-white/10 pt-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">7-day growth</p>
+                  <div className="space-y-3 border-t border-border pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">7-day growth</p>
                     <SnapshotRow
                       label="Order growth"
                       value={`${growth.orderGrowthPct >= 0 ? '+' : ''}${growth.orderGrowthPct}%`}

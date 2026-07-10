@@ -187,7 +187,7 @@ export function ProofOfDeliveryDialog({ order, open, onOpenChange, onCompleted }
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetTitle>Proof of Delivery</SheetTitle>
         {order && (
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-muted-foreground">
             {order.orderNumber} · {order.dropoffAddress?.city}
           </p>
         )}
@@ -196,11 +196,11 @@ export function ProofOfDeliveryDialog({ order, open, onOpenChange, onCompleted }
           
           <div className="space-y-2">
             <Label>Delivery photo <span className="text-destructive">*</span></Label>
-            <div className="overflow-hidden rounded-lg border bg-white/5">
+            <div className="overflow-hidden rounded-lg border bg-muted/40">
               {photoUrl ? (
                                 <img src={photoUrl} alt="Proof" className="aspect-[3/4] w-full object-cover" />
               ) : cameraError ? (
-                <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 p-6 text-center text-sm text-slate-400">
+                <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted-foreground">
                   <Camera className="h-8 w-8" />
                   <p>Camera unavailable. Upload a photo instead.</p>
                 </div>
@@ -242,7 +242,7 @@ export function ProofOfDeliveryDialog({ order, open, onOpenChange, onCompleted }
               <Label className="flex items-center gap-1">
                 <PenLine className="h-3.5 w-3.5" /> Signature (optional)
               </Label>
-              <button type="button" onClick={clearSignature} className="text-xs text-slate-400 hover:text-white">
+              <button type="button" onClick={clearSignature} className="text-xs text-muted-foreground hover:text-foreground">
                 Clear
               </button>
             </div>
@@ -267,7 +267,7 @@ export function ProofOfDeliveryDialog({ order, open, onOpenChange, onCompleted }
               </>
             )}
           </Button>
-          <p className="flex items-center justify-center gap-1 text-xs text-slate-400">
+          <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" /> Your GPS location is attached automatically.
           </p>
         </div>

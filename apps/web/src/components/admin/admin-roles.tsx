@@ -25,7 +25,7 @@ export function AdminRoles() {
             <Card key={r.id}>
               <CardContent className="flex items-center justify-between p-4">
                 <div>
-                  <p className="font-semibold text-white">{r.name}</p>
+                  <p className="font-semibold text-foreground">{r.name}</p>
                   {r.description && <p className="text-sm text-muted-foreground">{r.description}</p>}
                 </div>
                 {r.isSystem && <Badge variant="outline">System</Badge>}

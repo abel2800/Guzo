@@ -76,7 +76,7 @@ function ExceptionList({ title, items, badges }: { title: string; items: string[
           <ul className="space-y-2">
             {items.map((item, i) => (
               <li key={`${item}-${i}`} className="flex items-center justify-between gap-2 text-sm">
-                <span className="text-slate-300">{item}</span>
+                <span className="text-muted-foreground">{item}</span>
                 {badges?.[i] && <Badge variant="destructive">{badges[i]}</Badge>}
               </li>
             ))}

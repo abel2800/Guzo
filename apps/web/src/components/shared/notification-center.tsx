@@ -1,8 +1,10 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter, useParams } from 'next/navigation';
 import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from '@/lib/notifications';
+import { notificationHref } from '@/lib/notification-routes';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -18,6 +20,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { EmptyPanel, FuturisticHero } from '@/components/dashboard/futuristic-primitives';
 
 export function NotificationBell() {
+  const router = useRouter();
+  const params = useParams();
+  const role = typeof params?.role === 'string' ? params.role : 'customer';
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -42,7 +47,7 @@ export function NotificationBell() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative text-slate-300 hover:text-white" aria-label="Notifications">
+        <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground" aria-label="Notifications">
           <Bell className="h-5 w-5" />
           {unread > 0 && (
             <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
@@ -51,7 +56,7 @@ export function NotificationBell() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 border-white/10 bg-guzo-bg/95 backdrop-blur-xl">
+      <DropdownMenuContent align="end" className="w-80 border-border bg-guzo-bg/95 backdrop-blur-xl">
         <DropdownMenuLabel className="flex items-center justify-between">
           Notifications
           {unread > 0 && (
@@ -75,20 +80,24 @@ export function NotificationBell() {
             ))}
           </div>
         ) : items.length === 0 ? (
-          <p className="p-4 text-center text-sm text-slate-400">No notifications yet.</p>
+          <p className="p-4 text-center text-sm text-muted-foreground">No notifications yet.</p>
         ) : (
           items.map((n) => (
             <DropdownMenuItem
               key={n.id}
               className="flex cursor-pointer flex-col items-start gap-1 py-3"
-              onClick={() => !n.readAt && readMut.mutate(n.id)}
+              onClick={() => {
+                if (!n.readAt) readMut.mutate(n.id);
+                const href = notificationHref(role, n);
+                if (href) router.push(href);
+              }}
             >
               <div className="flex w-full items-center justify-between gap-2">
                 <span className="font-medium">{n.title}</span>
                 {!n.readAt && <Badge variant="default" className="text-[10px]">New</Badge>}
               </div>
-              <span className="text-xs text-slate-400 line-clamp-2">{n.body}</span>
-              <span className="text-[10px] text-slate-500">
+              <span className="text-xs text-muted-foreground line-clamp-2">{n.body}</span>
+              <span className="text-[10px] text-muted-foreground">
                 {new Date(n.createdAt).toLocaleString()}
               </span>
             </DropdownMenuItem>
@@ -100,6 +109,9 @@ export function NotificationBell() {
 }
 
 export function NotificationInbox() {
+  const router = useRouter();
+  const params = useParams();
+  const role = typeof params?.role === 'string' ? params.role : 'customer';
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ['notifications', 'inbox'],
@@ -154,15 +166,19 @@ export function NotificationInbox() {
                 <button
                   key={n.id}
                   type="button"
-                  className="dashboard-list-row flex w-full flex-col gap-1 px-6 py-4 text-left"
-                  onClick={() => !n.readAt && readMut.mutate(n.id)}
+                  className="dashboard-list-row flex w-full flex-col gap-1 px-6 py-4 text-left transition-colors hover:bg-muted/40"
+                  onClick={() => {
+                    if (!n.readAt) readMut.mutate(n.id);
+                    const href = notificationHref(role, n);
+                    if (href) router.push(href);
+                  }}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-white">{n.title}</span>
+                    <span className="font-semibold text-foreground">{n.title}</span>
                     {!n.readAt && <Badge>New</Badge>}
                   </div>
-                  <p className="text-sm text-slate-300">{n.body}</p>
-                  <p className="text-xs text-slate-500">{new Date(n.createdAt).toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">{n.body}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(n.createdAt).toLocaleString()}</p>
                 </button>
               ))}
             </div>

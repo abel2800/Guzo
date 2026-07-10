@@ -136,13 +136,13 @@ export function FinancePayments({
                 return (
                   <div key={p.id} className="dashboard-list-row flex flex-wrap items-center justify-between gap-3 px-6 py-4 text-sm">
                     <div className="min-w-[160px]">
-                      <p className="font-semibold text-white">{p.reference}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="font-semibold text-foreground">{p.reference}</p>
+                      <p className="text-xs text-muted-foreground">
                         {p.order?.orderNumber ?? '—'} · {personName(p.order)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-white">
+                      <p className="font-medium text-foreground">
                         {p.currency} {num(p.amount).toLocaleString()}
                       </p>
                       {num(p.refundedAmount) > 0 && (
@@ -155,7 +155,7 @@ export function FinancePayments({
                         <Undo2 className="h-4 w-4" /> Refund
                       </Button>
                     ) : (
-                      <span className="w-[90px] text-right text-xs text-slate-400">—</span>
+                      <span className="w-[90px] text-right text-xs text-muted-foreground">—</span>
                     )}
                   </div>
                 );

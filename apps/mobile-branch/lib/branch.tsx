@@ -1,6 +1,9 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMyBranches, type BranchStaffAssignment } from '@guzo/mobile-shared';
 import { useAuth } from './auth';
+
+const STORAGE_KEY = 'guzo_branch_selected_id';
 
 interface BranchState {
   branches: BranchStaffAssignment[];
@@ -16,13 +19,18 @@ const BranchContext = createContext<BranchState | null>(null);
 export function BranchProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [branches, setBranches] = useState<BranchStaffAssignment[]>([]);
-  const [branchId, setBranchId] = useState<string | null>(null);
+  const [branchId, setBranchIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const setBranchId = useCallback((id: string) => {
+    setBranchIdState(id);
+    void AsyncStorage.setItem(STORAGE_KEY, id);
+  }, []);
 
   async function refresh() {
     if (!user) {
       setBranches([]);
-      setBranchId(null);
+      setBranchIdState(null);
       setLoading(false);
       return;
     }
@@ -30,7 +38,16 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     try {
       const list = await getMyBranches();
       setBranches(list);
-      if (!branchId && list[0]?.branchId) setBranchId(list[0].branchId);
+
+      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      const savedValid = saved && list.some((b) => b.branchId === saved);
+      if (savedValid) {
+        setBranchIdState(saved);
+      } else if (list[0]?.branchId) {
+        setBranchId(list[0].branchId);
+      } else {
+        setBranchIdState(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -47,7 +64,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(
     () => ({ branches, branchId, branch, loading, setBranchId, refresh }),
-    [branches, branchId, branch, loading],
+    [branches, branchId, branch, loading, setBranchId],
   );
 
   return <BranchContext.Provider value={value}>{children}</BranchContext.Provider>;

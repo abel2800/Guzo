@@ -69,11 +69,18 @@ GUZO implements defense in depth across all tiers:
 
 ### 2.5 Password Reset
 
-- `POST /auth/forgot-password` generates a time-limited reset token
-- `POST /auth/reset-password` validates token and updates password
-- Reset tokens are single-use
+- `POST /auth/forgot-password` accepts **email** or **phone**
+- **Phone:** sends OTP via `/otp`; user completes reset at `POST /auth/reset-password` with verified OTP
+- **Email:** generates a time-limited reset token (legacy flow)
+- Reset tokens and OTP verifications are single-use / short-lived
 
-### 2.6 Mobile Biometrics
+### 2.6 Phone OTP (signup)
+
+- `POST /otp/send` and `POST /otp/verify` are public, rate-limited endpoints
+- `POST /auth/register` calls `otpService.assertRecentlyVerified(phone)` when a phone number is provided
+- In development, OTP codes log to the Node API console as `[OTP stub]`
+
+### 2.7 Mobile Biometrics
 
 Mobile apps support Face ID / fingerprint as a convenience layer over stored credentials. Biometric unlock retrieves tokens from secure storage (Expo SecureStore); it does not replace server-side authentication.
 

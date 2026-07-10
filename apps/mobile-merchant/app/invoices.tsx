@@ -1,28 +1,34 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { listInvoices } from '@guzo/mobile-shared';
 import { GlassCard, colors, designStyles } from '@guzo/mobile-ui';
 
 export default function InvoicesScreen() {
-  const insets = useSafeAreaInsets();
   const { data, isLoading } = useQuery({ queryKey: ['merchant-invoices'], queryFn: () => listInvoices({ limit: 30 }) });
 
   return (
-    <ScrollView style={[designStyles.screen, { paddingTop: insets.top }]} contentContainerStyle={designStyles.screenPad}>
+    <ScrollView style={designStyles.screen} contentContainerStyle={designStyles.screenPad}>
       <Text style={styles.title}>Invoices</Text>
       <Text style={styles.sub}>Merchant billing and paid shipment invoices.</Text>
       {isLoading ? (
         <Text style={styles.muted}>Loading…</Text>
       ) : (
         (data?.items ?? []).map((inv) => (
-          <GlassCard key={inv.id} style={styles.card}>
-            <Text style={styles.ref}>{inv.invoiceNumber}</Text>
-            <Text style={styles.meta}>{inv.status} · {inv.currency} {Number(inv.total).toLocaleString()}</Text>
-            <Text style={styles.date}>{new Date(inv.createdAt).toLocaleDateString()}</Text>
-          </GlassCard>
+          <Pressable
+            key={inv.id}
+            onPress={() => {
+              if (inv.orderId) router.push(`/order/${inv.orderId}`);
+              else router.push('/(tabs)/orders');
+            }}
+          >
+            <GlassCard style={styles.card}>
+              <Text style={styles.ref}>{inv.invoiceNumber}</Text>
+              <Text style={styles.meta}>{inv.status} · {inv.currency} {Number(inv.total).toLocaleString()}</Text>
+              <Text style={styles.date}>{new Date(inv.createdAt).toLocaleDateString()}</Text>
+            </GlassCard>
+          </Pressable>
         ))
       )}
       {!isLoading && !(data?.items?.length) && <Text style={styles.muted}>No invoices yet.</Text>}

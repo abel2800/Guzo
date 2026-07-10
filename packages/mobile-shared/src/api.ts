@@ -1,15 +1,16 @@
 import axios, { type AxiosInstance, isAxiosError } from 'axios';
 import type { ApiResponse, AuthTokens } from '@delivery/types';
 import type { TokenStorage } from './storage';
+import { formatApiError } from './validation';
 
 function toClientError(error: unknown): Error {
   if (isAxiosError(error)) {
     const body = error.response?.data;
-    if (body && typeof body === 'object' && 'success' in body && body.success === false && 'message' in body) {
-      return new Error(String(body.message));
+    if (body && typeof body === 'object' && 'success' in body && body.success === false) {
+      return new Error(formatApiError(error, String('message' in body ? body.message : 'Request failed')));
     }
   }
-  return error instanceof Error ? error : new Error('Request failed');
+  return new Error(formatApiError(error));
 }
 
 let client: AxiosInstance | null = null;

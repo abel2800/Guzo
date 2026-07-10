@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,7 +15,6 @@ import { GlassCard, GradientButton, colors, designStyles, radius } from '@guzo/m
 
 export default function ManifestScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const [scanCode, setScanCode] = useState('');
   const [error, setError] = useState('');
@@ -60,7 +58,7 @@ export default function ManifestScreen() {
 
   if (!manifest) {
     return (
-      <View style={[designStyles.screen, designStyles.screenPad, { paddingTop: insets.top }]}>
+      <View style={[designStyles.screen, designStyles.screenPad]}>
         <Text style={{ color: colors.textMuted }}>Loading manifest…</Text>
       </View>
     );
@@ -73,7 +71,7 @@ export default function ManifestScreen() {
   const unload = manifest.unloadStatus;
 
   return (
-    <ScrollView style={designStyles.screen} contentContainerStyle={[designStyles.screenPad, { paddingTop: insets.top, paddingBottom: 40 }]}>
+    <ScrollView style={designStyles.screen} contentContainerStyle={[designStyles.screenPad, { paddingBottom: 40 }]}>
       <GlassCard glow>
         <Text style={styles.eyebrow}>Intercity manifest</Text>
         <Text style={styles.title}>{manifest.manifestNumber}</Text>

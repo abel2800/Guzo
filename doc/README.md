@@ -4,7 +4,8 @@
 |-------|-------|
 | **Product** | GUZO — Enterprise Logistics & Delivery Platform |
 | **Document set** | Technical Reference Manual |
-| **Version** | 0.1.0 |
+| **Version** | 0.2.0 |
+| **Last updated** | July 2026 |
 | **Audience** | Developers, operators, integrators |
 | **Repository** | [github.com/abel2800/Guzo](https://github.com/abel2800/Guzo) |
 
@@ -34,6 +35,7 @@ This documentation set describes every major component: installation, architectu
 | 10 | [Development Workflow](development-workflow.md) | One-command dev, ports, scripts, testing, builds |
 | 11 | [Branding & Assets](branding-and-assets.md) | Logos, splash screens, design system, QR codes |
 | 12 | [Troubleshooting](troubleshooting.md) | Common errors, port conflicts, mobile issues, diagnostics |
+| — | [Changelog](CHANGELOG.md) | Recent platform updates (OTP, pickup flow, vehicle profile, UI navigation) |
 
 ---
 
@@ -68,7 +70,7 @@ This documentation set describes every major component: installation, architectu
 |--------|-------|
 | User roles | 11 (including BRANCH_STAFF) |
 | Permissions | 90+ fine-grained keys |
-| API modules | 35+ route groups |
+| API modules | 37 route groups (incl. `/otp`, `/receivers`) |
 | Database tables | 36+ |
 | Web dashboard sections | 80+ registered features |
 
@@ -114,6 +116,7 @@ Demo users are created by `npm run db:seed`. Configure `SEED_DEMO_PASSWORD` in y
 | Work on mobile apps | [Mobile Applications](mobile-apps.md) |
 | Understand permissions | [Features & Roles](features-and-roles.md) + [Security](security.md) |
 | Fix a dev environment issue | [Troubleshooting](troubleshooting.md) |
+| See what changed recently | [Changelog](CHANGELOG.md) |
 
 ---
 

@@ -95,6 +95,28 @@ export function primarySlugForRoles(roles: Role[]): RoleSlug {
   return ROLE_TO_SLUG[best];
 }
 
+export const DEMO_EMAIL_TO_SLUG: Record<string, RoleSlug> = {
+  'superadmin@delivery.local': 'super-admin',
+  'admin@delivery.local': 'admin',
+  'customer@delivery.local': 'customer',
+  'driver@delivery.local': 'driver',
+  'merchant@delivery.local': 'merchant',
+  'finance@delivery.local': 'finance',
+  'support@delivery.local': 'support',
+  'ops@delivery.local': 'operations',
+  'warehouse.manager@delivery.local': 'warehouse-manager',
+  'warehouse.staff@delivery.local': 'warehouse',
+  'branch.staff@delivery.local': 'branch',
+};
+
+export function dashboardPathForLogin(user: { roles: Role[] }, email: string): string {
+  const preferred = DEMO_EMAIL_TO_SLUG[email.toLowerCase()];
+  if (preferred && user.roles.includes(SLUG_TO_ROLE[preferred])) {
+    return `/dashboard/${preferred}`;
+  }
+  return `/dashboard/${primarySlugForRoles(user.roles)}`;
+}
+
 const overview = (icon: LucideIcon): NavItem => ({ title: 'Overview', href: '', icon });
 
 export const ROLE_CONFIG: Record<RoleSlug, RoleConfig> = {

@@ -107,12 +107,12 @@ export function FinanceInvoices() {
                 return (
                   <div key={inv.id} className="dashboard-list-row flex flex-wrap items-center justify-between gap-3 px-6 py-4 text-sm">
                     <div className="min-w-[160px]">
-                      <p className="font-semibold text-white">{inv.invoiceNumber}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="font-semibold text-foreground">{inv.invoiceNumber}</p>
+                      <p className="text-xs text-muted-foreground">
                         {inv.order?.orderNumber ?? '—'} · {personName(inv.order)}
                       </p>
                     </div>
-                    <p className="font-medium text-white">
+                    <p className="font-medium text-foreground">
                       {inv.currency} {num(inv.total).toLocaleString()}
                     </p>
                     <Badge variant={m.variant}>{m.label}</Badge>

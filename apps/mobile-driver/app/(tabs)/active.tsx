@@ -43,13 +43,14 @@ export default function ActiveScreen() {
           <GlassCard glow>
             <Text style={styles.routeTitle}>Optimized route · {route.data?.totalStops} stops</Text>
             {route.data!.stops.slice(0, 4).map((stop, idx) => (
-              <View key={`${stop.orderId}-${stop.type}-${idx}`} style={styles.routeRow}>
+              <Pressable key={`${stop.orderId}-${stop.type}-${idx}`} style={styles.routeRow} onPress={() => router.push(`/delivery/${stop.orderId}`)}>
                 <Text style={styles.routeIdx}>{idx + 1}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.routeOrder}>{stop.orderNumber} · {stop.type}</Text>
                   <Text style={styles.routeAddr}>{stop.line1}, {stop.city}</Text>
                 </View>
-              </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+              </Pressable>
             ))}
             {(route.data?.estimatedKm ?? 0) > 0 ? (
               <Text style={styles.routeKm}>~{route.data!.estimatedKm} km estimated</Text>

@@ -10,13 +10,22 @@ const password = () =>
     .matches(/\d/)
     .withMessage('Password must contain a number');
 
+const emailOrPhone = () =>
+  body().custom((_value, { req }) => {
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
+    if (!email && !phone) throw new Error('Email or phone number is required');
+    if (email && phone) throw new Error('Provide email or phone, not both');
+    return true;
+  });
+
 export const registerValidator = [
   body('email').isEmail().withMessage('A valid email is required').normalizeEmail(),
   password(),
   body('firstName').isString().trim().notEmpty().withMessage('First name is required'),
   body('lastName').isString().trim().notEmpty().withMessage('Last name is required'),
-  body('phone').optional().isString().trim(),
-  body('role').optional().isIn(['CUSTOMER', 'MERCHANT', 'DRIVER']).withMessage('Invalid role'),
+  body('phone').isString().trim().isLength({ min: 9 }).withMessage('A valid phone number is required'),
+  body('role').optional().isIn(['CUSTOMER', 'MERCHANT', 'DRIVER', 'BRANCH_STAFF']).withMessage('Invalid role'),
 ];
 
 export const loginValidator = [
@@ -29,11 +38,24 @@ export const refreshValidator = [
 ];
 
 export const forgotPasswordValidator = [
-  body('email').isEmail().withMessage('A valid email is required').normalizeEmail(),
+  body('email').optional().isEmail().withMessage('Enter a valid email').normalizeEmail(),
+  body('phone').optional().isString().trim().isLength({ min: 9 }).withMessage('Enter a valid phone number'),
+  emailOrPhone(),
 ];
 
 export const resetPasswordValidator = [
-  body('token').isString().notEmpty().withMessage('token is required'),
+  body('token').optional().isString(),
+  body('email').optional().isEmail().withMessage('Enter a valid email').normalizeEmail(),
+  body('phone').optional().isString().trim().isLength({ min: 9 }).withMessage('Enter a valid phone number'),
+  body().custom((_value, { req }) => {
+    const token = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
+    if (token) return true;
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
+    if (!email && !phone) throw new Error('Email or phone number is required');
+    if (email && phone) throw new Error('Provide email or phone, not both');
+    return true;
+  }),
   password(),
 ];
 

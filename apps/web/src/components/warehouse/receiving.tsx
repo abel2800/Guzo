@@ -128,7 +128,7 @@ export function WarehouseReceiving() {
                 {received.map((item) => (
                   <div key={item.id} className="dashboard-list-row flex items-center justify-between gap-3 px-5 py-3 text-sm">
                     <div>
-                      <p className="font-semibold text-white">{item.package.trackingNumber}</p>
+                      <p className="font-semibold text-foreground">{item.package.trackingNumber}</p>
                       <p className="text-muted-foreground flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
                         {item.shelfCode ? `Shelf ${item.shelfCode}` : 'No shelf'}

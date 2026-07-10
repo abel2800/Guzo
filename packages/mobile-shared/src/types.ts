@@ -97,6 +97,8 @@ export interface Order {
   createdAt: string;
   scheduledPickupAt?: string | null;
   estimatedDeliveryAt?: string | null;
+  pickupMethod?: PickupMethod;
+  receiverPhone?: string | null;
   pickupAddress: Address;
   dropoffAddress: Address;
   packages: Array<{
@@ -113,7 +115,20 @@ export interface Order {
     driver?: {
       currentLat?: number | null;
       currentLng?: number | null;
-      user?: { firstName: string; lastName: string; phone?: string | null } | null;
+      user?: {
+        firstName: string;
+        lastName: string;
+        phone?: string | null;
+        avatarUrl?: string | null;
+      } | null;
+    } | null;
+    vehicle?: {
+      type: string;
+      plateNumber: string;
+      brand?: string | null;
+      model?: string | null;
+      color?: string | null;
+      photoUrl?: string | null;
     } | null;
   } | null;
 }
@@ -176,10 +191,9 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   RETURNED: 'Returned',
 };
 
-export const DRIVER_NEXT_STATUS: Partial<Record<OrderStatus, { next: OrderStatus; label: string }>> = {
-  ASSIGNED: { next: 'PICKED_UP', label: 'Mark picked up' },
-  PICKED_UP: { next: 'IN_TRANSIT', label: 'Start transit' },
-  IN_TRANSIT: { next: 'OUT_FOR_DELIVERY', label: 'Out for delivery' },
+export const DRIVER_NEXT_STATUS: Partial<Record<OrderStatus, { next: OrderStatus; label: string; slide?: boolean }>> = {
+  PICKED_UP: { next: 'IN_TRANSIT', label: 'Slide to start trip', slide: true },
+  IN_TRANSIT: { next: 'OUT_FOR_DELIVERY', label: 'Slide — out for delivery', slide: true },
   OUT_FOR_DELIVERY: { next: 'DELIVERED', label: 'Mark delivered' },
   FAILED: { next: 'OUT_FOR_DELIVERY', label: 'Reattempt delivery' },
 };

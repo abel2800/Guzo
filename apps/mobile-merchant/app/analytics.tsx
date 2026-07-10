@@ -1,18 +1,16 @@
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { getMerchantDashboard, listMerchantCustomers } from '@guzo/mobile-shared';
 import { GlassCard, colors, designStyles } from '@guzo/mobile-ui';
 
 export default function AnalyticsScreen() {
-  const insets = useSafeAreaInsets();
   const summaryQ = useQuery({ queryKey: ['merchant-summary'], queryFn: getMerchantDashboard });
   const customersQ = useQuery({ queryKey: ['merchant-customers-count'], queryFn: listMerchantCustomers });
 
   const t = summaryQ.data?.totals;
 
   return (
-    <ScrollView style={[designStyles.screen, { paddingTop: insets.top }]} contentContainerStyle={designStyles.screenPad}>
+    <ScrollView style={designStyles.screen} contentContainerStyle={designStyles.screenPad}>
       <Text style={styles.title}>Analytics</Text>
       <View style={styles.grid}>
         <GlassCard style={styles.stat}><Text style={styles.val}>{t?.orders ?? '…'}</Text><Text style={styles.lbl}>Orders</Text></GlassCard>

@@ -52,7 +52,7 @@ export function HeroSection() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: -24, marginTop: -8, marginBottom: 8 },
+  wrap: { marginHorizontal: -24, marginBottom: 8 },
   gradient: {
     paddingTop: 8,
     paddingBottom: 28,

@@ -99,4 +99,24 @@ export const driversController = {
     });
     return created(res, item, 'Vehicle log recorded');
   }),
+
+  upsertMyVehicle: asyncHandler(async (req: Request, res: Response) => {
+    const { type, plateNumber, brand, model, color } = req.body ?? {};
+    if (!type || !plateNumber) throw ApiError.badRequest('type and plateNumber are required');
+    const data = await driverOpsService.upsertMyVehicle(req.user!.id, { type, plateNumber, brand, model, color });
+    return ok(res, data, 'Vehicle saved');
+  }),
+
+  uploadVehiclePhoto: asyncHandler(async (req: Request, res: Response) => {
+    const file = req.file;
+    if (!file) throw ApiError.badRequest('Photo file is required');
+    const data = await driverOpsService.uploadVehiclePhoto(req.user!.id, {
+      path: file.path,
+      filename: file.filename,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+    });
+    return ok(res, data, 'Vehicle photo updated');
+  }),
 };

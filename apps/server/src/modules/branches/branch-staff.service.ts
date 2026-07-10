@@ -28,7 +28,31 @@ export class BranchStaffService {
     return prisma.guzoBranchStaff.findMany({ where: { branchId } });
   }
 
-  async myBranches(userId: string) {
+  async myBranches(userId: string, roles: string[] = []) {
+    const isAdmin =
+      roles.includes(ROLES.ADMIN) ||
+      roles.includes(ROLES.SUPER_ADMIN) ||
+      roles.includes(ROLES.OPERATIONS_MANAGER);
+
+    if (isAdmin) {
+      const branches = await prisma.guzoBranch.findMany({
+        where: { isActive: true },
+        orderBy: { name: 'asc' },
+      });
+      return branches.map((branch) => ({
+        branchId: branch.id,
+        assignedAt: branch.createdAt,
+        branch: {
+          id: branch.id,
+          code: branch.code,
+          name: branch.name,
+          city: branch.city,
+          line1: branch.line1,
+          phone: branch.phone,
+        },
+      }));
+    }
+
     const rows = await prisma.guzoBranchStaff.findMany({
       where: { userId },
       include: { branch: true },

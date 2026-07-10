@@ -66,8 +66,15 @@ export function Navbar() {
                 {item.label}
               </Link>
             ))}
+            <Button variant="ghost" asChild className="w-full">
+              <Link href={`${WEB_APP_URL}/login`} onClick={() => setOpen(false)}>
+                Login
+              </Link>
+            </Button>
             <Button asChild className="w-full">
-              <Link href="/download">Download App</Link>
+              <Link href="/download" onClick={() => setOpen(false)}>
+                Download App
+              </Link>
             </Button>
           </div>
         </motion.div>

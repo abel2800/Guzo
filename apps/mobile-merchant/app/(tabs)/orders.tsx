@@ -1,6 +1,6 @@
 import { View, Text, FlatList, RefreshControl, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { listOrders, ORDER_STATUS_LABELS } from '@guzo/mobile-shared';
@@ -9,20 +9,23 @@ import { GlassCard, colors, designStyles, spacing } from '@guzo/mobile-ui';
 export default function OrdersScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { status: statusFilter } = useLocalSearchParams<{ status?: string }>();
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['merchant-orders'],
-    queryFn: () => listOrders({ limit: 50 }),
+    queryKey: ['merchant-orders', statusFilter],
+    queryFn: () => listOrders({ limit: 50, status: statusFilter || undefined }),
   });
+
+  const items = (data?.items ?? []).filter((o) => !statusFilter || o.status === statusFilter);
 
   return (
     <View style={[designStyles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Orders</Text>
-        <Text style={styles.sub}>{data?.items.length ?? 0} total</Text>
+        <Text style={styles.sub}>{items.length} shown{statusFilter ? ` · ${statusFilter.replace(/_/g, ' ').toLowerCase()}` : ''}</Text>
       </View>
       <FlatList
         contentContainerStyle={[designStyles.screenPad, { paddingBottom: 100 }]}
-        data={data?.items ?? []}
+        data={items}
         keyExtractor={(o) => o.id}
         refreshControl={<RefreshControl refreshing={isLoading || isRefetching} onRefresh={refetch} tintColor={colors.primary} />}
         ListEmptyComponent={

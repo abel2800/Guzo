@@ -39,8 +39,8 @@ export function DriverEarnings() {
               <CardContent className="flex items-center gap-4 p-6">
                 <Wallet className="h-8 w-8 text-emerald-400" />
                 <div>
-                  <p className="text-xs uppercase text-slate-400">Available balance</p>
-                  <p className="text-2xl font-bold text-white">ETB {(data?.balance ?? 0).toLocaleString()}</p>
+                  <p className="text-xs uppercase text-muted-foreground">Available balance</p>
+                  <p className="text-2xl font-bold text-foreground">ETB {(data?.balance ?? 0).toLocaleString()}</p>
                 </div>
               </CardContent>
             </Card>
@@ -48,8 +48,8 @@ export function DriverEarnings() {
               <CardContent className="flex items-center gap-4 p-6">
                 <TrendingUp className="h-8 w-8 text-emerald-400" />
                 <div>
-                  <p className="text-xs uppercase text-slate-400">Completed deliveries</p>
-                  <p className="text-2xl font-bold text-white">{data?.totalDeliveries ?? 0}</p>
+                  <p className="text-xs uppercase text-muted-foreground">Completed deliveries</p>
+                  <p className="text-2xl font-bold text-foreground">{data?.totalDeliveries ?? 0}</p>
                 </div>
               </CardContent>
             </Card>
@@ -68,8 +68,8 @@ export function DriverEarnings() {
               {data!.transactions.map((t) => (
                 <div key={t.id} className="flex items-center justify-between gap-4 px-6 py-4">
                   <div>
-                    <p className="font-semibold text-white">{t.reference ?? 'Delivery'}</p>
-                    <p className="text-xs text-slate-400">{t.description} · {new Date(t.createdAt).toLocaleString()}</p>
+                    <p className="font-semibold text-foreground">{t.reference ?? 'Delivery'}</p>
+                    <p className="text-xs text-muted-foreground">{t.description} · {new Date(t.createdAt).toLocaleString()}</p>
                   </div>
                   <p className="font-bold text-emerald-400">+ETB {t.amount.toLocaleString()}</p>
                 </div>

@@ -19,11 +19,13 @@ import { initials } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FuturisticHero, PanelSelect } from '@/components/dashboard/futuristic-primitives';
+import { passwordSchema as newPasswordRule, PASSWORD_HINT } from '@/lib/validation';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -45,7 +47,7 @@ const locationSchema = z.object({
 const passwordSchema = z
   .object({
     currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z.string().min(8, 'At least 8 characters').regex(/\d/, 'Include a number'),
+    newPassword: newPasswordRule,
     confirmPassword: z.string().min(1, 'Confirm your new password'),
   })
   .refine((v) => v.newPassword === v.confirmPassword, {
@@ -192,8 +194,8 @@ export function ProfileSettings() {
         ]}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        <Card>
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
+        <Card className="min-w-0">
           <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
             <div className="relative">
               <Avatar className="h-28 w-28 border-2 border-guzo-primary/30">
@@ -206,7 +208,7 @@ export function ProfileSettings() {
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={avatarMut.isPending}
-                className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-guzo-primary text-white shadow-lg"
+                className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-guzo-primary text-foreground shadow-lg"
                 aria-label="Upload profile picture"
               >
                 {avatarMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
@@ -220,10 +222,10 @@ export function ProfileSettings() {
               />
             </div>
             <div>
-              <p className="text-lg font-semibold text-white">
+              <p className="text-lg font-semibold text-foreground">
                 {profile.firstName} {profile.lastName}
               </p>
-              <p className="text-sm text-slate-400">{profile.email}</p>
+              <p className="text-sm text-muted-foreground">{profile.email}</p>
             </div>
             <div className="flex flex-wrap justify-center gap-1.5">
               {profile.roles.map((r) => (
@@ -235,10 +237,10 @@ export function ProfileSettings() {
           </CardContent>
         </Card>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
+              <CardTitle className="flex items-center gap-2 text-foreground">
                 <User className="h-5 w-5 text-guzo-primary" /> Personal information
               </CardTitle>
             </CardHeader>
@@ -297,7 +299,7 @@ export function ProfileSettings() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
+              <CardTitle className="flex items-center gap-2 text-foreground">
                 <MapPin className="h-5 w-5 text-guzo-primary" /> Primary location
               </CardTitle>
             </CardHeader>
@@ -352,7 +354,7 @@ export function ProfileSettings() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
+              <CardTitle className="flex items-center gap-2 text-foreground">
                 <Shield className="h-5 w-5 text-guzo-primary" /> Security
               </CardTitle>
             </CardHeader>
@@ -368,21 +370,22 @@ export function ProfileSettings() {
               >
                 <div className="space-y-2">
                   <Label htmlFor="currentPassword">Current password</Label>
-                  <Input id="currentPassword" type="password" {...passwordForm.register('currentPassword')} />
+                  <PasswordInput id="currentPassword" {...passwordForm.register('currentPassword')} />
                   {passwordForm.formState.errors.currentPassword && (
                     <p className="text-xs text-destructive">{passwordForm.formState.errors.currentPassword.message}</p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">New password</Label>
-                  <Input id="newPassword" type="password" {...passwordForm.register('newPassword')} />
+                  <PasswordInput id="newPassword" {...passwordForm.register('newPassword')} />
+                  <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
                   {passwordForm.formState.errors.newPassword && (
                     <p className="text-xs text-destructive">{passwordForm.formState.errors.newPassword.message}</p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm new password</Label>
-                  <Input id="confirmPassword" type="password" {...passwordForm.register('confirmPassword')} />
+                  <PasswordInput id="confirmPassword" {...passwordForm.register('confirmPassword')} />
                   {passwordForm.formState.errors.confirmPassword && (
                     <p className="text-xs text-destructive">{passwordForm.formState.errors.confirmPassword.message}</p>
                   )}

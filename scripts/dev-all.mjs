@@ -89,6 +89,7 @@ loadDotEnv(path.join(root, 'apps', 'server', '.env'));
 const lanIp = getLanIp();
 process.env.EXPO_PUBLIC_API_URL = `http://${lanIp}:4010/api/v1`;
 process.env.GUZO_LAN_IP = lanIp;
+process.env.EXPO_OFFLINE = '1';
 process.env.PORT = '4010';
 
 if (!process.env.DATABASE_URL) {
@@ -121,6 +122,7 @@ console.log(`    Merchant  exp://${lanIp}:8083`);
 console.log(`    Branch    exp://${lanIp}:8084`);
 console.log('');
 console.log('  QR codes: assets/mobile-qr/*.png');
+console.log('  Android: use fresh QR after npm run dev; Expo Go -> Reload if bundle is stale');
 console.log('  Wait ~30s after start for all Expo apps to be ready on iPhone');
 console.log('  Press Ctrl+C to stop all services');
 console.log('');

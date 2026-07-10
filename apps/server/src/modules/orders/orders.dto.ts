@@ -22,7 +22,7 @@ export interface PackageInput {
 }
 
 export interface CreateOrderDto {
-    customerId?: string;
+  customerId?: string;
   merchantId?: string;
   deliveryType?: 'STANDARD' | 'EXPRESS' | 'SAME_DAY' | 'SCHEDULED' | 'INTERNATIONAL';
   pickup: AddressInput;
@@ -31,6 +31,13 @@ export interface CreateOrderDto {
   couponCode?: string;
   notes?: string;
   scheduledPickupAt?: string;
+  pickupMethod?: 'COMPANY_PICKUP' | 'DROP_AT_BRANCH' | 'BRANCH_PICKUP';
+  paymentMethod?: string;
+  payLater?: boolean;
+  originBranchId?: string;
+  destinationBranchId?: string;
+  receiverPhone?: string;
+  receiverGuzoId?: string;
 }
 
 export interface UpdateOrderStatusDto {

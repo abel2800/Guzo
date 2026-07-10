@@ -16,6 +16,7 @@ interface AuthState {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateUser: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await tokenStorage.clear();
         setUser(null);
       },
+      updateUser: setUser,
     }),
     [user, loading],
   );

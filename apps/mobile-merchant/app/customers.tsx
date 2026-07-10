@@ -1,24 +1,25 @@
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { listMerchantCustomers } from '@guzo/mobile-shared';
 import { GlassCard, colors, designStyles } from '@guzo/mobile-ui';
 
 export default function CustomersScreen() {
-  const insets = useSafeAreaInsets();
   const { data, isLoading } = useQuery({ queryKey: ['merchant-customers'], queryFn: listMerchantCustomers });
 
   return (
-    <ScrollView style={[designStyles.screen, { paddingTop: insets.top }]} contentContainerStyle={designStyles.screenPad}>
+    <ScrollView style={designStyles.screen} contentContainerStyle={designStyles.screenPad}>
       <Text style={styles.title}>Customers</Text>
       <Text style={styles.sub}>Recipients from your merchant shipments.</Text>
       {isLoading ? <Text style={styles.muted}>Loading…</Text> : null}
       {(data ?? []).map((c, i) => (
-        <GlassCard key={`${c.contactPhone}-${i}`} style={styles.card}>
-          <Text style={styles.name}>{c.contactName ?? 'Customer'}</Text>
-          <Text style={styles.meta}>{c.line1}, {c.city}</Text>
-          <Text style={styles.meta}>{c.orderCount} orders · last {new Date(c.lastOrderAt).toLocaleDateString()}</Text>
-        </GlassCard>
+        <Pressable key={`${c.contactPhone}-${i}`} onPress={() => router.push('/(tabs)/orders')}>
+          <GlassCard style={styles.card}>
+            <Text style={styles.name}>{c.contactName ?? 'Customer'}</Text>
+            <Text style={styles.meta}>{c.line1}, {c.city}</Text>
+            <Text style={styles.meta}>{c.orderCount} orders · last {new Date(c.lastOrderAt).toLocaleDateString()}</Text>
+          </GlassCard>
+        </Pressable>
       ))}
       {!isLoading && !data?.length && <Text style={styles.muted}>No customers yet.</Text>}
     </ScrollView>

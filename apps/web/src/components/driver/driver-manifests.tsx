@@ -84,7 +84,7 @@ export function DriverManifests() {
       />
 
       {isLoading ? (
-        <p className="text-sm text-slate-400">Loading…</p>
+        <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (manifests?.length ?? 0) === 0 ? (
         <EmptyPanel icon={Truck} title="No manifests" description="Intercity manifests assigned to you will appear here." />
       ) : (
@@ -95,13 +95,13 @@ export function DriverManifests() {
                 key={m.id}
                 type="button"
                 onClick={() => setSelectedId(m.id)}
-                className={`w-full rounded-lg border p-4 text-left ${selectedId === m.id ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-white/10'}`}
+                className={`w-full rounded-lg border p-4 text-left ${selectedId === m.id ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-border'}`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-white">{m.manifestNumber}</span>
+                  <span className="font-semibold text-foreground">{m.manifestNumber}</span>
                   <Badge variant="outline">{m.status}</Badge>
                 </div>
-                <p className="mt-1 text-xs text-slate-400">{m.parcelCount} parcels</p>
+                <p className="mt-1 text-xs text-muted-foreground">{m.parcelCount} parcels</p>
               </button>
             ))}
           </div>
@@ -109,7 +109,7 @@ export function DriverManifests() {
           {detail && (
             <Card>
               <CardContent className="space-y-4 p-5">
-                <p className="font-mono text-lg font-bold text-white">{detail.manifestNumber}</p>
+                <p className="font-mono text-lg font-bold text-foreground">{detail.manifestNumber}</p>
                 <Input placeholder="Scan tracking TRK-…" value={scanCode} onChange={(e) => setScanCode(e.target.value)} />
                 <div className="flex flex-wrap gap-2">
                   {canLoad && (
@@ -129,7 +129,7 @@ export function DriverManifests() {
                   )}
                 </div>
                 {detail.unloadStatus && (
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-muted-foreground">
                     Unloaded {detail.unloadStatus.unloaded}/{detail.unloadStatus.expected}
                   </p>
                 )}

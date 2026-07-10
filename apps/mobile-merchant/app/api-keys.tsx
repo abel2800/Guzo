@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createMerchantApiKey, listMerchantApiKeys, revokeMerchantApiKey } from '@guzo/mobile-shared';
 import { GlassCard, GradientButton, colors, designStyles } from '@guzo/mobile-ui';
 
 export default function ApiKeysScreen() {
-  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const [label, setLabel] = useState('');
   const { data, isLoading } = useQuery({ queryKey: ['merchant-keys'], queryFn: listMerchantApiKeys });
@@ -27,7 +25,7 @@ export default function ApiKeysScreen() {
   });
 
   return (
-    <ScrollView style={[designStyles.screen, { paddingTop: insets.top }]} contentContainerStyle={designStyles.screenPad}>
+    <ScrollView style={designStyles.screen} contentContainerStyle={designStyles.screenPad}>
       <Text style={styles.title}>API keys</Text>
       <GlassCard>
         <TextInput style={styles.input} value={label} onChangeText={setLabel} placeholder="Key label" placeholderTextColor={colors.textDim} />

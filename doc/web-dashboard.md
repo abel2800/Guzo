@@ -46,7 +46,8 @@ The web dashboard (`apps/web`) is a role-aware administrative and customer conso
 |-------|------|
 | `/` | Landing redirect |
 | `/login` | Email/password login |
-| `/register` | Account registration |
+| `/register` | Account registration with phone OTP |
+| `/forgot-password` | Email or phone OTP password reset |
 
 ### 2.2 Protected Routes
 
@@ -76,6 +77,8 @@ The web dashboard (`apps/web`) is a role-aware administrative and customer conso
 
 ## 3. Authentication Flow
 
+### 3.1 Login
+
 1. User submits credentials at `/login`.
 2. Client calls `POST /auth/login` and stores access token.
 3. Client calls `GET /auth/me` to retrieve roles and permissions.
@@ -83,6 +86,19 @@ The web dashboard (`apps/web`) is a role-aware administrative and customer conso
 5. User is redirected to `/dashboard/[role]`.
 6. On HTTP 401, client calls `POST /auth/refresh` and retries.
 7. Logout calls `POST /auth/logout` and clears local storage.
+
+### 3.2 Registration (OTP)
+
+1. User enters details at `/register` including phone number.
+2. Client calls `POST /otp/send` and `POST /otp/verify`.
+3. Client calls `POST /auth/register` after OTP is verified.
+4. Driver, merchant, and branch signups may show pending-approval state until an admin activates the account.
+
+### 3.3 Forgot Password
+
+1. User submits email or phone at `/forgot-password`.
+2. Phone flow uses OTP via `POST /auth/forgot-password` and `POST /auth/reset-password`.
+3. Email flow uses the legacy reset-token path.
 
 ---
 
@@ -98,7 +114,7 @@ The layout (`apps/web/src/app/dashboard/[role]/layout.tsx`) provides:
 | Top bar | Layout header | Breadcrumb, search, actions |
 | Command menu | `command-menu.tsx` | `Cmd+K` quick navigation |
 | User menu | `user-menu.tsx` | Profile, settings, logout |
-| Notifications | `notification-center.tsx` | In-app alert inbox |
+| Notifications | `notification-center.tsx` | In-app alert inbox with deep links to orders/sections |
 | Theme toggle | `theme-toggle.tsx` | Light/dark mode switch |
 
 ### 4.2 Sidebar Navigation
@@ -108,6 +124,10 @@ Navigation items are defined per role in `ROLE_CONFIG` (`roles.ts`). Each item m
 ### 4.3 Command Menu
 
 Press `Cmd+K` (or `Ctrl+K`) to open the command palette. Supports fuzzy search across all sections available to the current role.
+
+### 4.4 Interactive Overview
+
+Overview stat cards (`stat-card.tsx`) accept an optional `href` so KPI tiles navigate to the relevant filtered section (orders, jobs, inventory, etc.). Dashboard home pages wire stats to sidebar sections for each role.
 
 ---
 
@@ -163,8 +183,8 @@ Subset of super-admin capabilities: users, orders, drivers, merchants, customers
 | Section | Component | Function |
 |---------|-----------|----------|
 | Book | `book-shipment.tsx` | Multi-step shipment wizard |
-| Track | `track-shipment.tsx` | Live tracking by reference |
-| Orders | `my-orders.tsx` | Order history and detail |
+| Track | `track-shipment.tsx` | Live tracking; driver photo, vehicle, plate when assigned |
+| Orders | `my-orders.tsx` | Order history with status bucket filters; pickup QR on detail |
 | Addresses | `addresses.tsx` | Saved address management |
 | Wallet | `wallet.tsx` | Wallet balance and top-up |
 | Invoices | `invoices.tsx` | Billing history |
@@ -177,11 +197,11 @@ Subset of super-admin capabilities: users, orders, drivers, merchants, customers
 
 | Section | Component | Function |
 |---------|-----------|----------|
-| Available | `available-jobs.tsx` | Browse open delivery jobs |
-| Accepted | `my-deliveries.tsx` | Active and completed deliveries |
+| Available | `available-jobs.tsx` | Browse open jobs (`CONFIRMED`, `AT_BRANCH`) |
+| Accepted | `my-deliveries.tsx` | Slide actions, pickup scan dialog, call receiver |
 | Navigation | `driver-navigation.tsx` | Turn-by-turn directions |
 | Manifests | `driver-manifests.tsx` | Transport manifest management |
-| Vehicle | `driver-vehicle.tsx` | Vehicle info and logs |
+| Vehicle | `driver-vehicle.tsx` | Vehicle type, plate, photo, logs |
 | POD | `pod-history.tsx` | Proof of delivery history |
 | Earnings | `driver-earnings.tsx` | Earnings summary |
 | History | `driver-history.tsx` | Past delivery records |
@@ -270,14 +290,17 @@ All roles include a `settings` section mapped to `profile-settings.tsx` for name
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| Stat cards | `stat-card.tsx` | KPI display on overview pages |
+| Stat cards | `stat-card.tsx` | KPI display with optional `href` navigation |
 | Glass primitives | `futuristic-primitives.tsx` | Glass morphism UI elements |
 | GUZO logo | `guzo-logo.tsx` | Brand mark |
+| Notification routes | `lib/notification-routes.ts` | Deep-link targets from alerts |
 | Barcode scanner | `warehouse/barcode-scanner.tsx` | Camera-based scanning |
 | Map | `components/map/` | Leaflet map wrapper |
 | Proof of delivery | `driver/proof-of-delivery.tsx` | Photo + signature capture |
+| Pickup scan | `driver/pickup-scan-dialog.tsx` | Scan barcode/QR/PIN at pickup |
 | Pickup proof | `driver/pickup-proof-dialog.tsx` | Pickup confirmation dialog |
 | Branch handoff | `driver/branch-handoff-dialog.tsx` | Branch delivery handoff |
+| Profile settings | `shared/profile-settings.tsx` | Name, phone, avatar management |
 
 ---
 

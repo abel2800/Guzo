@@ -84,12 +84,12 @@ export function CustomerInvoices() {
                 return (
                   <div key={inv.id} className="dashboard-list-row flex flex-wrap items-center justify-between gap-3 px-6 py-4 text-sm">
                     <div>
-                      <p className="font-semibold text-white">{inv.invoiceNumber}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="font-semibold text-foreground">{inv.invoiceNumber}</p>
+                      <p className="text-xs text-muted-foreground">
                         Order {inv.order?.orderNumber ?? '—'} · {new Date(inv.issuedAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <p className="font-medium text-white">
+                    <p className="font-medium text-foreground">
                       {inv.currency} {num(inv.total).toLocaleString()}
                     </p>
                     <Badge variant={m.variant}>{m.label}</Badge>

@@ -25,7 +25,7 @@
 
 <br/>
 
-[Overview](#overview) | [Architecture](#architecture) | [Applications](#applications) | [Data layer](#data-layer) | [API](#api-server) | [Auth & RBAC](#authentication--rbac) | [Quick start](#quick-start) | [Demo logins](#demo-accounts) | [Documentation](doc/README.md)
+[Overview](#overview) | [Architecture](#architecture) | [Applications](#applications) | [Data layer](#data-layer) | [API](#api-server) | [Auth & RBAC](#authentication--rbac) | [Quick start](#quick-start) | [Demo logins](#demo-accounts) | [Documentation](doc/README.md) | [Changelog](doc/CHANGELOG.md)
 
 <br/>
 
@@ -47,7 +47,7 @@ Every shipment, GPS ping, payment, notification, and support ticket is stored in
 |:---:|:---:|
 | **7 applications** | Node API | Java API | Web dashboard | Marketing site | Customer | Driver | Merchant | Branch |
 | **36 database tables** | Users, orders, deliveries, payments, tracking, warehouses, support... |
-| **28 API modules** | Auth, RBAC, orders, drivers, merchants, analytics, and more |
+| **37 API modules** | Auth, OTP, orders, drivers, receivers, merchants, analytics, and more |
 | **10 user roles** | Admin, customer, driver, merchant, warehouse, finance, support... |
 | **90+ permissions** | Fine-grained `resource.action` access control |
 
@@ -59,7 +59,21 @@ Every shipment, GPS ping, payment, notification, and support ticket is stored in
 | **Free & open-source stack** | PostgreSQL, Prisma, Express, Next.js, Expo, OpenStreetMap, Socket.IO |
 | **Cloud-ready** | Provider abstractions (storage, payments, SMS, push) and clean module boundaries |
 | **End-to-end typed** | Shared TypeScript contracts from database -> API -> web -> mobile |
-| **Production patterns** | JWT + refresh tokens, RBAC, rate limiting, audit logs, file uploads, background jobs |
+| **Production patterns** | JWT + refresh tokens, RBAC, phone OTP, rate limiting, audit logs, file uploads, background jobs |
+
+### Recent updates (July 2026)
+
+| Area | Highlights |
+|------|------------|
+| **Auth** | Phone OTP on signup (web + 4 mobile apps); forgot password via email or phone OTP |
+| **Pickup flow** | Barcode/QR/PIN for senders; driver scan pickup; slide-to-confirm trip actions; receiver notified on driver arrival |
+| **Driver** | Vehicle profile (type, plate, photo); jobs pool includes `CONFIRMED` and `AT_BRANCH` orders |
+| **Tracking** | Customer sees driver photo, vehicle, and plate on active deliveries |
+| **Branch** | Receive package → receiver notified when ready for pickup |
+| **UI** | Clickable stats, notifications, and list rows across web and all mobile apps |
+| **Admin** | Approved drivers/merchants/branches can log in (`user.status` set to `ACTIVE`) |
+
+Full details: **[doc/CHANGELOG.md](doc/CHANGELOG.md)** · API reference: **[doc/api-servers.md](doc/api-servers.md)**
 
 ---
 
@@ -110,7 +124,7 @@ The Node server is the heart of day-to-day development — Express + TypeScript 
 
 | Capability | Details |
 |------------|---------|
-| **28 feature modules** | See [API server](#api-server) section |
+| **37 feature modules** | See [API server](#api-server) section |
 | **Auth** | JWT access (15m) + refresh (7d), token rotation, session tracking |
 | **Security** | Helmet, CORS, rate limiting, Bcrypt passwords, RBAC middleware |
 | **Realtime** | Socket.IO - driver GPS, order status, notifications |
@@ -135,7 +149,9 @@ Set `$env:API_BASE` to point scripts at either backend. Java unit smoke: `mvn -f
 
 ### 2. Web dashboard - `apps/web` | port **3000**
 
-Role-aware Next.js console. Route pattern: `/dashboard/[role]/[section]` - each role sees a tailored workspace with sidebar navigation, command menu (`Cmd+K`), notification center, profile settings, and light/dark theme.
+Role-aware Next.js console. Route pattern: `/dashboard/[role]/[section]` - each role sees a tailored workspace with sidebar navigation, command menu (`Cmd+K`), notification center (deep links), clickable stat cards, profile settings, and light/dark theme.
+
+**Auth pages:** `/login`, `/register` (phone OTP), `/forgot-password` (email or phone OTP).
 
 <table>
 <tr>
@@ -160,8 +176,8 @@ Role-aware Next.js console. Route pattern: `/dashboard/[role]/[section]` - each 
 | Section | Feature |
 |---------|---------|
 | **Book** | Multi-step shipment booking |
-| **Orders** | Order history & details |
-| **Track** | Live shipment tracking |
+| **Orders** | Order history with filters; pickup QR on detail |
+| **Track** | Live tracking with driver photo, vehicle, plate |
 | **Addresses** | Saved pickup/dropoff addresses |
 | **Invoices** | Billing history |
 | **Support** | Open support tickets |
@@ -175,8 +191,8 @@ Role-aware Next.js console. Route pattern: `/dashboard/[role]/[section]` - each 
 
 | Section | Feature |
 |---------|---------|
-| **Available** | Browse open delivery jobs |
-| **Accepted** | Active & completed deliveries |
+| **Available** | Browse jobs (`CONFIRMED`, `AT_BRANCH`) |
+| **Accepted** | Pickup scan, slide actions, call receiver |
 | **POD** | Proof-of-delivery history |
 
 Includes live **Leaflet + OpenStreetMap** tracking map.
@@ -275,14 +291,16 @@ Premium mobile experience (Uber Eats / DoorDash style) with glass UI, gradient b
 | Tab / Screen | What you do |
 |--------------|-------------|
 | **Home** | Active orders, quick actions, promos |
-| **Book** | 4-step delivery wizard (pickup -> dropoff -> package -> confirm) |
-| **Orders** | Order list + detail (`order/[id]`) |
-| **Track** | Live map tracking by reference (`track/[ref]`) |
+| **Book shipment** | 4-step delivery wizard (pickup -> dropoff -> package -> confirm) |
+| **Orders** | Order list + detail with pickup QR/barcode (`order/[id]`) |
+| **Track** | Live map tracking by reference; driver photo, vehicle, plate when assigned |
 | **Alerts** | Notification timeline |
 | **Profile** | Account settings, sign out |
 | **Login** | Email/password + biometric unlock (Face ID / fingerprint) |
+| **Register** | Account creation with phone OTP verification |
+| **Forgot password** | Email or phone OTP reset flow |
 
-**Extras:** offline support | push notifications | Socket.IO realtime | deep links
+**Extras:** pickup QR/barcode/PIN on order detail | offline support | push notifications | Socket.IO realtime | deep links
 
 ---
 
@@ -294,12 +312,15 @@ Built for couriers on the road - accept jobs, navigate, ping GPS, and capture pr
 |--------------|-------------|
 | **Jobs** | Browse & accept available deliveries |
 | **Active** | In-progress delivery list |
-| **Delivery** (`delivery/[id]`) | Status updates, GPS pings every 15s, live map |
+| **Delivery** (`delivery/[id]`) | Scan pickup code, slide to start trip / arrive, call receiver, GPS pings, live map |
+| **Vehicle** (`/vehicle`) | Register vehicle type, plate, and photo |
 | **POD** | Upload delivery photo + signature |
 | **Profile** | Earnings, settings, sign out |
 | **Login** | Role-validated - only **DRIVER** accounts allowed |
+| **Register** | Driver signup with phone OTP (pending admin approval) |
+| **Forgot password** | Email or phone OTP reset |
 
-**Extras:** offline GPS queue (syncs when back online) | biometric login | push notifications | maps integration
+**Extras:** offline GPS queue (syncs when back online) | biometric login | push notifications | maps integration | slide-to-confirm actions
 
 ---
 
@@ -315,8 +336,9 @@ Ship at scale from your phone - same API as the web merchant console.
 | **Orders** | Order management list |
 | **Profile** | Business settings, sign out |
 | **Login** | Role-validated - only **MERCHANT** accounts allowed |
+| **Register** | Merchant signup with phone OTP (pending approval) |
 
-**Extras:** invoices | API keys | analytics | customer directory
+**Extras:** invoices | API keys | analytics | customer directory | tappable dashboard stats
 
 ---
 
@@ -334,6 +356,9 @@ Counter operations for branch staff - receive packages, manage shelf, handle pic
 | **Exceptions** | Damaged / missing / hold packages |
 | **Profile** | Account settings, sign out |
 | **Login** | Role-validated - only **BRANCH** accounts allowed |
+| **Register** | Branch signup with phone OTP (pending approval) |
+
+**Extras:** receiver SMS/in-app notify on receive | tappable inventory and stats rows
 
 ---
 
@@ -364,6 +389,7 @@ stateDiagram-v2
 
 | Feature | Description |
 |---------|-------------|
+| **Phone OTP** | Signup and password reset via SMS one-time codes |
 | **Live GPS tracking** | Driver pings + Socket.IO broadcast |
 | **Proof of delivery** | Photo + digital signature |
 | **RBAC security** | 10 roles, 90+ permissions |
@@ -490,8 +516,10 @@ All endpoints return a standard envelope:
 | `POST` | `/auth/refresh` | Rotate access token |
 | `POST` | `/auth/logout` | Revoke refresh token |
 | `GET` | `/auth/me` | Current user profile (auth required) |
-| `POST` | `/auth/forgot-password` | Start password reset |
-| `POST` | `/auth/reset-password` | Complete password reset |
+| `POST` | `/auth/forgot-password` | Start password reset (email token or phone OTP) |
+| `POST` | `/auth/reset-password` | Complete password reset (token or OTP) |
+| `POST` | `/otp/send` | Send phone OTP (public, rate limited) |
+| `POST` | `/otp/verify` | Verify phone OTP (public, rate limited) |
 
 ### Key order endpoints
 
@@ -504,19 +532,26 @@ All endpoints return a standard envelope:
 | `GET` | `/orders` | Auth | List orders (scoped by role) |
 | `GET` | `/orders/:id` | Auth | Order detail |
 | `POST` | `/orders/:id/accept` | Driver | Accept delivery |
+| `POST` | `/orders/:id/scan-pickup` | Driver | Scan barcode/QR/PIN to confirm pickup |
+| `POST` | `/orders/:id/arrived` | Driver | Notify receiver of driver arrival |
 | `PATCH` | `/orders/:id/status` | Driver/Ops | Update status |
 | `POST` | `/orders/:id/pod` | Driver | Upload proof of delivery |
 | `POST` | `/orders/:id/cancel` | Auth | Cancel order |
 | `POST` | `/orders/:id/assign` | Admin/Ops | Assign driver |
+| `GET` | `/receivers/lookup` | Auth | Lookup receiver by phone or GUZO ID |
+| `PUT` | `/drivers/me/vehicle` | Driver | Upsert assigned vehicle profile |
+| `POST` | `/drivers/me/vehicle/photo` | Driver | Upload vehicle photo |
 
 <details>
-<summary><b>All 28 API modules</b></summary>
+<summary><b>All 37 API modules</b></summary>
 
 <br/>
 
 | Route prefix | Responsibility |
 |--------------|----------------|
 | `/auth` | Authentication & sessions |
+| `/otp` | Phone OTP send/verify |
+| `/receivers` | Receiver lookup |
 | `/users` | User management |
 | `/roles` | `/permissions` | RBAC administration |
 | `/customers` | `/drivers` | `/merchants` | Profile management |

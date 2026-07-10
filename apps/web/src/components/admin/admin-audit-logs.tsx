@@ -30,12 +30,12 @@ export function AdminAuditLogs() {
             <Card key={log.id}>
               <CardContent className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-mono text-sm font-semibold text-white">{log.action}</p>
-                  <p className="text-xs text-slate-500">{new Date(log.createdAt).toLocaleString()}</p>
+                  <p className="font-mono text-sm font-semibold text-foreground">{log.action}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(log.createdAt).toLocaleString()}</p>
                 </div>
                 <p className="text-sm text-muted-foreground">{log.entityType}{log.entityId ? ` · ${log.entityId}` : ''}</p>
                 {log.actor && (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     {log.actor.firstName} {log.actor.lastName} ({log.actor.email})
                   </p>
                 )}

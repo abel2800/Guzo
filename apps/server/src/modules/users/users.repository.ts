@@ -81,6 +81,19 @@ export class UsersRepository {
     });
     return this.findById(userId);
   }
+
+  approveLinkedProfiles(userId: string) {
+    return prisma.$transaction([
+      prisma.driver.updateMany({
+        where: { userId },
+        data: { approvalStatus: 'APPROVED', approvedAt: new Date() },
+      }),
+      prisma.merchant.updateMany({
+        where: { userId },
+        data: { isVerified: true },
+      }),
+    ]);
+  }
 }
 
 export const usersRepository = new UsersRepository();

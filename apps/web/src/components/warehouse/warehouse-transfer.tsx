@@ -10,7 +10,7 @@ import { BarcodeScanner } from './barcode-scanner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { EmptyPanel, FuturisticHero } from '@/components/dashboard/futuristic-primitives';
+import { EmptyPanel, FuturisticHero, PanelSelect } from '@/components/dashboard/futuristic-primitives';
 
 export function WarehouseTransfer() {
   const warehouseId = useSelectedWarehouse();
@@ -55,7 +55,7 @@ export function WarehouseTransfer() {
       </div>
 
       {!warehouseId ? (
-        <EmptyPanel title="Select a warehouse" description="Choose the origin warehouse for the transfer." />
+        <EmptyPanel icon={ArrowRightLeft} title="Select a warehouse" description="Choose the origin warehouse for the transfer." />
       ) : (
         <Card className="max-w-xl">
           <CardHeader>
@@ -71,18 +71,14 @@ export function WarehouseTransfer() {
             />
             <div className="space-y-2">
               <Label>Destination warehouse</Label>
-              <select
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={destId}
-                onChange={(e) => setDestId(e.target.value)}
-              >
+              <PanelSelect value={destId} onChange={(e) => setDestId(e.target.value)}>
                 <option value="">— Select destination —</option>
                 {warehouses?.filter((w) => w.id !== warehouseId).map((w) => (
                   <option key={w.id} value={w.id}>
                     {w.name} ({w.city})
                   </option>
                 ))}
-              </select>
+              </PanelSelect>
             </div>
             <Button
               className="w-full"

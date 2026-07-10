@@ -45,7 +45,7 @@ Each app is an independent Expo project sharing common libraries. Navigation use
 | Package | Contents |
 |---------|----------|
 | `@guzo/mobile-shared` | API client, auth context, Socket.IO, offline queue, secure storage, hooks |
-| `@guzo/mobile-ui` | GlassCard, GradientButton, StatCard, maps, splash, brand logo, signature capture, barcode scanner |
+| `@guzo/mobile-ui` | GlassCard, GradientButton, StatCard, maps, splash, brand logo, signature capture, barcode scanner, `SlideToConfirm`, `ParcelQrCode` |
 
 ### 2.2 Directory Structure (per app)
 
@@ -78,20 +78,23 @@ apps/mobile-{role}/
 | Screen | Route | Function |
 |--------|-------|----------|
 | Login | `/login` | Email/password + biometric unlock |
-| Register | `/register` | Account creation |
-| Home | `/(tabs)/home` | Active orders, quick actions |
+| Register | `/register` | Account creation with phone OTP |
+| Forgot password | `/forgot-password` | Email or phone OTP reset |
+| Home | `/(tabs)/home` | Active orders, quick actions (tappable promos/stats) |
 | Book | `/(tabs)/book` | 4-step delivery wizard |
 | Orders | `/(tabs)/orders` | Order list |
-| Order detail | `/order/[id]` | Single order view |
+| Order detail | `/order/[id]` | Pickup QR/barcode/PIN, tracking timeline |
 | Track | `/(tabs)/track` | Tracking search |
-| Track detail | `/track/[ref]` | Live map tracking |
-| Alerts | `/(tabs)/alerts` | Notification timeline |
+| Track detail | `/track/[ref]` | Live map; driver photo, vehicle, plate |
+| Alerts | `/(tabs)/alerts` | Notification timeline (deep links to orders) |
 | Profile | `/(tabs)/profile` | Account settings |
 
 ### 3.2 Features
 
 - Multi-step booking wizard (pickup, dropoff, package details, confirmation)
-- Real-time order tracking with map
+- Phone OTP verification before registration completes
+- Pickup barcode/QR/PIN on order detail for sender handoff
+- Real-time order tracking with map and assigned driver details
 - Push notification support
 - Socket.IO live status updates
 - Biometric login (Face ID / fingerprint)
@@ -106,16 +109,23 @@ apps/mobile-{role}/
 | Screen | Route | Function |
 |--------|-------|----------|
 | Login | `/login` | Role-validated (DRIVER only) |
-| Home | `/(tabs)/home` | Dashboard overview |
-| Jobs | `/(tabs)/jobs` | Available delivery jobs |
+| Register | `/register` | Driver signup with phone OTP (pending approval) |
+| Forgot password | `/forgot-password` | Email or phone OTP reset |
+| Home | `/(tabs)/home` | Dashboard overview (tappable stats) |
+| Jobs | `/(tabs)/jobs` | Available delivery jobs (`CONFIRMED`, `AT_BRANCH`) |
 | Active | `/(tabs)/active` | In-progress deliveries |
-| Delivery | `/delivery/[id]` | Active delivery detail |
+| Delivery | `/delivery/[id]` | Scan pickup, slide actions, call receiver, map |
+| Vehicle | `/vehicle` | Vehicle type, plate, photo |
 | POD | `/(tabs)/pod` | Proof of delivery capture |
 | Profile | `/(tabs)/profile` | Earnings, settings |
 
 ### 4.2 Features
 
-- Browse and accept available jobs
+- Browse and accept available jobs (including branch-dropped packages)
+- Scan pickup barcode/QR/PIN to confirm collection
+- Slide-to-confirm trip start and arrival (`SlideToConfirm`)
+- One-tap call receiver from delivery screen
+- Vehicle profile: type (incl. electric bike), plate, photo upload
 - GPS location ping every 15 seconds during active delivery
 - Live map with route display
 - Proof of delivery: photo capture + digital signature
@@ -133,7 +143,9 @@ apps/mobile-{role}/
 | Screen | Route | Function |
 |--------|-------|----------|
 | Login | `/login` | Role-validated (MERCHANT only) |
-| Home | `/(tabs)/home` | Dashboard stats |
+| Register | `/register` | Merchant signup with phone OTP |
+| Forgot password | `/forgot-password` | Email or phone OTP reset |
+| Home | `/(tabs)/home` | Dashboard stats (tappable KPIs) |
 | Create | `/(tabs)/create` | Single order form |
 | Orders | `/(tabs)/orders` | Order management |
 | Bulk | `/(tabs)/bulk` | CSV batch upload |
@@ -161,10 +173,11 @@ apps/mobile-{role}/
 | Screen | Route | Function |
 |--------|-------|----------|
 | Login | `/login` | Role-validated (BRANCH_STAFF only) |
-| Home | `/(tabs)/home` | Branch overview |
+| Register | `/register` | Branch staff signup with phone OTP |
+| Home | `/(tabs)/home` | Branch overview (tappable stats) |
 | Receive | `/(tabs)/receive` | Scan and receive packages |
 | Pickup | `/(tabs)/pickup` | Customer pickup counter |
-| Inventory | `/inventory` | Branch stock list |
+| Inventory | `/inventory` | Branch stock list (rows navigate to detail) |
 | Shelf | `/shelf` | Shelf assignment and lookup |
 | Exceptions | `/exceptions` | Exception handling |
 | Profile | `/(tabs)/profile` | Account settings |
@@ -172,6 +185,7 @@ apps/mobile-{role}/
 ### 6.2 Features
 
 - Barcode scanning for package receive
+- Receiver notification (in-app + SMS) when package is ready for pickup
 - Customer pickup with verification code
 - Shelf management (assign, lookup by code)
 - Exception reporting (damaged, missing, hold)
@@ -187,7 +201,14 @@ Use accounts created by `npm run db:seed`. Set `SEED_DEMO_PASSWORD` in `apps/ser
 
 ## 7. Authentication
 
-### 7.1 Flow
+### 7.1 Registration & OTP
+
+1. User enters account details and phone number.
+2. App calls `POST /otp/send`, user enters code, app calls `POST /otp/verify`.
+3. App calls `POST /auth/register` (server requires recently verified phone OTP when `phone` is set).
+4. Driver, merchant, and branch registrations may remain `PENDING` until super-admin approval.
+
+### 7.2 Login Flow
 
 1. User enters email and password.
 2. App calls `POST /auth/login`.
@@ -196,7 +217,13 @@ Use accounts created by `npm run db:seed`. Set `SEED_DEMO_PASSWORD` in `apps/ser
 5. On app resume, biometric prompt offers quick unlock.
 6. Token auto-refresh on 401 responses.
 
-### 7.2 Role Validation
+### 7.3 Forgot Password
+
+1. User enters email or phone at `/forgot-password`.
+2. Phone: `POST /auth/forgot-password` sends OTP; user verifies and calls `POST /auth/reset-password` with OTP.
+3. Email: legacy email reset token flow.
+
+### 7.4 Role Validation
 
 Each app rejects login if the user's role does not match:
 

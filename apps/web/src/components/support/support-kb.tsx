@@ -43,7 +43,7 @@ export function SupportKnowledgeBase() {
             <CardContent className="space-y-2 p-4">
               <div className="flex items-center gap-2">
                 <a.icon className="h-4 w-4 text-guzo-primary" />
-                <p className="font-semibold text-white">{a.title}</p>
+                <p className="font-semibold text-foreground">{a.title}</p>
               </div>
               <p className="text-sm text-muted-foreground">{a.body}</p>
             </CardContent>

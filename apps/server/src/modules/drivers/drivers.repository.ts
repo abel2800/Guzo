@@ -20,7 +20,17 @@ export class DriverRepository {
     }
     const orderBy = params.sortBy ? { [params.sortBy]: params.sortOrder } : { createdAt: params.sortOrder };
     const include = {
-      user: { select: { id: true, firstName: true, lastName: true, phone: true, email: true } },
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          email: true,
+          status: true,
+          avatar: { select: { storageKey: true } },
+        },
+      },
     };
     const [items, total] = await Promise.all([
       delegate.findMany({ where, skip: params.skip, take: params.take, orderBy, include }),

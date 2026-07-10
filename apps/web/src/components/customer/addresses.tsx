@@ -196,15 +196,15 @@ export function CustomerAddresses() {
                 <div key={a.id} className="dashboard-list-row flex flex-wrap items-start justify-between gap-3 px-6 py-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-white">{a.label || a.type}</p>
+                      <p className="font-semibold text-foreground">{a.label || a.type}</p>
                       {a.isDefault && (
                         <Badge variant="success" className="gap-1">
                           <Star className="h-3 w-3" /> Default
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-slate-300">{formatAddress(a)}</p>
-                    {a.contactPhone && <p className="text-xs text-slate-400">{a.contactPhone}</p>}
+                    <p className="text-sm text-muted-foreground">{formatAddress(a)}</p>
+                    {a.contactPhone && <p className="text-xs text-muted-foreground">{a.contactPhone}</p>}
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => openEdit(a)}>

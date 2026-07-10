@@ -21,7 +21,7 @@ export function WarehouseSelect() {
 
   return (
     <label className="flex items-center gap-2 text-sm">
-      <WarehouseIcon className="h-4 w-4 text-slate-400" />
+      <WarehouseIcon className="h-4 w-4 text-muted-foreground" />
       <PanelSelect
         value={selectedId ?? ''}
         onChange={(e) => setSelected(e.target.value)}

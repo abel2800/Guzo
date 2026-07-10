@@ -6,7 +6,7 @@ import { emailProvider } from '../providers/notification/email.provider.js';
 import { smsProvider } from '../providers/notification/sms.provider.js';
 import { pushProvider } from '../providers/notification/push.provider.js';
 import { logger } from '../config/logger.js';
-import { env } from '../config/env.js';
+import { notifyReceiver, trackUrl } from '../modules/orders/order-notifications.js';
 import {
   buildDeliveryConfirmationHtml,
   buildPaymentReceiptHtml,
@@ -23,11 +23,6 @@ interface NotificationRequest {
 }
 
 const SMS_ORDER_STATUSES = ['OUT_FOR_DELIVERY', 'DELIVERED', 'READY_FOR_PICKUP', 'AT_BRANCH', 'AT_WAREHOUSE'] as const;
-
-function trackUrl(reference: string): string {
-  const base = env.corsOrigins[0] ?? 'http://localhost:3000';
-  return `${base.replace(/\/$/, '')}/track/${encodeURIComponent(reference)}`;
-}
 
 function statusLabel(status: string): string {
   return status.replace(/_/g, ' ').toLowerCase();
@@ -167,6 +162,28 @@ export function registerSubscribers(): void {
       await smsProvider.send({
         to: phone,
         body: `Guzo: Order ${order.orderNumber} is now ${statusLabel(status)}.`,
+      });
+    }
+
+    const receiverStatuses = ['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'ASSIGNED', 'READY_FOR_PICKUP'] as const;
+    if (receiverStatuses.includes(status as (typeof receiverStatuses)[number])) {
+      const receiverBody =
+        status === 'ASSIGNED'
+          ? `A driver is assigned to deliver parcel ${tracking}. Track: ${url}`
+          : status === 'PICKED_UP'
+            ? `Parcel ${tracking} was picked up and is on the way. Track: ${url}`
+            : status === 'OUT_FOR_DELIVERY'
+              ? `Parcel ${tracking} is out for delivery. Track: ${url}`
+              : status === 'DELIVERED'
+                ? `Parcel ${tracking} has been delivered.`
+                : `Parcel ${tracking} is ready for pickup at the branch.`;
+      await notifyReceiver({
+        receiverUserId: order.receiverUserId,
+        receiverPhone: order.receiverPhone,
+        type: `ORDER_${status}`,
+        title: `Parcel update — ${statusLabel(status)}`,
+        body: receiverBody,
+        sms: ['OUT_FOR_DELIVERY', 'DELIVERED', 'READY_FOR_PICKUP', 'PICKED_UP'].includes(status),
       });
     }
 

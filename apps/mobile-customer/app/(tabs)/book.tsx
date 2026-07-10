@@ -5,8 +5,9 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { createOrder, quoteOrder, geocodeAddress, lookupReceiver, useTrackingMapData, type DeliveryType, type PaymentMethod, type PickupMethod } from '@guzo/mobile-shared';
+import { createOrder, quoteOrder, geocodeAddress, lookupReceiver, listBranches, useTrackingMapData, type DeliveryType, type PaymentMethod, type PickupMethod } from '@guzo/mobile-shared';
 import { StepIndicator, GradientButton, GlassCard, LiveTrackingMap } from '@guzo/mobile-ui';
+import { useQuery } from '@tanstack/react-query';
 import { colors, designStyles, radius, spacing } from '@/lib/design';
 
 const STEPS = ['Pickup', 'Drop-off', 'Package', 'Confirm'];
@@ -37,6 +38,7 @@ export default function BookScreen() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('FAKE');
   const [pickupMethod, setPickupMethod] = useState<PickupMethod>('COMPANY_PICKUP');
   const [originBranchId, setOriginBranchId] = useState('');
+  const [destinationBranchId, setDestinationBranchId] = useState('');
   const [isFragile, setIsFragile] = useState(false);
   const [declaredValue, setDeclaredValue] = useState('');
   const [weight, setWeight] = useState('1');
@@ -49,6 +51,11 @@ export default function BookScreen() {
   const [busy, setBusy] = useState(false);
 
   const geocodeTimers = useRef<{ pickup?: ReturnType<typeof setTimeout>; dropoff?: ReturnType<typeof setTimeout> }>({});
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches-directory'],
+    queryFn: () => listBranches(),
+  });
 
   const input = {
     deliveryType: deliveryType === 'SCHEDULED' ? 'SCHEDULED' as const : deliveryType,
@@ -74,6 +81,7 @@ export default function BookScreen() {
     receiverPhone: dropPhone || undefined,
     receiverGuzoId: dropGuzoId || undefined,
     originBranchId: pickupMethod === 'DROP_AT_BRANCH' ? originBranchId || undefined : undefined,
+    destinationBranchId: pickupMethod === 'BRANCH_PICKUP' ? destinationBranchId || undefined : undefined,
     hasInsurance: !!declaredValue,
     insuranceAmount: declaredValue ? parseFloat(declaredValue) : undefined,
     notes,
@@ -176,7 +184,7 @@ export default function BookScreen() {
   const canNext =
     (step === 1 && pickupLine1) ||
     (step === 2 && dropLine1) ||
-    (step === 3 && weight) ||
+    (step === 3 && weight && (pickupMethod !== 'DROP_AT_BRANCH' || originBranchId) && (pickupMethod !== 'BRANCH_PICKUP' || destinationBranchId)) ||
     step === 4;
 
   const mapData = useTrackingMapData(
@@ -285,16 +293,50 @@ export default function BookScreen() {
               <Ionicons name={isFragile ? 'checkbox' : 'square-outline'} size={18} color={colors.primary} />
               <Text style={styles.typeChipText}>Fragile parcel</Text>
             </Pressable>
-            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Pickup method</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Pickup / delivery method</Text>
             <View style={styles.typeRow}>
-              {(['COMPANY_PICKUP', 'DROP_AT_BRANCH'] as PickupMethod[]).map((m) => (
+              {(['COMPANY_PICKUP', 'DROP_AT_BRANCH', 'BRANCH_PICKUP'] as PickupMethod[]).map((m) => (
                 <Pressable key={m} onPress={() => setPickupMethod(m)} style={[styles.typeChip, pickupMethod === m && styles.typeChipActive]}>
                   <Text style={[styles.typeChipText, pickupMethod === m && styles.typeChipTextActive]}>
-                    {m === 'COMPANY_PICKUP' ? 'Company pickup' : 'Drop at branch'}
+                    {m === 'COMPANY_PICKUP' ? 'Door pickup' : m === 'DROP_AT_BRANCH' ? 'Drop at branch' : 'Collect at branch'}
                   </Text>
                 </Pressable>
               ))}
             </View>
+            {pickupMethod === 'DROP_AT_BRANCH' ? (
+              <>
+                <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Drop-off branch</Text>
+                <View style={styles.branchList}>
+                  {branches.map((b) => (
+                    <Pressable
+                      key={b.id}
+                      onPress={() => setOriginBranchId(b.id)}
+                      style={[styles.branchRow, originBranchId === b.id && styles.branchRowActive]}
+                    >
+                      <Text style={styles.branchName}>{b.name}</Text>
+                      <Text style={styles.branchMeta}>{b.city} · {b.code}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
+            ) : null}
+            {pickupMethod === 'BRANCH_PICKUP' ? (
+              <>
+                <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Pickup branch (receiver collects here)</Text>
+                <View style={styles.branchList}>
+                  {branches.map((b) => (
+                    <Pressable
+                      key={b.id}
+                      onPress={() => setDestinationBranchId(b.id)}
+                      style={[styles.branchRow, destinationBranchId === b.id && styles.branchRowActive]}
+                    >
+                      <Text style={styles.branchName}>{b.name}</Text>
+                      <Text style={styles.branchMeta}>{b.city} · {b.code}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
+            ) : null}
             <Field label="Notes for driver" value={notes} onChange={setNotes} placeholder="Optional" />
           </GlassCard>
         )}
@@ -436,4 +478,9 @@ const styles = StyleSheet.create({
   quoteValue: { color: colors.primary, fontSize: 22, fontWeight: '800', marginTop: 4 },
   error: { color: colors.error, marginTop: 12, textAlign: 'center' },
   actions: { marginTop: 24, marginBottom: 24 },
+  branchList: { gap: 8, marginBottom: 8 },
+  branchRow: { padding: 12, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
+  branchRowActive: { borderColor: colors.primary, backgroundColor: 'rgba(34,197,94,0.08)' },
+  branchName: { color: colors.text, fontWeight: '700' },
+  branchMeta: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
 });

@@ -163,6 +163,9 @@ All modules are composed in `apps/server/src/routes/index.ts`:
 | `/merchant-platform` | Merchant platform | Webhooks, analytics, API keys |
 | `/merchant-api` | Merchant API | External merchant integration |
 | `/maps` | Maps | Geocoding and routing proxy |
+| `/wallet` | Wallet | Customer wallet balance |
+| `/otp` | OTP | Phone one-time password send/verify |
+| `/receivers` | Receivers | Receiver lookup by phone or GUZO ID |
 
 ---
 
@@ -179,8 +182,19 @@ All modules are composed in `apps/server/src/routes/index.ts`:
 | PATCH | `/auth/me/location` | Required | Update user location |
 | PATCH | `/auth/me/password` | Required | Change password |
 | POST | `/auth/me/avatar` | Required | Upload profile avatar |
-| POST | `/auth/forgot-password` | Public | Initiate password reset |
-| POST | `/auth/reset-password` | Public | Complete password reset |
+| POST | `/auth/forgot-password` | Public | Initiate password reset (email link token or phone OTP) |
+| POST | `/auth/reset-password` | Public | Complete password reset (email token or verified phone OTP) |
+
+### 5.1 OTP Endpoints
+
+Registration and password reset require a recently verified phone OTP when a phone number is used.
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/otp/send` | Public | Send OTP to phone (rate limited) |
+| POST | `/otp/verify` | Public | Verify OTP code (rate limited) |
+
+In local development, OTP codes are printed to the Node API console as `[OTP stub]`.
 
 ---
 
@@ -195,11 +209,21 @@ All modules are composed in `apps/server/src/routes/index.ts`:
 | GET | `/orders` | Auth | List orders (scoped by role) |
 | GET | `/orders/:id` | Auth | Order detail |
 | POST | `/orders/:id/accept` | DRIVER | Accept delivery job |
+| POST | `/orders/:id/scan-pickup` | DRIVER | Scan barcode/QR/PIN to confirm pickup (`{ reference }`) |
+| POST | `/orders/:id/arrived` | DRIVER | Notify receiver that driver has arrived |
 | PATCH | `/orders/:id/status` | DRIVER, Ops | Update order status |
 | POST | `/orders/:id/pod` | DRIVER | Upload proof of delivery |
 | POST | `/orders/:id/cancel` | Auth | Cancel order |
 | POST | `/orders/:id/assign` | ADMIN, Ops | Assign driver |
 | POST | `/orders/:id/pickup-proof` | DRIVER | Upload pickup proof |
+
+**Driver job pool:** Unassigned orders with status `CONFIRMED` or `AT_BRANCH` are listed as available jobs.
+
+### 6.1 Receiver Lookup
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/receivers/lookup` | Required | Lookup receiver by `phone` and/or `guzoId` query params |
 
 ---
 
@@ -211,6 +235,8 @@ All modules are composed in `apps/server/src/routes/index.ts`:
 | GET | `/drivers/me/manifests` | DRIVER | Assigned manifests |
 | GET | `/drivers/me/earnings` | DRIVER | Earnings summary |
 | GET | `/drivers/me/vehicle` | DRIVER | Assigned vehicle |
+| PUT | `/drivers/me/vehicle` | DRIVER | Create or update vehicle (type, plate, etc.) |
+| POST | `/drivers/me/vehicle/photo` | DRIVER | Upload vehicle photo |
 | GET | `/drivers/me/vehicle/logs` | DRIVER | Vehicle maintenance logs |
 | POST | `/drivers/me/vehicle/logs` | DRIVER | Create vehicle log |
 | POST | `/drivers/me/manifests/:id/scan` | DRIVER | Scan manifest package |

@@ -22,7 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
-import { EmptyPanel, FilterChip, FuturisticHero, SearchField } from '@/components/dashboard/futuristic-primitives';
+import { EmptyPanel, FilterChip, FuturisticHero, PanelSelect, SearchField } from '@/components/dashboard/futuristic-primitives';
 
 const STATES = [
   { key: 'in-stock', label: 'In stock' },
@@ -164,22 +164,22 @@ export function WarehouseInventory() {
                 const m = PACKAGE_STATUS_META[item.package.status] ?? { label: item.package.status, variant: 'secondary' as const };
                 const dispatched = !!item.dispatchedAt;
                 return (
-                  <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 text-sm transition-colors hover:bg-white/5">
+                  <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 text-sm transition-colors hover:bg-muted/40">
                     <div className="min-w-[180px]">
-                      <p className="font-semibold text-white">{item.package.trackingNumber}</p>
-                      <p className="flex items-center gap-1 text-xs text-slate-400">
+                      <p className="font-semibold text-foreground">{item.package.trackingNumber}</p>
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
                         <MapPin className="h-3 w-3" /> {item.package.order.dropoffAddress?.city ?? '—'} ·{' '}
                         {item.package.order.orderNumber}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       {item.shelfCode ? (
-                        <Badge variant="outline" className="gap-1 border-white/10 text-slate-200">
+                        <Badge variant="outline" className="gap-1 border-border text-foreground">
                           <Tag className="h-3 w-3" /> {item.shelfCode}
                           {item.zone ? ` · ${item.zone}` : ''}
                         </Badge>
                       ) : (
-                        <span className="text-xs text-slate-400">No shelf</span>
+                        <span className="text-xs text-muted-foreground">No shelf</span>
                       )}
                       <Badge variant={m.variant}>{m.label}</Badge>
                     </div>
@@ -222,7 +222,7 @@ export function WarehouseInventory() {
 
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Page {meta.page} of {meta.totalPages} · {meta.total} parcels
           </p>
           <div className="flex gap-2">
@@ -256,20 +256,16 @@ export function WarehouseInventory() {
                 {sort.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Tag className="h-4 w-4" />}
                 Save shelf
               </Button>
-              <div className="border-t border-white/10 pt-4 space-y-3">
+              <div className="border-t border-border pt-4 space-y-3">
                 <p className="text-sm font-medium flex items-center gap-2">
                   <ArrowRightLeft className="h-4 w-4" /> Cross-warehouse transfer
                 </p>
-                <select
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  value={transferDest}
-                  onChange={(e) => setTransferDest(e.target.value)}
-                >
+                <PanelSelect value={transferDest} onChange={(e) => setTransferDest(e.target.value)}>
                   <option value="">— Destination warehouse —</option>
                   {warehouses?.filter((w) => w.id !== warehouseId).map((w) => (
                     <option key={w.id} value={w.id}>{w.name} ({w.city})</option>
                   ))}
-                </select>
+                </PanelSelect>
                 <Button
                   variant="outline"
                   className="w-full"

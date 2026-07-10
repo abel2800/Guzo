@@ -35,11 +35,11 @@ export function AdminCustomers() {
           {items.map((c) => (
             <Card key={c.id}>
               <CardContent className="p-4">
-                <p className="font-semibold text-white">
+                <p className="font-semibold text-foreground">
                   {c.user ? `${c.user.firstName ?? ''} ${c.user.lastName ?? ''}`.trim() || c.user.email : c.id}
                 </p>
                 <p className="text-sm text-muted-foreground">{c.user?.email}</p>
-                {c.customerCode && <p className="text-xs font-mono text-slate-400">{c.customerCode}</p>}
+                {c.customerCode && <p className="text-xs font-mono text-muted-foreground">{c.customerCode}</p>}
               </CardContent>
             </Card>
           ))}

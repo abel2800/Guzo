@@ -32,19 +32,25 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.statsRow}>
-        <GlassCard style={styles.statCard}>
-          <Ionicons name="wallet-outline" size={22} color={colors.primary} />
-          <Text style={styles.statLabel}>Earnings</Text>
-          <Text style={styles.statValue}>ETB {(data?.earningsBalance ?? 0).toLocaleString()}</Text>
-        </GlassCard>
-        <GlassCard style={styles.statCard}>
-          <Ionicons name="checkmark-done-outline" size={22} color={colors.accent} />
-          <Text style={styles.statLabel}>Completed</Text>
-          <Text style={styles.statValue}>{data?.completedDeliveries ?? 0}</Text>
-        </GlassCard>
+        <Pressable style={{ flex: 1 }} onPress={() => router.push('/earnings' as '/')}>
+          <GlassCard style={styles.statCard}>
+            <Ionicons name="wallet-outline" size={22} color={colors.primary} />
+            <Text style={styles.statLabel}>Earnings</Text>
+            <Text style={styles.statValue}>ETB {(data?.earningsBalance ?? 0).toLocaleString()}</Text>
+          </GlassCard>
+        </Pressable>
+        <Pressable style={{ flex: 1 }} onPress={() => router.push('/(tabs)/active')}>
+          <GlassCard style={styles.statCard}>
+            <Ionicons name="checkmark-done-outline" size={22} color={colors.accent} />
+            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statValue}>{data?.completedDeliveries ?? 0}</Text>
+          </GlassCard>
+        </Pressable>
       </View>
 
       <GlassCard>
+        <MenuRow icon="person-outline" label="Edit profile & photo" onPress={() => router.push('/settings')} />
+        <View style={styles.divider} />
         <MenuRow icon="navigate-outline" label="Active deliveries" onPress={() => router.push('/(tabs)/active')} />
         <View style={styles.divider} />
         <MenuRow icon="wallet-outline" label="Earnings history" onPress={() => router.push('/earnings' as '/')} />
@@ -53,7 +59,7 @@ export default function ProfileScreen() {
         <View style={styles.divider} />
         <MenuRow icon="briefcase-outline" label="Available jobs" onPress={() => router.push('/(tabs)/jobs')} />
         <View style={styles.divider} />
-        <MenuRow icon="help-circle-outline" label="Help & support" />
+        <MenuRow icon="help-circle-outline" label="Help & support" onPress={() => router.push('/settings')} />
       </GlassCard>
 
       <Pressable

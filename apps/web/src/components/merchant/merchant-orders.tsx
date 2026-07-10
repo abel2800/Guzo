@@ -73,7 +73,7 @@ export function MerchantOrders() {
             />
           ) : (
             <div className="divide-y">
-              <div className="hidden grid-cols-12 gap-4 px-6 py-3 text-xs font-medium uppercase text-slate-400 md:grid">
+              <div className="hidden grid-cols-12 gap-4 px-6 py-3 text-xs font-medium uppercase text-muted-foreground md:grid">
                 <div className="col-span-3">Order</div>
                 <div className="col-span-4">Route</div>
                 <div className="col-span-2">Status</div>
@@ -85,15 +85,15 @@ export function MerchantOrders() {
                   <button
                     key={o.id}
                     onClick={() => setSelectedId(o.id)}
-                    className="grid w-full grid-cols-2 items-center gap-4 px-6 py-4 text-left text-sm transition-colors hover:bg-white/5 md:grid-cols-12"
+                    className="grid w-full grid-cols-2 items-center gap-4 px-6 py-4 text-left text-sm transition-colors hover:bg-muted/40 md:grid-cols-12"
                   >
                     <div className="md:col-span-3">
-                      <p className="font-semibold text-white">{o.orderNumber}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="font-semibold text-foreground">{o.orderNumber}</p>
+                      <p className="text-xs text-muted-foreground">
                         {new Date(o.createdAt).toLocaleDateString()} · {o.deliveryType}
                       </p>
                     </div>
-                    <div className="hidden text-slate-300 md:col-span-4 md:block">
+                    <div className="hidden text-muted-foreground md:col-span-4 md:block">
                       {`${o.pickupAddress?.city ?? '—'} -> ${o.dropoffAddress?.city ?? '—'}`}
                     </div>
                     <div className="md:col-span-2">
@@ -112,7 +112,7 @@ export function MerchantOrders() {
 
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Page {meta.page} of {meta.totalPages} · {meta.total} orders
           </p>
           <div className="flex gap-2">

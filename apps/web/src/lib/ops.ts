@@ -142,6 +142,24 @@ export async function submitPickupProof(orderId: string, input: PickupProofInput
   return data.data;
 }
 
+export async function scanPickup(
+  orderId: string,
+  input: { reference: string; latitude?: number; longitude?: number },
+): Promise<Order> {
+  const { data } = await api.post<ApiResponse<Order>>(`/orders/${orderId}/scan-pickup`, input);
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export async function notifyDriverArrived(
+  orderId: string,
+  input: { latitude?: number; longitude?: number } = {},
+): Promise<Order> {
+  const { data } = await api.post<ApiResponse<Order>>(`/orders/${orderId}/arrived`, input);
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
 export interface DriverEarnings {
   balance: number;
   totalDeliveries: number;
@@ -162,10 +180,9 @@ export async function getDriverEarnings(): Promise<DriverEarnings> {
   return data.data;
 }
 
-export const DRIVER_NEXT_STATUS: Partial<Record<OrderStatus, { next: OrderStatus; label: string }>> = {
-  ASSIGNED: { next: 'PICKED_UP', label: 'Mark picked up' },
-  PICKED_UP: { next: 'IN_TRANSIT', label: 'Start transit' },
-  IN_TRANSIT: { next: 'OUT_FOR_DELIVERY', label: 'Out for delivery' },
+export const DRIVER_NEXT_STATUS: Partial<Record<OrderStatus, { next: OrderStatus; label: string; slide?: boolean }>> = {
+  PICKED_UP: { next: 'IN_TRANSIT', label: 'Slide to start trip', slide: true },
+  IN_TRANSIT: { next: 'OUT_FOR_DELIVERY', label: 'Slide — out for delivery', slide: true },
   OUT_FOR_DELIVERY: { next: 'DELIVERED', label: 'Mark delivered' },
   FAILED: { next: 'OUT_FOR_DELIVERY', label: 'Reattempt delivery' },
 };

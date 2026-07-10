@@ -1,22 +1,26 @@
-import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { assignBranchShelf, lookupBranchShelf } from '@guzo/mobile-shared';
 import { GradientButton, GlassCard, colors, designStyles, radius, spacing } from '@guzo/mobile-ui';
 import { TrackingScanner } from '@/components/tracking-scanner';
 import { useBranch } from '@/lib/branch';
 
 export default function ShelfScreen() {
-  const insets = useSafeAreaInsets();
+  const { tracking: trackingParam } = useLocalSearchParams<{ tracking?: string }>();
   const { branchId } = useBranch();
   const [tracking, setTracking] = useState('');
   const [shelf, setShelf] = useState('');
   const [lookup, setLookup] = useState('');
   const [results, setResults] = useState<string[]>([]);
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (typeof trackingParam === 'string' && trackingParam.trim()) {
+      setTracking(trackingParam.trim());
+    }
+  }, [trackingParam]);
 
   const assign = useMutation({
     mutationFn: () => assignBranchShelf(branchId!, { trackingNumber: tracking.trim(), shelfCode: shelf.trim() }),
@@ -38,10 +42,7 @@ export default function ShelfScreen() {
   }
 
   return (
-    <View style={[designStyles.screen, { paddingTop: insets.top, padding: spacing.lg }]}>
-      <Pressable onPress={() => router.back()} style={{ marginBottom: 12 }}>
-        <Ionicons name="chevron-back" size={24} color={colors.text} />
-      </Pressable>
+    <View style={[designStyles.screen, { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg }]}>
       <Text style={styles.title}>Shelf management</Text>
       <GlassCard style={{ marginBottom: 16 }}>
         <Text style={styles.label}>Assign shelf</Text>
@@ -53,7 +54,11 @@ export default function ShelfScreen() {
         <Text style={styles.label}>Find by shelf</Text>
         <TextInput style={styles.input} value={lookup} onChangeText={setLookup} placeholder="Shelf code" placeholderTextColor={colors.textDim} />
         <GradientButton label="Lookup" onPress={onLookup} />
-        {results.map((r) => <Text key={r} style={styles.result}>{r}</Text>)}
+        {results.map((r) => (
+          <Pressable key={r} onPress={() => setTracking(r)}>
+            <Text style={styles.result}>{r}</Text>
+          </Pressable>
+        ))}
       </GlassCard>
       {message ? <Text style={styles.msg}>{message}</Text> : null}
     </View>

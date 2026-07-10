@@ -24,7 +24,7 @@ fs.mkdirSync(outDir, { recursive: true });
     await QR.toFile(path.join(outDir, `${name}-expo-qr.png`), url, { width: 512, margin: 2 });
     fs.writeFileSync(
       path.join(outDir, `${name}-expo-url.txt`),
-      `${label}\n${url}\n\niPhone: Expo Go -> Scan QR\nSamsung: Expo Go -> Scan QR\nSame Wi-Fi as PC required\n`,
+      `${label}\n${url}\n\niPhone: Expo Go -> Scan QR\nAndroid: Expo Go -> Scan QR\nSame Wi-Fi as PC required\nIf Android shows old app: Expo Go menu -> Reload, or turn off mobile data\nRegenerate QRs after IP change: npm run mobile:qr\n`,
     );
     console.log(`${label}: ${url}`);
   }
@@ -41,6 +41,8 @@ fs.mkdirSync(outDir, { recursive: true });
       'Branch    exp://' + ip + ':8084',
       '',
       'Scan with Expo Go on the same Wi-Fi as your dev machine.',
+      'Android not updating? In Expo Go: shake phone -> Reload. Turn off mobile data.',
+      'Regenerate QRs after Wi-Fi/IP change: npm run mobile:qr',
       'Demo users: run npm run db:seed (set SEED_DEMO_PASSWORD locally).',
     ].join('\n'),
   );

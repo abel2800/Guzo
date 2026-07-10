@@ -37,12 +37,12 @@ export function CustomerLoyalty() {
         <CardContent className="space-y-4 p-4">
           <div>
             <p className="text-sm text-muted-foreground">Your referral code</p>
-            <p className="font-mono text-xl font-bold text-white">{data?.referralCode ?? '—'}</p>
+            <p className="font-mono text-xl font-bold text-foreground">{data?.referralCode ?? '—'}</p>
           </div>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Earn {data?.pointsPerDelivery ?? 10} points per delivery · {data?.referralBonus ?? 50} bonus per referral
           </p>
-          <div className="border-t border-white/10 pt-4">
+          <div className="border-t border-border pt-4">
             <Label>Have a friend&apos;s code?</Label>
             <div className="mt-2 flex gap-2">
               <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="GZ…" />

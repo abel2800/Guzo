@@ -1,4 +1,5 @@
 import { ordersRepository, OrdersRepository } from './orders.repository.js';
+import { prisma } from '@delivery/database';
 import type { CreateOrderDto, UpdateOrderStatusDto, AssignDriverDto } from './orders.dto.js';
 import type { PriceBreakdown } from './orders.types.js';
 import { ORDER_MESSAGES, ORDER_SORTABLE_FIELDS } from './orders.constants.js';
@@ -17,6 +18,10 @@ import { SOCKET_EVENTS } from '@delivery/types';
 import { dispatchMerchantEvent } from '../merchant-platform/webhook-dispatcher.js';
 import { loyaltyService } from '../loyalty/loyalty.service.js';
 import { writeActivity } from '../../utils/activity.js';
+import { customerOrderAccessFilter } from '../customers/customer-link.service.js';
+import { normalizePhone, phoneLookupVariants } from '../../utils/phone.js';
+import { assignPickupCodes, verifyPickup } from '../branches/pickup-code.service.js';
+import { notifyReceiver, trackUrl } from './order-notifications.js';
 
 export interface CreateOrderContext {
   userId: string;
@@ -40,6 +45,8 @@ export class OrdersService {
     scope?: {
       customerId?: string;
       customerUserId?: string;
+      customerOrderScope?: 'sent' | 'incoming' | 'all';
+      customerPhone?: string | null;
       driverUserId?: string;
       merchantUserId?: string;
       unassigned?: boolean;
@@ -47,10 +54,22 @@ export class OrdersService {
   ): Promise<{ items: unknown[]; meta: PaginationMeta }> {
     const sortBy = ORDER_SORTABLE_FIELDS.includes(query.sortBy as never) ? query.sortBy : 'createdAt';
 
-    let customerId = scope?.customerId ?? query.filters.customerId;
-    if (!customerId && scope?.customerUserId && !scope.merchantUserId) {
+    let customerId: string | undefined = scope?.customerId ?? query.filters.customerId;
+    let customerAccess: ReturnType<typeof customerOrderAccessFilter> | undefined;
+    if (scope?.customerUserId && !scope.merchantUserId) {
       const customer = await this.repo.customerByUserId(scope.customerUserId);
-      customerId = customer?.id ?? '__no_customer__';
+      customerId = customer?.id;
+      const user = await prisma.user.findUnique({
+        where: { id: scope.customerUserId },
+        select: { phone: true },
+      });
+      customerAccess = customerOrderAccessFilter({
+        customerId: customer?.id,
+        userId: scope.customerUserId,
+        phone: scope.customerPhone ?? user?.phone,
+        scope: scope.customerOrderScope ?? 'sent',
+      });
+      customerId = undefined;
     }
 
     let driverId: string | undefined;
@@ -71,6 +90,7 @@ export class OrdersService {
       search: query.search,
       status: query.filters.status,
       customerId,
+      customerAccess,
       merchantId,
       driverId,
       unassigned: scope?.unassigned,
@@ -172,6 +192,95 @@ export class OrdersService {
       latitude: input.latitude,
       longitude: input.longitude,
     });
+  }
+
+  async scanPickup(
+    orderId: string,
+    userId: string,
+    input: { reference: string; latitude?: number; longitude?: number },
+  ) {
+    const driver = await this.repo.driverByUserId(userId);
+    if (!driver) throw ApiError.badRequest('Authenticated user is not a driver');
+
+    const order = await this.getById(orderId);
+    if (!order.delivery || order.delivery.driverId !== driver.id) {
+      throw ApiError.forbidden('This delivery is not assigned to you');
+    }
+    if (!['ASSIGNED', 'AT_BRANCH'].includes(order.status)) {
+      throw ApiError.badRequest(`Cannot scan pickup when order is ${order.status}`);
+    }
+
+    const pkg = await verifyPickup(input.reference.trim());
+    if (pkg.orderId !== orderId) {
+      throw ApiError.badRequest('Scanned parcel does not match this delivery');
+    }
+
+    await writeActivity({
+      userId,
+      action: 'driver.scan_pickup',
+      metadata: { orderId, orderNumber: order.orderNumber, trackingNumber: pkg.trackingNumber },
+    });
+
+    return this.updateStatus(orderId, {
+      status: 'PICKED_UP',
+      note: `Parcel scanned at pickup (${pkg.trackingNumber})`,
+      latitude: input.latitude,
+      longitude: input.longitude,
+    });
+  }
+
+  async notifyDriverArrived(
+    orderId: string,
+    userId: string,
+    input: { latitude?: number; longitude?: number },
+  ) {
+    const driver = await this.repo.driverByUserId(userId);
+    if (!driver) throw ApiError.badRequest('Authenticated user is not a driver');
+
+    const order = await this.getById(orderId);
+    if (!order.delivery || order.delivery.driverId !== driver.id) {
+      throw ApiError.forbidden('This delivery is not assigned to you');
+    }
+    if (!['OUT_FOR_DELIVERY', 'IN_TRANSIT'].includes(order.status)) {
+      throw ApiError.badRequest('Arrival can only be reported while en route to the receiver');
+    }
+
+    const driverRow = order.delivery.driverId
+      ? await this.repo.client.driver.findUnique({
+          where: { id: order.delivery.driverId },
+          include: { user: { select: { firstName: true, lastName: true } } },
+        })
+      : null;
+    const driverName = driverRow?.user
+      ? `${driverRow.user.firstName} ${driverRow.user.lastName}`.trim()
+      : 'Your driver';
+    const tracking = order.packages?.[0]?.trackingNumber ?? order.orderNumber;
+    const dropPhone = order.dropoffAddress?.contactPhone ?? order.receiverPhone;
+
+    await this.repo.addTrackingEvent({
+      orderId,
+      type: 'OUT_FOR_DELIVERY',
+      status: 'Driver arrived',
+      description: `${driverName} has arrived. Please come out to collect your parcel.`,
+      latitude: input.latitude,
+      longitude: input.longitude,
+    });
+
+    await notifyReceiver({
+      receiverUserId: order.receiverUserId,
+      receiverPhone: order.receiverPhone ?? dropPhone,
+      type: 'DRIVER_ARRIVED',
+      title: 'Driver has arrived',
+      body: `${driverName} is at your location with parcel ${tracking}. Please collect your package.`,
+    });
+
+    await writeActivity({
+      userId,
+      action: 'driver.arrived',
+      metadata: { orderId, orderNumber: order.orderNumber },
+    });
+
+    return this.getById(orderId);
   }
 
   async branchHandoff(
@@ -317,11 +426,17 @@ export class OrdersService {
 
     const order = await this.getById(orderId);
     if (order.delivery) throw ApiError.badRequest('This order has already been assigned');
-    if (order.status !== 'CONFIRMED') {
-      throw ApiError.badRequest(`Only confirmed orders can be accepted (order is ${order.status})`);
+    const acceptable = ['CONFIRMED', 'AT_BRANCH'] as const;
+    if (!acceptable.includes(order.status as (typeof acceptable)[number])) {
+      throw ApiError.badRequest(`This order cannot be accepted (status is ${order.status})`);
     }
 
-    const result = await this.assignDriver(orderId, { driverId: driver.id });
+    const vehicle = await this.repo.client.vehicle.findFirst({
+      where: { driverId: driver.id, status: 'ACTIVE' },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const result = await this.assignDriver(orderId, { driverId: driver.id, vehicleId: vehicle?.id });
     await writeActivity({
       userId,
       action: 'driver.accept_job',
@@ -380,20 +495,47 @@ export class OrdersService {
     const invoiceNumber = generateReference('INV');
     const paymentReference = generateReference('PAY');
 
-    const charge = await paymentProvider.charge({
-      amount: price.totalAmount,
-      currency: price.currency,
-      reference: paymentReference,
-      description: `Payment for order ${orderNumber}`,
-    });
-    const paid = charge.status === 'PAID';
+    const payLater = dto.payLater || dto.paymentMethod?.toUpperCase() === 'PAY_LATER';
+    const methodRaw = (dto.paymentMethod ?? 'FAKE').toUpperCase();
+    const paymentMethod =
+      payLater || methodRaw === 'PAY_LATER'
+        ? 'CASH_ON_DELIVERY'
+        : (methodRaw as 'FAKE' | 'CASH_ON_DELIVERY' | 'TELEBIRR' | 'CBE' | 'CHAPA' | 'CARD' | 'MOBILE_MONEY');
+
+    let paid = false;
+    let provider = 'internal';
+    let providerRef = paymentReference;
+    if (!payLater && paymentMethod !== 'CASH_ON_DELIVERY') {
+      const charge = await paymentProvider.charge({
+        amount: price.totalAmount,
+        currency: price.currency,
+        reference: paymentReference,
+        description: `Payment for order ${orderNumber}`,
+      });
+      paid = charge.status === 'PAID';
+      provider = charge.provider;
+      providerRef = charge.providerRef;
+    }
+    const orderStatus = payLater || paymentMethod === 'CASH_ON_DELIVERY' || paid ? 'CONFIRMED' : 'PENDING_PAYMENT';
+
+    const receiverUserId = dto.receiverPhone
+      ? (await prisma.user.findFirst({
+          where: { phone: { in: phoneLookupVariants(dto.receiverPhone) } },
+        }))?.id ?? null
+      : null;
 
     const order = await this.repo.create({
       orderNumber,
       customer: { connect: { id: customerId } },
       ...(merchantId ? { merchant: { connect: { id: merchantId } } } : {}),
       deliveryType,
-      status: paid ? 'CONFIRMED' : 'PENDING_PAYMENT',
+      status: orderStatus,
+      pickupMethod: dto.pickupMethod ?? undefined,
+      originBranchId: dto.originBranchId ?? undefined,
+      destinationBranchId: dto.destinationBranchId ?? undefined,
+      receiverPhone: dto.receiverPhone ? normalizePhone(dto.receiverPhone) : dto.dropoff.contactPhone ?? undefined,
+      receiverUserId,
+      receiverGuzoId: dto.receiverGuzoId ?? undefined,
       distanceKm: price.distanceKm,
       baseFee: price.baseFee,
       distanceFee: price.distanceFee,
@@ -454,9 +596,9 @@ export class OrdersService {
       payment: {
         create: {
           reference: paymentReference,
-          provider: charge.provider,
-          providerRef: charge.providerRef,
-          method: 'FAKE',
+          provider,
+          providerRef,
+          method: paymentMethod,
           status: paid ? 'PAID' : 'PENDING',
           amount: price.totalAmount,
           currency: price.currency,
@@ -493,7 +635,24 @@ export class OrdersService {
     if (paid) eventBus.publish(DOMAIN_EVENTS.PAYMENT_SUCCEEDED, { orderId: order.id });
     emitToAdmins(SOCKET_EVENTS.ORDER_STATUS, { orderId: order.id, status: order.status });
 
-    return order;
+    for (const pkg of order.packages ?? []) {
+      await assignPickupCodes(pkg.id);
+    }
+
+    const refreshed = await this.getById(order.id);
+    const tracking = refreshed.packages?.[0]?.trackingNumber ?? orderNumber;
+    const pin = refreshed.packages?.[0]?.pickupPin;
+    if (receiverUserId || order.receiverPhone) {
+      await notifyReceiver({
+        receiverUserId,
+        receiverPhone: order.receiverPhone,
+        type: 'INCOMING_PARCEL',
+        title: 'Incoming parcel',
+        body: `You have a parcel on the way (${tracking}).${pin ? ` Pickup code: ${pin}.` : ''} Track: ${trackUrl(tracking)}`,
+      });
+    }
+
+    return refreshed;
   }
 
   async createBulk(rows: CreateOrderDto[], ctx: CreateOrderContext) {

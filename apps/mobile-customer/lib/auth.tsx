@@ -23,6 +23,7 @@ interface AuthState {
   completeSession: (res: LoginResponse) => Promise<void>;
   signInWithBiometrics: () => Promise<void>;
   signOut: () => Promise<void>;
+  updateUser: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -89,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         disconnectSocket();
         setUser(null);
       },
+      updateUser: setUser,
     }),
     [user, loading],
   );

@@ -19,8 +19,21 @@ export class MerchantRepository {
       where.OR = searchFields.map((f) => ({ [f]: { contains: params.search, mode: 'insensitive' } }));
     }
     const orderBy = params.sortBy ? { [params.sortBy]: params.sortOrder } : { createdAt: params.sortOrder };
+    const include = {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          status: true,
+          avatar: { select: { storageKey: true } },
+        },
+      },
+    };
     const [items, total] = await Promise.all([
-      delegate.findMany({ where, skip: params.skip, take: params.take, orderBy }),
+      delegate.findMany({ where, skip: params.skip, take: params.take, orderBy, include }),
       delegate.count({ where }),
     ]);
     return { items, total };

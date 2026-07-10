@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
-import type { Role } from '@delivery/types';
+import type { LoginResponse, RegisterResponse, Role, UserProfile } from '@delivery/types';
 import { authRepository, AuthRepository } from './auth.repository.js';
-import { AUTH_MESSAGES, DEFAULT_REGISTER_ROLE } from './auth.constants.js';
+import { AUTH_MESSAGES, DEFAULT_REGISTER_ROLE, APPROVAL_REGISTER_ROLES, PENDING_APPROVAL_MESSAGE } from './auth.constants.js';
 import type {
   RegisterDto,
   LoginDto,
@@ -12,8 +12,6 @@ import type {
   UpdateProfileLocationDto,
   RequestContext,
 } from './auth.dto.js';
-import type { LoginResponse } from './auth.types.js';
-import type { UserProfile } from '@delivery/types';
 import { ApiError } from '../../utils/ApiError.js';
 import { hashPassword, comparePassword } from '../../utils/password.js';
 import {
@@ -29,6 +27,14 @@ import { eventBus, DOMAIN_EVENTS } from '../../events/eventBus.js';
 import { emailProvider } from '../../providers/notification/email.provider.js';
 import { storage } from '../../providers/storage/index.js';
 import { UPLOAD_FOLDERS } from '../../constants/index.js';
+import { otpService } from '../otp/otp.service.js';
+import {
+  findUserByPhoneVariants,
+  isWalkInEmail,
+  linkOrdersToCustomerAccount,
+  upgradeWalkInCustomer,
+} from '../customers/customer-link.service.js';
+import { normalizePhone } from '../../utils/phone.js';
 
 type UserWithRoles = NonNullable<Awaited<ReturnType<AuthRepository['findUserById']>>>;
 type AddressRow = NonNullable<Awaited<ReturnType<AuthRepository['findDefaultAddressOrFirst']>>>;
@@ -36,33 +42,97 @@ type AddressRow = NonNullable<Awaited<ReturnType<AuthRepository['findDefaultAddr
 export class AuthService {
   constructor(private readonly repo: AuthRepository = authRepository) {}
 
-  async register(dto: RegisterDto, ctx: RequestContext): Promise<LoginResponse> {
+  async register(dto: RegisterDto, ctx: RequestContext): Promise<RegisterResponse> {
     const existing = await this.repo.findUserByEmail(dto.email);
     if (existing) throw ApiError.conflict(AUTH_MESSAGES.EMAIL_TAKEN);
 
-    const roleName = dto.role ?? DEFAULT_REGISTER_ROLE;
+    if (dto.phone?.trim()) {
+      await otpService.assertRecentlyVerified(dto.phone);
+    }
+
+    const roleName = (dto.role ?? DEFAULT_REGISTER_ROLE) as Role;
     const role = await this.repo.getRoleByName(roleName);
     if (!role) throw ApiError.badRequest(`Role ${roleName} is not configured. Run db:seed.`);
 
+    if (dto.phone?.trim() && roleName === 'CUSTOMER') {
+      const phoneUser = await findUserByPhoneVariants(dto.phone);
+      if (phoneUser && !isWalkInEmail(phoneUser.email)) {
+        throw ApiError.conflict('This phone number is already registered. Sign in instead.');
+      }
+      if (phoneUser && isWalkInEmail(phoneUser.email)) {
+        const passwordHash = await hashPassword(dto.password);
+        const upgraded = await upgradeWalkInCustomer({
+          walkInUserId: phoneUser.id,
+          email: dto.email,
+          passwordHash,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          phone: dto.phone,
+        });
+        await linkOrdersToCustomerAccount(upgraded.id, dto.phone);
+        eventBus.publish(DOMAIN_EVENTS.NOTIFICATION_REQUESTED, {
+          userId: upgraded.id,
+          type: 'WELCOME',
+          title: 'Welcome to Delivery Platform',
+          body: `Hi ${upgraded.firstName}, your account is ready.`,
+        });
+        return this.issueSession(upgraded, ctx);
+      }
+    }
+
+    const needsApproval = APPROVAL_REGISTER_ROLES.has(roleName);
     const passwordHash = await hashPassword(dto.password);
 
-        const profile =
+    const profile =
       roleName === 'MERCHANT'
         ? { merchant: { create: { merchantCode: generateReference('MER'), businessName: `${dto.firstName} ${dto.lastName}` } } }
         : roleName === 'DRIVER'
-          ? { driver: { create: { driverCode: generateReference('DRV') } } }
-          : { customer: { create: { customerCode: generateReference('CUST') } } };
+          ? {
+              driver: {
+                create: {
+                  driverCode: generateReference('DRV'),
+                  approvalStatus: (needsApproval ? 'PENDING' : 'APPROVED') as 'PENDING' | 'APPROVED',
+                },
+              },
+            }
+          : roleName === 'CUSTOMER'
+            ? { customer: { create: { customerCode: generateReference('CUST') } } }
+            : {};
 
     const user = await this.repo.createUser({
       email: dto.email,
       passwordHash,
       firstName: dto.firstName,
       lastName: dto.lastName,
-      phone: dto.phone,
-      status: 'ACTIVE',
+      phone: dto.phone ? normalizePhone(dto.phone) : undefined,
+      status: needsApproval ? 'PENDING' : 'ACTIVE',
       roles: { create: [{ role: { connect: { id: role.id } } }] },
       ...profile,
     });
+
+    if (dto.phone?.trim() && roleName === 'CUSTOMER') {
+      await linkOrdersToCustomerAccount(user.id, dto.phone);
+    }
+
+    if (needsApproval) {
+      eventBus.publish(DOMAIN_EVENTS.NOTIFICATION_REQUESTED, {
+        userId: user.id,
+        type: 'ACCOUNT_PENDING',
+        title: 'Registration submitted',
+        body: PENDING_APPROVAL_MESSAGE,
+      });
+      return {
+        pending: true,
+        message: PENDING_APPROVAL_MESSAGE,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          roles: user.roles.map((ur) => ur.role.name as Role),
+        },
+      };
+    }
 
     eventBus.publish(DOMAIN_EVENTS.NOTIFICATION_REQUESTED, {
       userId: user.id,
@@ -80,9 +150,13 @@ export class AuthService {
 
     const valid = await comparePassword(dto.password, user.passwordHash);
     if (!valid) throw ApiError.unauthorized(AUTH_MESSAGES.INVALID_CREDENTIALS);
+    if (user.status === 'PENDING') throw ApiError.forbidden(PENDING_APPROVAL_MESSAGE);
     if (user.status !== 'ACTIVE') throw ApiError.forbidden('Account is not active');
 
     await this.repo.updateLastLogin(user.id);
+    if (user.roles.some((ur) => ur.role.name === 'CUSTOMER') && user.phone) {
+      await linkOrdersToCustomerAccount(user.id, user.phone);
+    }
     return this.issueSession(user, ctx);
   }
 
@@ -119,39 +193,60 @@ export class AuthService {
     } catch {}
   }
 
-  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
-    const user = await this.repo.findUserByEmail(dto.email);
-        if (user) {
-      const resetToken = jwt.sign({ sub: user.id, purpose: 'reset' }, env.jwt.accessSecret, {
-        expiresIn: '30m',
-      });
-      const link = `${env.publicUrl}/reset-password?token=${resetToken}`;
-      await emailProvider.send({
-        to: user.email,
-        subject: 'Reset your password',
-        html: `<p>Click to reset your password (valid 30 min):</p><p><a href="${link}">${link}</a></p>`,
-      });
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string; phone?: string }> {
+    const user = await this.resolveUserForPasswordReset(dto);
+    if (user?.phone) {
+      const sent = await otpService.send(user.phone);
+      return { message: AUTH_MESSAGES.RESET_OTP_SENT, phone: sent.phone };
     }
     return { message: AUTH_MESSAGES.RESET_SENT };
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+    if (dto.token?.trim()) {
+      return this.resetPasswordWithToken(dto.token.trim(), dto.password);
+    }
+
+    const user = await this.resolveUserForPasswordReset(dto);
+    if (!user) throw ApiError.badRequest('Unable to reset password for this account');
+    if (!user.phone) {
+      throw ApiError.badRequest('This account has no phone number on file. Contact support.');
+    }
+
+    await otpService.assertRecentlyVerified(user.phone);
+    const passwordHash = await hashPassword(dto.password);
+    await this.repo.updatePassword(user.id, passwordHash);
+    return { message: AUTH_MESSAGES.PASSWORD_RESET };
+  }
+
+  private async resetPasswordWithToken(token: string, password: string): Promise<{ message: string }> {
     let payload: { sub: string; purpose: string };
     try {
-      payload = jwt.verify(dto.token, env.jwt.accessSecret) as { sub: string; purpose: string };
+      payload = jwt.verify(token, env.jwt.accessSecret) as { sub: string; purpose: string };
     } catch {
       throw ApiError.badRequest('Reset token is invalid or expired');
     }
     if (payload.purpose !== 'reset') throw ApiError.badRequest('Invalid reset token');
 
-    const passwordHash = await hashPassword(dto.password);
+    const passwordHash = await hashPassword(password);
     await this.repo.updatePassword(payload.sub, passwordHash);
     return { message: AUTH_MESSAGES.PASSWORD_RESET };
+  }
+
+  private async resolveUserForPasswordReset(dto: ForgotPasswordDto) {
+    const email = dto.email?.trim();
+    const phone = dto.phone?.trim();
+    if (email) return this.repo.findUserByEmail(email);
+    if (phone) return findUserByPhoneVariants(phone);
+    return null;
   }
 
   getMe(userId: string): Promise<UserProfile> {
     return this.repo.findUserById(userId).then(async (user) => {
       if (!user) throw ApiError.notFound('User not found');
+      if (user.roles.some((ur) => ur.role.name === 'CUSTOMER') && user.phone) {
+        await linkOrdersToCustomerAccount(userId, user.phone);
+      }
       const defaultAddress = await this.repo.findDefaultAddressOrFirst(userId);
       return this.toUserProfile(user, defaultAddress);
     });
@@ -161,9 +256,12 @@ export class AuthService {
     const user = await this.repo.updateProfile(userId, {
       ...(dto.firstName !== undefined ? { firstName: dto.firstName } : {}),
       ...(dto.lastName !== undefined ? { lastName: dto.lastName } : {}),
-      ...(dto.phone !== undefined ? { phone: dto.phone || null } : {}),
+      ...(dto.phone !== undefined ? { phone: dto.phone ? normalizePhone(dto.phone) : null } : {}),
       ...(dto.gender !== undefined ? { gender: dto.gender } : {}),
     });
+    if (dto.phone?.trim()) {
+      await linkOrdersToCustomerAccount(userId, dto.phone);
+    }
     const defaultAddress = await this.repo.findDefaultAddressOrFirst(userId);
     return this.toUserProfile(user, defaultAddress);
   }

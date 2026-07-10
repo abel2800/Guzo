@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation } from '@tanstack/react-query';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { markBranchException } from '@guzo/mobile-shared';
 import { GradientButton, GlassCard, colors, designStyles, radius, spacing } from '@guzo/mobile-ui';
 import { TrackingScanner } from '@/components/tracking-scanner';
@@ -12,7 +9,6 @@ import { useBranch } from '@/lib/branch';
 const REASONS = ['DAMAGED', 'RETURNED', 'EXPIRED', 'WRONG_BRANCH'];
 
 export default function ExceptionsScreen() {
-  const insets = useSafeAreaInsets();
   const { branchId } = useBranch();
   const [tracking, setTracking] = useState('');
   const [reason, setReason] = useState('RETURNED');
@@ -28,10 +24,7 @@ export default function ExceptionsScreen() {
   });
 
   return (
-    <View style={[designStyles.screen, { paddingTop: insets.top, padding: spacing.lg }]}>
-      <Pressable onPress={() => router.back()} style={{ marginBottom: 12 }}>
-        <Ionicons name="chevron-back" size={24} color={colors.text} />
-      </Pressable>
+    <View style={[designStyles.screen, { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg }]}>
       <Text style={styles.title}>Returns & exceptions</Text>
       <GlassCard>
         <Text style={styles.label}>Tracking</Text>

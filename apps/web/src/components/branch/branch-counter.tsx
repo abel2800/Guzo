@@ -123,7 +123,7 @@ export function BranchCounter() {
           <CardContent className="space-y-4 p-6">
             <div className="flex items-center gap-2 text-guzo-primary">
               <Package className="h-5 w-5" />
-              <h2 className="font-semibold text-white">Receive</h2>
+              <h2 className="font-semibold text-foreground">Receive</h2>
             </div>
             <BarcodeScanner value={tracking} onChange={setTracking} label="Tracking number" />
             <div className="grid grid-cols-2 gap-3">
@@ -161,7 +161,7 @@ export function BranchCounter() {
           <CardContent className="space-y-4 p-6">
             <div className="flex items-center gap-2 text-guzo-primary">
               <QrCode className="h-5 w-5" />
-              <h2 className="font-semibold text-white">Pickup</h2>
+              <h2 className="font-semibold text-foreground">Pickup</h2>
             </div>
             <BarcodeScanner value={reference} onChange={setReference} label="Tracking / QR" />
             <div className="space-y-2">
@@ -169,7 +169,7 @@ export function BranchCounter() {
               <Input value={pin} onChange={(e) => setPin(e.target.value)} maxLength={6} placeholder="6-digit PIN" />
             </div>
             {preview ? (
-              <div className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm">
+              <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
                 <p className="font-mono font-semibold">{preview.trackingNumber}</p>
                 <p className="text-muted-foreground">Order {preview.orderNumber} · {preview.status}</p>
                 {preview.requiresCod ? (

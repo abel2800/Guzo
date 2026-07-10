@@ -11,16 +11,25 @@ export default function DashboardIndex() {
   const hydrated = useAuthStore((s) => s.hydrated);
   const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
+  const authReady = hydrated || Boolean(accessToken);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!authReady) return;
     if (!accessToken) {
       router.replace('/login');
       return;
     }
     const slug = primarySlugForRoles(user?.roles ?? ['CUSTOMER']);
     router.replace(`/dashboard/${slug}`);
-  }, [hydrated, accessToken, user, router]);
+  }, [authReady, accessToken, user, router]);
+
+  if (!authReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Skeleton className="h-12 w-48" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center">

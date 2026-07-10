@@ -58,7 +58,7 @@ export function AdminCoupons() {
             <Card key={c.id}>
               <CardContent className="flex items-center justify-between p-4">
                 <div>
-                  <p className="font-mono font-semibold text-white">{c.code}</p>
+                  <p className="font-mono font-semibold text-foreground">{c.code}</p>
                   <p className="text-sm text-muted-foreground">{c.type} · {c.value}%</p>
                 </div>
                 <Badge variant={c.isActive ? 'success' : 'secondary'}>{c.isActive ? 'Active' : 'Inactive'}</Badge>

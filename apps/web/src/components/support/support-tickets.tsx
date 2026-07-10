@@ -98,11 +98,11 @@ export function SupportTickets() {
                   <button
                     key={t.id}
                     onClick={() => setOpenId(t.id)}
-                    className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left transition-colors hover:bg-white/5"
+                    className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left transition-colors hover:bg-muted/40"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-white">{t.subject}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="truncate font-semibold text-foreground">{t.subject}</p>
+                      <p className="text-xs text-muted-foreground">
                         {t.ticketNumber} · {t.requester.firstName} {t.requester.lastName} ·{' '}
                         <MessageSquare className="inline h-3 w-3" /> {t.messages.length}
                         {t.assignee ? ` · ${t.assignee.firstName}` : ' · Unassigned'}
@@ -122,7 +122,7 @@ export function SupportTickets() {
 
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Page {meta.page} of {meta.totalPages} · {meta.total} tickets
           </p>
           <div className="flex gap-2">

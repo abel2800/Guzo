@@ -1,16 +1,14 @@
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { getDriverEarnings } from '@guzo/mobile-shared';
 import { GlassCard, colors, designStyles, radius, spacing } from '@guzo/mobile-ui';
 
 export default function EarningsScreen() {
-  const insets = useSafeAreaInsets();
   const { data, isLoading } = useQuery({ queryKey: ['driver-earnings'], queryFn: getDriverEarnings });
 
   return (
-    <ScrollView style={[designStyles.screen, { paddingTop: insets.top }]} contentContainerStyle={[designStyles.screenPad, { paddingBottom: 40 }]}>
+    <ScrollView style={designStyles.screen} contentContainerStyle={[designStyles.screenPad, { paddingBottom: 40 }]}>
       <Text style={styles.title}>Earnings</Text>
 
       <GlassCard glow>

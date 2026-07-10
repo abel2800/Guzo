@@ -99,8 +99,8 @@ export function CustomerSupport() {
                     className="dashboard-list-row flex w-full items-center justify-between gap-3 px-6 py-4 text-left"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-white">{t.subject}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="truncate font-semibold text-foreground">{t.subject}</p>
+                      <p className="text-xs text-muted-foreground">
                         {t.ticketNumber} · {new Date(t.createdAt).toLocaleDateString()} ·{' '}
                         <MessageSquare className="inline h-3 w-3" /> {t.messages.length}
                       </p>
@@ -155,7 +155,7 @@ export function CustomerSupport() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Tell us what happened…"
-                className="w-full resize-none rounded-md border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:ring-2 focus:ring-guzo-primary/40"
+                className="w-full resize-none rounded-md border border-border bg-muted/40 p-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-guzo-primary/40"
               />
             </div>
             <Button className="w-full" onClick={() => create.mutate()} disabled={subject.trim().length < 3 || create.isPending}>

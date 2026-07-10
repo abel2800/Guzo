@@ -129,7 +129,7 @@ export function BulkUpload() {
             <CardContent className="p-0">
               <div className="max-h-[420px] overflow-auto">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-black/40 text-xs uppercase text-slate-400 backdrop-blur">
+                  <thead className="sticky top-0 bg-muted/60 text-xs uppercase text-muted-foreground backdrop-blur">
                     <tr>
                       <th className="px-4 py-2 text-left">#</th>
                       <th className="px-4 py-2 text-left">Type</th>
@@ -142,11 +142,11 @@ export function BulkUpload() {
                   <tbody className="dashboard-divide">
                     {rows.map((r, i) => (
                       <tr key={i} className={r.input ? '' : 'bg-destructive/5'}>
-                        <td className="px-4 py-2 text-slate-400">{i + 1}</td>
-                        <td className="px-4 py-2 text-slate-300">{r.raw.deliveryType || 'STANDARD'}</td>
-                        <td className="px-4 py-2 text-slate-300">{r.raw.pickupCity} · {r.raw.pickupLine1}</td>
-                        <td className="px-4 py-2 text-slate-300">{r.raw.dropoffCity} · {r.raw.dropoffLine1}</td>
-                        <td className="px-4 py-2 text-slate-300">{r.raw.weightKg}</td>
+                        <td className="px-4 py-2 text-muted-foreground">{i + 1}</td>
+                        <td className="px-4 py-2 text-muted-foreground">{r.raw.deliveryType || 'STANDARD'}</td>
+                        <td className="px-4 py-2 text-muted-foreground">{r.raw.pickupCity} · {r.raw.pickupLine1}</td>
+                        <td className="px-4 py-2 text-muted-foreground">{r.raw.dropoffCity} · {r.raw.dropoffLine1}</td>
+                        <td className="px-4 py-2 text-muted-foreground">{r.raw.weightKg}</td>
                         <td className="px-4 py-2">
                           {r.input ? (
                             <span className="flex items-center gap-1 text-emerald-600">
@@ -193,14 +193,14 @@ export function BulkUpload() {
             </div>
             <div className="max-h-72 space-y-1 overflow-auto">
               {summary.results.map((r) => (
-                <div key={r.index} className="flex items-center gap-2 rounded border border-white/10 px-3 py-1.5 text-sm">
+                <div key={r.index} className="flex items-center gap-2 rounded border border-border px-3 py-1.5 text-sm">
                   {r.success ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                   ) : (
                     <XCircle className="h-4 w-4 text-destructive" />
                   )}
-                  <span className="text-slate-400">Row {r.index + 1}</span>
-                  <span className="font-medium text-white">{r.success ? r.orderNumber : r.error}</span>
+                  <span className="text-muted-foreground">Row {r.index + 1}</span>
+                  <span className="font-medium text-foreground">{r.success ? r.orderNumber : r.error}</span>
                 </div>
               ))}
             </div>

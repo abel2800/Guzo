@@ -4,12 +4,16 @@ import type { ApiResponse } from '@delivery/types';
 export type DeliveryType = 'STANDARD' | 'EXPRESS' | 'SAME_DAY' | 'SCHEDULED' | 'INTERNATIONAL';
 
 export type OrderStatus =
+  | 'DRAFT'
   | 'PENDING_PAYMENT'
   | 'CONFIRMED'
   | 'ASSIGNED'
   | 'PICKED_UP'
   | 'IN_TRANSIT'
   | 'AT_WAREHOUSE'
+  | 'AT_BRANCH'
+  | 'AT_DESTINATION_BRANCH'
+  | 'READY_FOR_PICKUP'
   | 'OUT_FOR_DELIVERY'
   | 'DELIVERED'
   | 'FAILED'
@@ -39,6 +43,8 @@ export interface PackageInput {
   isFragile?: boolean;
 }
 
+export type PickupMethod = 'COMPANY_PICKUP' | 'DROP_AT_BRANCH' | 'BRANCH_PICKUP';
+
 export interface CreateOrderInput {
   deliveryType?: DeliveryType;
   pickup: AddressInput;
@@ -46,6 +52,14 @@ export interface CreateOrderInput {
   package: PackageInput;
   couponCode?: string;
   notes?: string;
+  scheduledPickupAt?: string;
+  pickupMethod?: 'COMPANY_PICKUP' | 'DROP_AT_BRANCH' | 'BRANCH_PICKUP';
+  paymentMethod?: string;
+  payLater?: boolean;
+  originBranchId?: string;
+  destinationBranchId?: string;
+  receiverPhone?: string;
+  receiverGuzoId?: string;
 }
 
 export interface PriceBreakdown {
@@ -91,9 +105,18 @@ export interface Order {
   currency: string;
   createdAt: string;
   estimatedDeliveryAt?: string | null;
+  pickupMethod?: PickupMethod;
+  receiverPhone?: string | null;
   pickupAddress: Address;
   dropoffAddress: Address;
-  packages: Array<{ id: string; trackingNumber: string; weightKg: number; description?: string | null }>;
+  packages: Array<{
+    id: string;
+    trackingNumber: string;
+    weightKg: number;
+    description?: string | null;
+    pickupPin?: string | null;
+    qrCode?: string | null;
+  }>;
   trackingEvents: TrackingEvent[];
   payment?: { status: string; amount: number; currency: string } | null;
   invoice?: { invoiceNumber: string; status: string; total: number } | null;
@@ -110,14 +133,27 @@ export interface Order {
       id?: string;
       currentLat?: number | null;
       currentLng?: number | null;
-      user?: { firstName: string; lastName: string; phone?: string | null } | null;
+      user?: {
+        firstName: string;
+        lastName: string;
+        phone?: string | null;
+        avatarUrl?: string | null;
+      } | null;
+    } | null;
+    vehicle?: {
+      type: string;
+      plateNumber: string;
+      brand?: string | null;
+      model?: string | null;
+      color?: string | null;
+      photoUrl?: string | null;
     } | null;
     proofFile?: { storageKey: string; mimeType?: string | null } | null;
     signatureFile?: { storageKey: string } | null;
   } | null;
 }
 
-const FILE_ORIGIN = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:4000';
+const FILE_ORIGIN = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:4010';
 export function fileUrl(storageKey?: string | null): string | undefined {
   if (!storageKey) return undefined;
   return `${FILE_ORIGIN}/static/${storageKey.replace(/^uploads\//, '')}`;
@@ -160,6 +196,9 @@ export const ORDER_STATUS_META: Record<string, { label: string; variant: 'defaul
   PICKED_UP: { label: 'Picked up', variant: 'secondary' },
   IN_TRANSIT: { label: 'In transit', variant: 'default' },
   AT_WAREHOUSE: { label: 'At warehouse', variant: 'secondary' },
+  AT_BRANCH: { label: 'At branch', variant: 'secondary' },
+  AT_DESTINATION_BRANCH: { label: 'At destination branch', variant: 'secondary' },
+  READY_FOR_PICKUP: { label: 'Ready for pickup', variant: 'default' },
   OUT_FOR_DELIVERY: { label: 'Out for delivery', variant: 'default' },
   DELIVERED: { label: 'Delivered', variant: 'success' },
   FAILED: { label: 'Failed', variant: 'destructive' },
