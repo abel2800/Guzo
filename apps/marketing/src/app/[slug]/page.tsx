@@ -31,14 +31,14 @@ const PAGES: Record<string, { title: string; body: string }> = {
     body: 'Reach us at hello@guzo.et for partnerships, press, and enterprise inquiries.',
   },
   careers: { title: 'Careers', body: 'We\'re hiring engineers, operators, and designers. Send your CV to careers@guzo.et.' },
-  blog: { title: 'Blog', body: 'News and updates coming soon.' },
+  blog: { title: 'Blog', body: 'Product updates and logistics insights — follow the repository for release notes.' },
   faq: { title: 'FAQ', body: 'Frequently asked questions will be published at launch.' },
   press: { title: 'Press', body: 'Media kit and press contacts available on request.' },
   investors: { title: 'Investors', body: 'GUZO is building category-defining logistics infrastructure for East Africa.' },
   privacy: { title: 'Privacy Policy', body: 'Your data is protected. Full policy published at launch.' },
   terms: { title: 'Terms of Service', body: 'Terms of use for GUZO services.' },
-  download: { title: 'Download App', body: 'iOS and Android apps coming soon. Join the waitlist on the homepage.' },
-  tracking: { title: 'Track Shipment', body: 'Live tracking will be available in the GUZO app and web dashboard.' },
+  download: { title: 'Download App', body: 'Get GUZO on your phone — customer, driver, merchant, and branch apps. Use the download hub or scan the Expo QR from your dev server.' },
+  tracking: { title: 'Track Shipment', body: 'Track live on the web dashboard or in the GUZO customer app using your order or tracking reference.' },
 };
 
 export function generateStaticParams() {

@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { createOrdersBulk, type CreateOrderInput } from '@guzo/mobile-shared';
+import { createOrdersBulk, validateBulkOrders, type CreateOrderInput } from '@guzo/mobile-shared';
 import { GlassCard, GradientButton, colors, designStyles, radius, spacing } from '@guzo/mobile-ui';
 
 const emptyRow = (): CreateOrderInput => ({
@@ -83,9 +83,9 @@ export default function BulkScreen() {
           setError('');
           setResult('');
           try {
-            const valid = rows.filter((r) => r.pickup.line1 && r.dropoff.line1);
-            if (!valid.length) throw new Error('Add at least one complete row');
-            const summary = await createOrdersBulk(valid);
+            const validationError = validateBulkOrders(rows);
+            if (validationError) throw new Error(validationError);
+            const summary = await createOrdersBulk(rows);
             setResult(`Created ${summary.created}/${summary.total} orders`);
           } catch (e) {
             setError(e instanceof Error ? e.message : 'Bulk upload failed');

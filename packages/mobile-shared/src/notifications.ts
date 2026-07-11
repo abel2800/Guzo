@@ -3,7 +3,7 @@ import { apiPost, apiGet, apiList, apiPatch, getApi } from './api';
 export interface PushTokenInput {
   token: string;
   platform: 'ios' | 'android';
-  appSlug: 'customer' | 'driver' | 'merchant';
+  appSlug: 'customer' | 'driver' | 'merchant' | 'branch';
 }
 
 export function registerPushToken(input: PushTokenInput): Promise<unknown> {

@@ -5,6 +5,7 @@ import et.guzo.domain.entity.TransportManifest;
 import et.guzo.security.RoleChecker;
 import et.guzo.security.SecurityUtil;
 import et.guzo.service.DriverOpsService;
+import et.guzo.web.dto.UpsertVehicleRequest;
 import et.guzo.web.dto.VehicleLogRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -78,6 +79,18 @@ public class DriverMeController {
     public ApiResponse<Map<String, Object>> vehicle() {
         requireDriver();
         return ApiResponse.ok(driverOpsService.getMyVehicle(SecurityUtil.requireUser().getId()), "Driver vehicle");
+    }
+
+    @PutMapping("/vehicle")
+    public ApiResponse<Map<String, Object>> upsertVehicle(@Valid @RequestBody UpsertVehicleRequest body) {
+        requireDriver();
+        return ApiResponse.ok(driverOpsService.upsertMyVehicle(SecurityUtil.requireUser().getId(), body), "Vehicle updated");
+    }
+
+    @PostMapping("/vehicle/photo")
+    public ApiResponse<Map<String, Object>> uploadVehiclePhoto(@RequestParam("photo") org.springframework.web.multipart.MultipartFile photo) {
+        requireDriver();
+        return ApiResponse.ok(driverOpsService.uploadVehiclePhoto(SecurityUtil.requireUser().getId(), photo), "Vehicle photo updated");
     }
 
     @GetMapping("/vehicle/logs")

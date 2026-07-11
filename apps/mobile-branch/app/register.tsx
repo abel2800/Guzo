@@ -18,7 +18,7 @@ type PaymentChoice = 'PAY_LATER' | 'CASH_ON_DELIVERY' | 'FAKE' | 'TELEBIRR' | 'C
 const PAYMENT_OPTIONS: Array<{ value: PaymentChoice; label: string }> = [
   { value: 'PAY_LATER', label: 'Pay later' },
   { value: 'CASH_ON_DELIVERY', label: 'Cash on delivery' },
-  { value: 'FAKE', label: 'Pay now (demo)' },
+  ...(__DEV__ ? [{ value: 'FAKE' as const, label: 'Pay now (demo)' }] : []),
   { value: 'TELEBIRR', label: 'Telebirr' },
   { value: 'CBE', label: 'CBE' },
   { value: 'CHAPA', label: 'Chapa' },

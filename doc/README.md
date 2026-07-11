@@ -31,6 +31,8 @@ This documentation set describes every major component: installation, architectu
 | 6 | [Mobile Applications](mobile-apps.md) | Customer, Driver, Merchant, Branch Expo apps |
 | 7 | [Features & Roles](features-and-roles.md) | Order lifecycle, RBAC, permissions, capability matrix |
 | 8 | [Database](database.md) | Schema, tables, migrations, seed data, commands |
+| 8b | [Manual migrations](database-migrations.md) | SQL apply order outside Prisma chain |
+| 8c | [Branch BLE hardware](mobile-branch-hardware.md) | Printer discovery, scales, ESC/POS |
 | 9 | [Security](security.md) | Authentication, authorization, tokens, audit, hardening |
 | 10 | [Development Workflow](development-workflow.md) | One-command dev, ports, scripts, testing, builds |
 | 11 | [Branding & Assets](branding-and-assets.md) | Logos, splash screens, design system, QR codes |

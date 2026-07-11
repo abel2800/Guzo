@@ -42,6 +42,9 @@ public class Vehicle {
 
     private String color;
 
+    @Column(name = "photoFileId")
+    private String photoFileId;
+
     @Column(name = "capacityKg")
     private BigDecimal capacityKg;
 

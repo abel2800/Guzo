@@ -10,6 +10,8 @@ import { generateReference, generateTrackingNumber } from '@delivery/utils';
 import { osrmProvider } from '../../providers/maps/osrm.provider.js';
 import { resolveAddressCoords } from '../../providers/maps/resolve-address.js';
 import { paymentProvider } from '../../providers/payment/index.js';
+import { createRedirectCharge, isRedirectPaymentMethod } from '../../providers/payment/gateway-checkout.js';
+import { env } from '../../config/env.js';
 import { storage } from '../../providers/storage/index.js';
 import { UPLOAD_FOLDERS } from '../../constants/index.js';
 import { eventBus, DOMAIN_EVENTS } from '../../events/eventBus.js';
@@ -502,19 +504,28 @@ export class OrdersService {
         ? 'CASH_ON_DELIVERY'
         : (methodRaw as 'FAKE' | 'CASH_ON_DELIVERY' | 'TELEBIRR' | 'CBE' | 'CHAPA' | 'CARD' | 'MOBILE_MONEY');
 
+    if (paymentMethod === 'FAKE' && env.isProd) {
+      throw ApiError.badRequest('Demo payments are disabled in production');
+    }
+
     let paid = false;
     let provider = 'internal';
     let providerRef = paymentReference;
+    let checkoutUrl: string | undefined;
     if (!payLater && paymentMethod !== 'CASH_ON_DELIVERY') {
-      const charge = await paymentProvider.charge({
+      const chargeInput = {
         amount: price.totalAmount,
         currency: price.currency,
         reference: paymentReference,
         description: `Payment for order ${orderNumber}`,
-      });
+      };
+      const charge = isRedirectPaymentMethod(paymentMethod)
+        ? createRedirectCharge(paymentMethod, chargeInput)
+        : await paymentProvider.charge(chargeInput);
       paid = charge.status === 'PAID';
       provider = charge.provider;
       providerRef = charge.providerRef;
+      checkoutUrl = charge.redirectUrl;
     }
     const orderStatus = payLater || paymentMethod === 'CASH_ON_DELIVERY' || paid ? 'CONFIRMED' : 'PENDING_PAYMENT';
 
@@ -603,6 +614,7 @@ export class OrdersService {
           amount: price.totalAmount,
           currency: price.currency,
           paidAt: paid ? new Date() : undefined,
+          metadata: checkoutUrl ? { checkoutUrl } : undefined,
         },
       },
       invoice: {

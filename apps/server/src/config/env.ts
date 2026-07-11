@@ -75,6 +75,7 @@ export const env = {
 
   payment: {
     provider: process.env.PAYMENT_PROVIDER ?? 'fake',
+    checkoutUrl: process.env.PAYMENT_CHECKOUT_URL ?? '',
   },
 
   sms: {

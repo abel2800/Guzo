@@ -20,7 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -197,6 +201,113 @@ public class AuthService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> ApiException.notFound("User not found"));
         return toProfile(user);
+    }
+
+    @Transactional
+    public Map<String, String> forgotPassword(ForgotPasswordRequest dto) {
+        User user = resolveUserForPasswordReset(dto);
+        if (user != null && user.getPhone() != null && !user.getPhone().isBlank()) {
+            String phone = otpService.send(user.getPhone());
+            return Map.of(
+                "message", "Verification code sent. Check your phone (or the API server terminal in dev).",
+                "phone", phone
+            );
+        }
+        return Map.of("message", "If an account exists, a verification code was sent to the registered phone.");
+    }
+
+    @Transactional
+    public Map<String, String> resetPassword(ResetPasswordRequest dto) {
+        if (dto.token() != null && !dto.token().isBlank()) {
+            return resetPasswordWithToken(dto.token().trim(), dto.password());
+        }
+
+        User user = resolveUserForPasswordReset(dto);
+        if (user == null) {
+            throw ApiException.badRequest("Unable to reset password for this account");
+        }
+        if (user.getPhone() == null || user.getPhone().isBlank()) {
+            throw ApiException.badRequest("This account has no phone number on file. Contact support.");
+        }
+
+        otpService.assertRecentlyVerified(user.getPhone());
+        user.setPasswordHash(passwordEncoder.encode(dto.password()));
+        user.setUpdatedAt(Instant.now());
+        userRepository.save(user);
+        return Map.of("message", "Password has been reset");
+    }
+
+    private Map<String, String> resetPasswordWithToken(String token, String password) {
+        try {
+            var claims = jwtService.verifyResetToken(token);
+            User user = userRepository.findById(claims.getSubject())
+                .orElseThrow(() -> ApiException.badRequest("Reset token is invalid or expired"));
+            user.setPasswordHash(passwordEncoder.encode(password));
+            user.setUpdatedAt(Instant.now());
+            userRepository.save(user);
+            return Map.of("message", "Password has been reset");
+        } catch (IllegalArgumentException e) {
+            throw ApiException.badRequest("Reset token is invalid or expired");
+        }
+    }
+
+    private User resolveUserForPasswordReset(ForgotPasswordRequest dto) {
+        if (dto.email() != null && !dto.email().isBlank()) {
+            return userRepository.findByEmail(dto.email().trim().toLowerCase()).orElse(null);
+        }
+        if (dto.phone() != null && !dto.phone().isBlank()) {
+            return findUserByPhoneVariants(dto.phone());
+        }
+        return null;
+    }
+
+    private User resolveUserForPasswordReset(ResetPasswordRequest dto) {
+        if (dto.email() != null && !dto.email().isBlank()) {
+            return userRepository.findByEmail(dto.email().trim().toLowerCase()).orElse(null);
+        }
+        if (dto.phone() != null && !dto.phone().isBlank()) {
+            return findUserByPhoneVariants(dto.phone());
+        }
+        return null;
+    }
+
+    private User findUserByPhoneVariants(String phone) {
+        for (String variant : phoneLookupVariants(phone)) {
+            Optional<User> found = userRepository.findByPhone(variant);
+            if (found.isPresent()) return found.get();
+        }
+        return null;
+    }
+
+    private static List<String> phoneLookupVariants(String raw) {
+        String normalized = normalizePhoneForLookup(raw);
+        String digits = normalized.replaceAll("\\D", "");
+        Set<String> variants = new LinkedHashSet<>();
+        variants.add(raw.trim());
+        variants.add(normalized);
+        if (digits.startsWith("251") && digits.length() >= 12) {
+            String local = digits.substring(3);
+            variants.add("+" + digits);
+            variants.add("0" + local);
+            variants.add(local);
+        } else if (digits.length() == 10 && digits.startsWith("0")) {
+            variants.add(digits);
+            variants.add("+251" + digits.substring(1));
+            variants.add(digits.substring(1));
+        } else if (digits.length() == 9) {
+            variants.add(digits);
+            variants.add("0" + digits);
+            variants.add("+251" + digits);
+        }
+        return List.copyOf(variants);
+    }
+
+    private static String normalizePhoneForLookup(String raw) {
+        String digits = raw.replaceAll("\\D", "");
+        if (digits.startsWith("251") && digits.length() == 12) return "+" + digits;
+        if (digits.length() == 10 && digits.startsWith("0")) return "+251" + digits.substring(1);
+        if (digits.length() == 9) return "+251" + digits;
+        return raw.trim();
     }
 
     private LoginResponse issueSession(User user, String userAgent, String ip, String existingSessionId) {

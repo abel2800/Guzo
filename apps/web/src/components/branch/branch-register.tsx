@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PanelSelect } from '@/components/dashboard/futuristic-primitives';
 import { FuturisticHero } from '@/components/dashboard/futuristic-primitives';
+import { isDemoPaymentsEnabled } from '@/lib/env';
 
 type DestMode = 'branch' | 'home';
 type PaymentChoice = 'PAY_LATER' | 'CASH_ON_DELIVERY' | 'FAKE' | 'TELEBIRR' | 'CBE' | 'CHAPA';
@@ -169,7 +170,7 @@ export function BranchRegister() {
             <PanelSelect value={form.paymentMethod} onChange={set('paymentMethod')}>
               <option value="PAY_LATER">Pay later</option>
               <option value="CASH_ON_DELIVERY">Cash on delivery</option>
-              <option value="FAKE">Pay now (demo)</option>
+              {isDemoPaymentsEnabled() ? <option value="FAKE">Pay now (demo)</option> : null}
               <option value="TELEBIRR">Telebirr</option>
               <option value="CBE">CBE</option>
               <option value="CHAPA">Chapa</option>

@@ -9,7 +9,16 @@
 
 ## [Unreleased] — July 2026
 
-### Authentication & OTP
+### Gap closure (sections 6–8)
+
+- **Payment checkout redirect** — Telebirr, CBE, and Chapa orders return `payment.checkoutUrl`; web opens gateway in a new tab; customer mobile uses `Linking.openURL`. Set `PAYMENT_CHECKOUT_URL` for production gateway base.
+- **Push toggle persistence** — Customer profile stores push preference in AsyncStorage; disabling calls `DELETE /push-tokens`.
+- **Merchant mobile analytics** — 7-day order bar chart from recent orders list.
+- **Branch BLE QR** — ESC/POS native QR commands replace text-only QR line on thermal labels.
+- **Notification deep links** — `notificationMobileRoute` in `@guzo/mobile-shared` for support, wallet, promo, and tracking routes.
+- **Bulk upload validation** — Merchant mobile validates phone, city, weight (max 200 rows).
+- **Docs** — Node/Java parity matrix in `api-servers.md`; manual SQL apply order in `database-migrations.md`; branch BLE hardware guide.
+
 
 - **Phone OTP on signup** — Registration on web and all four mobile apps verifies the phone number via OTP before account creation (`POST /otp/send`, `POST /otp/verify`; enforced in `POST /auth/register` when `phone` is provided).
 - **Forgot password with OTP** — `POST /auth/forgot-password` accepts email or phone. Phone flow sends an OTP; `POST /auth/reset-password` completes reset with OTP (phone) or legacy email token.

@@ -4,6 +4,7 @@ export * from './branches';
 export * from './branch-ops';
 export * from './receivers';
 export * from './family';
+export * from './platform';
 export * from './support';
 export * from './otp';
 export * from './invoices';

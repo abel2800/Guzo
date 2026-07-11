@@ -8,6 +8,18 @@ function textLine(line: string): number[] {
   return [...new TextEncoder().encode(line), LF];
 }
 
+function escPosQr(data: string): number[] {
+  const bytes = [...new TextEncoder().encode(data)];
+  const storeLen = bytes.length + 3;
+  const chunks: number[] = [];
+  chunks.push(GS, 0x28, 0x6b, storeLen % 256, Math.floor(storeLen / 256), 0x31, 0x50, 0x30);
+  chunks.push(...bytes);
+  chunks.push(GS, 0x28, 0x6b, 3, 0, 0x31, 0x43, 6);
+  chunks.push(GS, 0x28, 0x6b, 3, 0, 0x31, 0x45, 0x31);
+  chunks.push(GS, 0x28, 0x6b, 3, 0, 0x31, 0x51, 0x30);
+  return chunks;
+}
+
 export function buildEscPosLabel(label: ParcelLabel): Uint8Array {
   const chunks: number[] = [];
   chunks.push(ESC, 0x40);   chunks.push(ESC, 0x61, 0x01);   chunks.push(...textLine('GUZO PARCEL'));
@@ -21,9 +33,10 @@ export function buildEscPosLabel(label: ParcelLabel): Uint8Array {
   chunks.push(...textLine(`Weight: ${label.weightKg ?? '—'} kg`));
   chunks.push(...textLine(`To: ${label.receiverPhone ?? '—'}`));
   const qr = label.qrCode ?? label.trackingNumber;
-  chunks.push(...textLine(`QR: ${qr}`));
-  chunks.push(LF, LF, LF);
-  chunks.push(GS, 0x56, 0x00);   return new Uint8Array(chunks);
+  chunks.push(...escPosQr(qr));
+  chunks.push(LF);
+  chunks.push(GS, 0x56, 0x00);
+  return new Uint8Array(chunks);
 }
 
 export function parseWeightMeasurement(base64: string): number | null {

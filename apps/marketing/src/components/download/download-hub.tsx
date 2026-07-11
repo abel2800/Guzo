@@ -11,7 +11,7 @@ import {
   type PlatformId,
 } from '@/data/app-downloads';
 
-const APPS: AppId[] = ['customer', 'driver', 'merchant'];
+const APPS: AppId[] = ['customer', 'driver', 'merchant', 'branch'];
 
 export function DownloadHub() {
   const [app, setApp] = useState<AppId>('customer');

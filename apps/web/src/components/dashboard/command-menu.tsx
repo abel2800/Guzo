@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import {
   CommandDialog,
@@ -12,11 +13,20 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import type { RoleConfig } from '@/lib/roles';
+import { globalSearch } from '@/lib/search';
 
 export function CommandMenu({ config }: { config: RoleConfig }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState('');
   const base = `/dashboard/${config.slug}`;
+  const canSearchApi = ['admin', 'super-admin', 'support', 'operations'].includes(config.slug);
+
+  const { data: searchData } = useQuery({
+    queryKey: ['global-search', query],
+    queryFn: () => globalSearch(query),
+    enabled: open && canSearchApi && query.trim().length >= 2,
+  });
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -48,7 +58,7 @@ export function CommandMenu({ config }: { config: RoleConfig }) {
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Search modules and actions..." />
+        <CommandInput placeholder="Search modules and actions..." value={query} onValueChange={setQuery} />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading={config.label}>
@@ -63,6 +73,37 @@ export function CommandMenu({ config }: { config: RoleConfig }) {
               );
             })}
           </CommandGroup>
+          {canSearchApi && searchData ? (
+            <>
+              {searchData.orders.length > 0 ? (
+                <CommandGroup heading="Orders">
+                  {searchData.orders.map((o) => (
+                    <CommandItem key={o.id} value={o.orderNumber} onSelect={() => go(`${base}/orders`)}>
+                      {o.orderNumber} · {o.status}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ) : null}
+              {searchData.users.length > 0 ? (
+                <CommandGroup heading="Users">
+                  {searchData.users.map((u) => (
+                    <CommandItem key={u.id} value={u.email} onSelect={() => go(`${base}/users`)}>
+                      {u.firstName} {u.lastName} · {u.email}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ) : null}
+              {searchData.packages.length > 0 ? (
+                <CommandGroup heading="Packages">
+                  {searchData.packages.map((p) => (
+                    <CommandItem key={p.id} value={p.trackingNumber} onSelect={() => go(`${base}/tracking`)}>
+                      {p.trackingNumber} · {p.status}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ) : null}
+            </>
+          ) : null}
         </CommandList>
       </CommandDialog>
     </>

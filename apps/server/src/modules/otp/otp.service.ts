@@ -1,7 +1,9 @@
 import { randomInt } from 'node:crypto';
 import { prisma } from '@delivery/database';
 import { ApiError } from '../../utils/ApiError.js';
+import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
+import { smsProvider } from '../../providers/notification/sms.provider.js';
 import { normalizePhone } from '../../utils/phone.js';
 
 const OTP_TTL_MINUTES = 10;
@@ -22,12 +24,19 @@ export class OtpService {
       },
     });
 
-    logger.info(`[OTP stub] Send code ${code} to ${normalized}`);
-    logger.info(`════════ OTP for ${normalized}: ${code} ════════`);
+    if (env.nodeEnv === 'production' || env.sms.driver !== 'console') {
+      await smsProvider.send({
+        to: normalized,
+        body: `Your GUZO verification code is ${code}. Valid for ${OTP_TTL_MINUTES} minutes.`,
+      });
+    } else {
+      logger.info(`[OTP stub] Send code ${code} to ${normalized}`);
+      logger.info(`════════ OTP for ${normalized}: ${code} ════════`);
+    }
 
     return {
       phone: normalized,
-      message: 'OTP sent (check server logs in dev)',
+      message: env.sms.driver === 'console' ? 'OTP sent (check server logs in dev)' : 'OTP sent',
     };
   }
 

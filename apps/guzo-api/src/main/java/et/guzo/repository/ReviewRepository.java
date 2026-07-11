@@ -13,4 +13,10 @@ public interface ReviewRepository extends JpaRepository<Review, String> {
     boolean existsByAuthorIdAndOrderIdAndTargetType(String authorId, String orderId, et.guzo.domain.enums.ReviewTargetType targetType);
 
     Page<Review> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT COALESCE(AVG(r.rating), 0) FROM Review r
+        WHERE r.targetType = :targetType AND r.targetId = :targetId
+        """)
+    Double averageRatingByTarget(et.guzo.domain.enums.ReviewTargetType targetType, String targetId);
 }

@@ -10,6 +10,8 @@ export interface ChargeResult {
   provider: string;
   providerRef: string;
   status: 'PAID' | 'PENDING' | 'FAILED';
+  /** Hosted checkout URL for Telebirr, CBE, Chapa, etc. */
+  redirectUrl?: string;
   raw?: Record<string, unknown>;
 }
 

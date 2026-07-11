@@ -22,6 +22,7 @@ public class OtpService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final PhoneOtpRepository phoneOtpRepository;
+    private final SmsService smsService;
 
     @Transactional
     public String send(String phone) {
@@ -35,7 +36,8 @@ public class OtpService {
         otp.setExpiresAt(now.plus(10, ChronoUnit.MINUTES));
         otp.setCreatedAt(now);
         phoneOtpRepository.save(otp);
-        log.info("[OTP stub] Send code {} to {}", code, normalized);
+        smsService.send(normalized, "Your Guzo verification code is: " + code);
+        log.debug("OTP generated for {}", normalized);
         return normalized;
     }
 

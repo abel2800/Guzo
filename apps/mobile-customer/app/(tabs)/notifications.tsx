@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { listNotifications, markNotificationRead, trackOrder, extractTrackingReference, isOrderNotification } from '@guzo/mobile-shared';
+import { listNotifications, markNotificationRead, trackOrder, notificationMobileRoute } from '@guzo/mobile-shared';
 import { GlassCard } from '@guzo/mobile-ui';
 import { colors, designStyles, radius, spacing } from '@/lib/design';
 
@@ -29,8 +29,9 @@ export default function NotificationsScreen() {
 
   async function openNotification(item: { id: string; type: string; body: string; readAt?: string | null }) {
     if (!item.readAt) readMut.mutate(item.id);
-    if (isOrderNotification(item.type)) {
-      const ref = extractTrackingReference(item.body);
+    const route = notificationMobileRoute('customer', item);
+    if (route?.startsWith('/track?')) {
+      const ref = new URLSearchParams(route.split('?')[1]).get('ref');
       if (ref) {
         try {
           const order = await trackOrder(ref);
@@ -41,6 +42,10 @@ export default function NotificationsScreen() {
           return;
         }
       }
+    }
+    if (route) {
+      router.push(route as '/support' | '/wallet' | '/loyalty' | '/(tabs)/orders');
+      return;
     }
     router.push('/(tabs)/orders');
   }

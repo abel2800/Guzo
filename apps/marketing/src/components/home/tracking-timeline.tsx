@@ -27,6 +27,7 @@ export function TrackingTimeline() {
           <h2 className="font-display text-4xl font-bold text-white md:text-5xl">Know where your package is — always</h2>
           <p className="mt-4 text-guzo-muted">
             Interactive tracking from order creation to doorstep delivery. Every milestone, verified and visible.
+            <span className="mt-2 block text-xs text-guzo-muted/80">Timeline below is an illustrative demo — use /tracking with a real reference for live data.</span>
           </p>
         </SectionReveal>
 

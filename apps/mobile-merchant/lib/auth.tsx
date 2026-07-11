@@ -13,6 +13,7 @@ import {
 import { tokenStorage } from './storage';
 import { API_URL } from './config';
 import { initOfflineSupport } from './offline';
+import { setupPushNotifications } from './push';
 
 const APP_SCOPE = 'merchant' as const;
 
@@ -70,11 +71,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await setBiometricEnabled(true, APP_SCOPE);
         }
         setUser(res.user);
+        void setupPushNotifications();
       },
       async completeSession(res) {
         requireMerchant(res.user);
         await tokenStorage.setTokens(res.tokens.accessToken, res.tokens.refreshToken);
         setUser(res.user);
+        void setupPushNotifications();
       },
       async signInWithBiometrics() {
         const token = await tokenStorage.getAccessToken();

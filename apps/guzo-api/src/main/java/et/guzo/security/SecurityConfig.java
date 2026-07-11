@@ -32,7 +32,8 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/", "/health").permitAll()
-                .requestMatchers("/auth/register", "/auth/login", "/auth/refresh", "/auth/logout").permitAll()
+                .requestMatchers("/auth/register", "/auth/login", "/auth/refresh", "/auth/logout",
+                    "/auth/forgot-password", "/auth/reset-password").permitAll()
                 .requestMatchers(HttpMethod.POST, "/orders/quote").permitAll()
                 .requestMatchers(HttpMethod.GET, "/orders/track/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/marketing/**").permitAll()

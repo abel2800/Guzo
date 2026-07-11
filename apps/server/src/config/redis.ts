@@ -6,6 +6,9 @@ type RedisLike = {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ...args: unknown[]): Promise<unknown>;
   del(key: string): Promise<unknown>;
+  incr(key: string): Promise<number>;
+  decr(key: string): Promise<number>;
+  expire(key: string, seconds: number): Promise<unknown>;
   on(event: string, cb: (...a: unknown[]) => void): unknown;
 };
 

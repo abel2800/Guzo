@@ -15,6 +15,7 @@ public class GuzoProperties {
     private Socket socket = new Socket();
     private int socketPort = 4001;
     private Jwt jwt = new Jwt();
+    private Sms sms = new Sms();
 
     @Getter
     @Setter
@@ -29,5 +30,20 @@ public class GuzoProperties {
         private String refreshSecret;
         private int accessExpiresMinutes = 15;
         private int refreshExpiresDays = 7;
+    }
+
+    @Getter
+    @Setter
+    public static class Sms {
+        private String driver = "console";
+        private Twilio twilio = new Twilio();
+    }
+
+    @Getter
+    @Setter
+    public static class Twilio {
+        private String accountSid = "";
+        private String authToken = "";
+        private String fromNumber = "";
     }
 }

@@ -8,6 +8,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -34,6 +36,16 @@ public class AuthController {
     public ApiResponse<Void> logout(@RequestBody(required = false) RefreshRequest body) {
         if (body != null) authService.logout(body.refreshToken());
         return ApiResponse.ok(null, "Logged out");
+    }
+
+    @PostMapping("/forgot-password")
+    public ApiResponse<Map<String, String>> forgotPassword(@RequestBody ForgotPasswordRequest body) {
+        return ApiResponse.ok(authService.forgotPassword(body));
+    }
+
+    @PostMapping("/reset-password")
+    public ApiResponse<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest body) {
+        return ApiResponse.ok(authService.resetPassword(body));
     }
 
     @GetMapping("/me")

@@ -20,12 +20,26 @@ public class TrackingService {
 
     @Transactional
     public TrackingEvent record(String orderId, TrackingEventType type, OrderStatus status, String description, String createdById) {
+        return record(orderId, type, status, description, createdById, null, null);
+    }
+
+    @Transactional
+    public TrackingEvent record(String orderId, TrackingEventType type, OrderStatus status, String description,
+                                String createdById, Double latitude, Double longitude) {
+        return record(orderId, type, status.name(), description, createdById, latitude, longitude);
+    }
+
+    @Transactional
+    public TrackingEvent record(String orderId, TrackingEventType type, String status, String description,
+                                String createdById, Double latitude, Double longitude) {
         TrackingEvent event = new TrackingEvent();
         event.setId(IdUtil.cuid());
         event.setOrderId(orderId);
         event.setType(type);
-        event.setStatus(status.name());
+        event.setStatus(status);
         event.setDescription(description);
+        event.setLatitude(latitude);
+        event.setLongitude(longitude);
         event.setCreatedById(createdById);
         event.setCreatedAt(Instant.now());
         return trackingEventRepository.save(event);

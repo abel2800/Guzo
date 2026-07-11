@@ -18,10 +18,25 @@ type OrderRow = Record<string, unknown> & {
   } & Record<string, unknown>;
 };
 
-export function serializeOrder<T extends OrderRow>(order: T): T {
-  if (!order.delivery) return order;
+type PaymentRow = { metadata?: { checkoutUrl?: string } | null } & Record<string, unknown>;
 
-  const delivery = order.delivery;
+function serializePayment(payment: PaymentRow | null | undefined) {
+  if (!payment) return payment;
+  const meta = payment.metadata as { checkoutUrl?: string } | null | undefined;
+  const checkoutUrl = meta?.checkoutUrl;
+  if (!checkoutUrl) return payment;
+  const { metadata: _meta, ...rest } = payment;
+  return { ...rest, checkoutUrl };
+}
+
+export function serializeOrder<T extends OrderRow>(order: T): T {
+  const withPayment = order.payment
+    ? { ...order, payment: serializePayment(order.payment as PaymentRow) }
+    : order;
+
+  if (!withPayment.delivery) return withPayment as T;
+
+  const delivery = withPayment.delivery;
   const driver = delivery.driver;
   const user = driver?.user;
   const vehicle = delivery.vehicle;
@@ -53,7 +68,7 @@ export function serializeOrder<T extends OrderRow>(order: T): T {
       : null,
   };
 
-  return { ...order, delivery: serializedDelivery };
+  return { ...withPayment, delivery: serializedDelivery } as T;
 }
 
 export function serializeOrders<T extends OrderRow>(orders: T[]): T[] {

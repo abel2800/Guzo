@@ -58,6 +58,24 @@ public class JwtService {
         return claims;
     }
 
+    public String signResetToken(String userId) {
+        Instant now = Instant.now();
+        Instant exp = now.plus(1, ChronoUnit.HOURS);
+        return Jwts.builder()
+            .claim("purpose", "reset")
+            .subject(userId)
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(exp))
+            .signWith(accessKey())
+            .compact();
+    }
+
+    public Claims verifyResetToken(String token) {
+        Claims claims = parse(token, accessKey());
+        if (!"reset".equals(claims.get("purpose"))) throw new IllegalArgumentException("Invalid reset token");
+        return claims;
+    }
+
     private Claims parse(String token, SecretKey key) {
         return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
     }

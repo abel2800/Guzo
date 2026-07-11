@@ -61,6 +61,7 @@ public class OrderService {
     private final FileStorageService fileStorageService;
     private final SocketRealtimeService socketRealtimeService;
     private final BranchRepository branchRepository;
+    private final SmsService smsService;
 
     @Transactional(readOnly = true)
     public PriceBreakdown quote(OrderQuoteRequest dto) {
@@ -403,7 +404,8 @@ public class OrderService {
         order.setUpdatedAt(Instant.now());
         orderRepository.save(order);
         trackingService.record(orderId, mapStatusToEvent(dto.status()), dto.status(),
-            dto.note() != null ? dto.note() : "Status updated to " + dto.status(), user.getId());
+            dto.note() != null ? dto.note() : "Status updated to " + dto.status(), user.getId(),
+            dto.latitude(), dto.longitude());
         if (order.getMerchantId() != null) {
             merchantPlatformService.dispatchEvent(order.getMerchantId(), "parcel.status_changed",
                 "{\"orderId\":\"" + orderId + "\",\"status\":\"" + dto.status() + "\"}");
@@ -498,6 +500,85 @@ public class OrderService {
             throw ApiException.badRequest("Only failed deliveries can be reattempted");
         }
         return updateStatus(orderId, new OrderStatusUpdateRequest(OrderStatus.OUT_FOR_DELIVERY, "Driver reattempting delivery"), user);
+    }
+
+    @Transactional
+    public OrderDetailDto scanPickup(String orderId, AuthUser user, ScanPickupRequest input) {
+        Driver driver = driverRepository.findByUserId(user.getId())
+            .orElseThrow(() -> ApiException.badRequest("Authenticated user is not a driver"));
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> ApiException.notFound("Order not found"));
+        Delivery delivery = deliveryRepository.findByOrderId(orderId).orElseThrow(() -> ApiException.badRequest("No delivery for this order"));
+        if (!driver.getId().equals(delivery.getDriverId())) {
+            throw ApiException.forbidden("This delivery is not assigned to you");
+        }
+        if (order.getStatus() != OrderStatus.ASSIGNED && order.getStatus() != OrderStatus.AT_BRANCH) {
+            throw ApiException.badRequest("Cannot scan pickup when order is " + order.getStatus());
+        }
+
+        et.guzo.domain.entity.Package pkg = pickupCodeService.verifyPickup(input.reference().trim(), null);
+        if (!orderId.equals(pkg.getOrderId())) {
+            throw ApiException.badRequest("Scanned parcel does not match this delivery");
+        }
+
+        return updateStatus(orderId, new OrderStatusUpdateRequest(
+            OrderStatus.PICKED_UP,
+            "Parcel scanned at pickup (" + pkg.getTrackingNumber() + ")",
+            input.latitude(),
+            input.longitude()
+        ), user);
+    }
+
+    @Transactional
+    public OrderDetailDto notifyDriverArrived(String orderId, AuthUser user, DriverArrivedRequest input) {
+        Driver driver = driverRepository.findByUserId(user.getId())
+            .orElseThrow(() -> ApiException.badRequest("Authenticated user is not a driver"));
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> ApiException.notFound("Order not found"));
+        Delivery delivery = deliveryRepository.findByOrderId(orderId).orElseThrow(() -> ApiException.badRequest("No delivery for this order"));
+        if (!driver.getId().equals(delivery.getDriverId())) {
+            throw ApiException.forbidden("This delivery is not assigned to you");
+        }
+        if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY && order.getStatus() != OrderStatus.IN_TRANSIT) {
+            throw ApiException.badRequest("Arrival can only be reported while en route to the receiver");
+        }
+
+        User driverUser = userRepository.findById(user.getId()).orElse(null);
+        String driverName = driverUser != null
+            ? (driverUser.getFirstName() + " " + driverUser.getLastName()).trim()
+            : "Your driver";
+        String tracking = packageRepository.findByOrderId(orderId).stream()
+            .findFirst()
+            .map(et.guzo.domain.entity.Package::getTrackingNumber)
+            .orElse(order.getOrderNumber());
+
+        String dropPhone = null;
+        if (order.getDropoffAddressId() != null) {
+            dropPhone = addressRepository.findById(order.getDropoffAddressId())
+                .map(Address::getContactPhone)
+                .orElse(null);
+        }
+        String receiverPhone = order.getReceiverPhone() != null ? order.getReceiverPhone() : dropPhone;
+
+        trackingService.record(
+            orderId,
+            TrackingEventType.OUT_FOR_DELIVERY,
+            "Driver arrived",
+            driverName + " has arrived. Please come out to collect your parcel.",
+            user.getId(),
+            input != null ? input.latitude() : null,
+            input != null ? input.longitude() : null
+        );
+
+        String title = "Driver has arrived";
+        String body = driverName + " is at your location with parcel " + tracking + ". Please collect your package.";
+        if (order.getReceiverUserId() != null) {
+            notificationService.notify(order.getReceiverUserId(), "DRIVER_ARRIVED", title, body);
+        }
+        if (receiverPhone != null && !receiverPhone.isBlank()) {
+            smsService.send(receiverPhone, "Guzo: " + title + ". " + body);
+        }
+
+        Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
+        return toDetail(order, packageRepository.findByOrderId(orderId), payment, null);
     }
 
     @Transactional

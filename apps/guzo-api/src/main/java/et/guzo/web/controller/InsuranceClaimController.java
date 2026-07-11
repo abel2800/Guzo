@@ -6,6 +6,8 @@ import et.guzo.domain.entity.InsuranceClaim;
 import et.guzo.security.RoleChecker;
 import et.guzo.security.SecurityUtil;
 import et.guzo.service.InsuranceClaimService;
+import et.guzo.web.dto.InsuranceClaimCreateRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,5 +32,11 @@ public class InsuranceClaimController {
         @SuppressWarnings("unchecked")
         List<InsuranceClaim> items = (List<InsuranceClaim>) result.get("items");
         return ApiResponse.ok(items, "Insurance claims", (PaginationMeta) result.get("meta"));
+    }
+
+    @PostMapping
+    public ApiResponse<InsuranceClaim> create(@Valid @RequestBody InsuranceClaimCreateRequest body) {
+        var user = SecurityUtil.requireUser();
+        return ApiResponse.ok(insuranceClaimService.create(user.getId(), body), "Insurance claim submitted");
     }
 }

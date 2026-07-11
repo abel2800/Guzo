@@ -110,7 +110,7 @@ export interface Order {
     qrCode?: string | null;
   }>;
   trackingEvents?: Array<{ id: string; type: string; status: string; description?: string | null; createdAt: string }>;
-  payment?: { status: string; amount: number; currency: string } | null;
+  payment?: { status: string; amount: number; currency: string; checkoutUrl?: string } | null;
   delivery?: {
     driver?: {
       currentLat?: number | null;

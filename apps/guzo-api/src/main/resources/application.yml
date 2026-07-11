@@ -44,6 +44,12 @@ guzo:
     refresh-secret: ${JWT_REFRESH_SECRET}
     access-expires-minutes: ${JWT_ACCESS_EXPIRES_MINUTES:15}
     refresh-expires-days: ${JWT_REFRESH_EXPIRES_DAYS:7}
+  sms:
+    driver: ${SMS_DRIVER:console}
+    twilio:
+      account-sid: ${TWILIO_ACCOUNT_SID:}
+      auth-token: ${TWILIO_AUTH_TOKEN:}
+      from-number: ${TWILIO_FROM_NUMBER:}
 
 logging:
   level:

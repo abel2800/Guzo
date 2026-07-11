@@ -4,7 +4,7 @@ import axios, { type AxiosInstance } from 'axios';
 import type { ApiResponse, AuthTokens } from '@delivery/types';
 import { useAuthStore, authSelectors } from './auth-store';
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+const baseURL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4010/api/v1';
 
 export const api: AxiosInstance = axios.create({
   baseURL,

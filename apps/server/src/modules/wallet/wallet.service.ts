@@ -1,4 +1,5 @@
 import { prisma } from '@delivery/database';
+import { env } from '../../config/env.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { buildMeta } from '../../utils/ApiResponse.js';
 import type { ParsedListQuery } from '../../utils/pagination.js';
@@ -54,6 +55,9 @@ export class WalletService {
   }
 
   async topUp(userId: string, amount: number, description?: string) {
+    if (env.nodeEnv === 'production') {
+      throw ApiError.badRequest('Wallet top-up requires a payment method — use Telebirr, CBE, or Chapa checkout.');
+    }
     if (!Number.isFinite(amount) || amount <= 0) {
       throw ApiError.badRequest('Amount must be positive');
     }

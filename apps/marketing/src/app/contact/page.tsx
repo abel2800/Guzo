@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, MapPin, Phone } from 'lucide-react';
+import { Mail, MapPin } from 'lucide-react';
 import { PageHeader, SectionReveal } from '@/components/common/section-reveal';
 import { Button } from '@/components/ui/button';
 import { submitContact } from '@/lib/java-api';
@@ -29,7 +29,6 @@ export default function ContactPage() {
             <div className="space-y-6">
               {[
                 { icon: Mail, label: 'Email', value: 'hello@guzo.et' },
-                { icon: Phone, label: 'Phone', value: '+251 11 000 0000' },
                 { icon: MapPin, label: 'HQ', value: 'Addis Ababa, Ethiopia' },
               ].map((item) => (
                 <div key={item.label} className="flex gap-4 rounded-2xl border border-white/10 bg-guzo-card/40 p-5">

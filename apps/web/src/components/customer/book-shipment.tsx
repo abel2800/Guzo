@@ -26,6 +26,7 @@ import {
 import { listBranches } from '@/lib/branch';
 import { fetchRoute, geocodeAddress } from '@/lib/maps';
 import { PanelSelect } from '@/components/dashboard/futuristic-primitives';
+import { isDemoPaymentsEnabled } from '@/lib/env';
 
 const STEPS = [
   { title: 'Route', icon: MapPin },
@@ -139,7 +140,13 @@ export function BookShipment() {
   const createMut = useMutation({
     mutationFn: () => createOrder(input),
     onSuccess: (order) => {
-      toast.success(`Order ${order.orderNumber} booked!`);
+      const checkoutUrl = order.payment?.checkoutUrl;
+      if (checkoutUrl) {
+        window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+        toast.success('Complete payment in the gateway window');
+      } else {
+        toast.success(`Order ${order.orderNumber} booked!`);
+      }
       router.push(`/dashboard/customer/track?ref=${order.orderNumber}`);
     },
     onError: (e: Error) => toast.error(e.message || 'Could not place the order'),
@@ -448,7 +455,7 @@ export function BookShipment() {
                   <PanelSelect value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
                     <option value="PAY_LATER">Pay later</option>
                     <option value="CASH_ON_DELIVERY">Cash on delivery</option>
-                    <option value="FAKE">Pay now (demo)</option>
+                    {isDemoPaymentsEnabled() ? <option value="FAKE">Pay now (demo)</option> : null}
                     <option value="TELEBIRR">Telebirr</option>
                     <option value="CBE">CBE</option>
                     <option value="CHAPA">Chapa</option>
@@ -469,7 +476,11 @@ export function BookShipment() {
                   )}
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">
-                  Uses the sandbox payment provider — no real charge.
+                  {paymentMethod === 'TELEBIRR' || paymentMethod === 'CBE' || paymentMethod === 'CHAPA'
+                    ? 'You will be redirected to the payment gateway to complete checkout.'
+                    : isDemoPaymentsEnabled()
+                      ? 'Uses the sandbox payment provider — no real charge.'
+                      : 'Cash on delivery and pay-later options do not charge online.'}
                 </p>
               </CardContent>
             </Card>

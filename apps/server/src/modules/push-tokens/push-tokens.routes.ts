@@ -12,7 +12,7 @@ router.post(
   validate([
     body('token').isString().trim().notEmpty(),
     body('platform').isIn(['ios', 'android']),
-    body('appSlug').isIn(['customer', 'driver', 'merchant']),
+    body('appSlug').isIn(['customer', 'driver', 'merchant', 'branch']),
   ]),
   pushTokensController.register,
 );

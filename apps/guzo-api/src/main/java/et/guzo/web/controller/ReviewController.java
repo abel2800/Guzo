@@ -6,6 +6,8 @@ import et.guzo.domain.entity.Review;
 import et.guzo.security.RoleChecker;
 import et.guzo.security.SecurityUtil;
 import et.guzo.service.ReviewService;
+import et.guzo.web.dto.ReviewCreateRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,5 +36,17 @@ public class ReviewController {
     @GetMapping("/pending")
     public ApiResponse<List<Map<String, Object>>> pending() {
         return ApiResponse.ok(reviewService.pendingForCustomer(SecurityUtil.requireUser().getId()), "Orders awaiting rating");
+    }
+
+    @PostMapping("/orders/{orderId}")
+    public ApiResponse<Review> createForOrder(
+        @PathVariable String orderId,
+        @Valid @RequestBody ReviewCreateRequest body
+    ) {
+        var user = SecurityUtil.requireUser();
+        return ApiResponse.ok(
+            reviewService.createForOrder(user.getId(), orderId, body.rating(), body.comment()),
+            "Review submitted"
+        );
     }
 }

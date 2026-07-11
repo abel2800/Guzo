@@ -228,6 +228,24 @@ public class OrderController {
         return ApiResponse.ok(orderService.reattemptDelivery(id, user), "Delivery reattempt started");
     }
 
+    @PostMapping("/{id}/scan-pickup")
+    public ApiResponse<OrderDetailDto> scanPickup(
+        @PathVariable String id,
+        @Valid @RequestBody ScanPickupRequest body
+    ) {
+        var user = SecurityUtil.requireUser();
+        return ApiResponse.ok(orderService.scanPickup(id, user, body), "Pickup confirmed");
+    }
+
+    @PostMapping("/{id}/arrived")
+    public ApiResponse<OrderDetailDto> arrived(
+        @PathVariable String id,
+        @RequestBody(required = false) DriverArrivedRequest body
+    ) {
+        var user = SecurityUtil.requireUser();
+        return ApiResponse.ok(orderService.notifyDriverArrived(id, user, body), "Receiver notified");
+    }
+
 }
 
 

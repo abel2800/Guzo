@@ -393,7 +393,7 @@ Event constants are exported from `@delivery/types` as `SOCKET_EVENTS`.
 | Provider | Interface | Default (dev) | Production options |
 |----------|-----------|---------------|-------------------|
 | Storage | `StorageProvider` | Local filesystem | S3, MinIO |
-| Payment | `PaymentProvider` | Fake (instant success) | Stripe, Chapa, Telebirr |
+| Payment | `PaymentProvider` | Fake (instant success) | Chapa, Telebirr, CBE — redirect checkout URLs (gateway integration stub) |
 | Email | `EmailProvider` | Console log | SMTP, Mailpit |
 | SMS | `SmsProvider` | Console log | Twilio |
 | Push | `PushProvider` | Expo Push API | Expo Push API |
@@ -405,15 +405,35 @@ Event constants are exported from `@delivery/types` as `SOCKET_EVENTS`.
 
 ### 16.1 Overview
 
-The Java API mirrors Node functionality for production deployment. Schema changes from Phase 5 onward are applied via Flyway migrations (`V100+`).
+The Java API targets production deployment on Spring Boot. It shares the PostgreSQL schema with Node but **does not mirror every Node route**. Use the parity matrix below when choosing a backend or planning client work.
 
-### 16.2 Start
+### 16.2 Node ↔ Java parity matrix
+
+| Area | Node (4010) | Java (4000) | Notes |
+|------|-------------|-------------|-------|
+| Auth + OTP | ✅ | ✅ | Forgot/reset password, signup OTP |
+| Orders + tracking | ✅ | ✅ | Scan-pickup, arrived, POD |
+| Family members | ✅ | ✅ | `/family` CRUD |
+| Push tokens | ✅ | ✅ | All mobile app slugs incl. branch |
+| Insurance + reviews POST | ✅ | ✅ | |
+| Driver vehicle profile | ✅ | ✅ | |
+| Search (`/search`) | ✅ | Partial | Wired to web command menu on Node |
+| Redis rate limiting | ✅ | — | Node only |
+| Wallet top-up (real pay) | Stub | Stub | Dev-only credit on Node |
+| Payment gateways | Redirect URL stub | Stub | `PAYMENT_CHECKOUT_URL` / hosted checkout |
+| S3 storage | Local driver | Stub | No production S3 adapter yet |
+| Stripe | — | — | Not implemented |
+| Marketing CRM / contact | — | Logs only | No email persistence |
+
+**Default for new features:** implement on Node first (`npm run dev:server`), then port to Java for production parity as needed.
+
+### 16.3 Start
 
 ```bash
 npm run dev:server:java
 ```
 
-### 16.3 Phase Test Scripts
+### 16.4 Phase Test Scripts
 
 | Phase | Scope | Script |
 |-------|-------|--------|

@@ -40,6 +40,7 @@ import mapsRoutes from '../modules/maps/maps.routes.js';
 import walletRoutes from '../modules/wallet/wallet.routes.js';
 import otpRoutes from '../modules/otp/otp.routes.js';
 import receiversRoutes from '../modules/receivers/receivers.routes.js';
+import familyRoutes from '../modules/family/family.routes.js';
 
 const router = Router();
 
@@ -84,6 +85,7 @@ const modules: Array<[string, Router]> = [
   ['/wallet', walletRoutes],
   ['/otp', otpRoutes],
   ['/receivers', receiversRoutes],
+  ['/family', familyRoutes],
 ];
 
 for (const [path, moduleRouter] of modules) {

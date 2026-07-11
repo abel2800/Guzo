@@ -229,7 +229,7 @@ export function DeliveryDemoCard() {
       <div className="relative rounded-[2.5rem] border border-white/15 bg-guzo-card/80 p-3 shadow-2xl backdrop-blur-xl">
         <div className="rounded-[2rem] bg-guzo-bg p-6">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-xs text-guzo-muted">Live delivery</span>
+            <span className="text-xs text-guzo-muted">Illustrative demo</span>
             <motion.span
               key={phase.label}
               initial={{ opacity: 0, y: 4 }}

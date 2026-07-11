@@ -55,3 +55,14 @@ export const FRONTEND_PORTS = {
   MERCHANT: 3002,
   DRIVER: 3003,
 } as const;
+
+/** Demo/fake payment methods — hidden in production builds. */
+export function isDemoPaymentsEnabled(): boolean {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') return false;
+  const g = globalThis as { __DEV__?: boolean };
+  if (typeof g.__DEV__ === 'boolean') return g.__DEV__;
+  return true;
+}
+
+export const CUSTOMER_PAYMENT_METHODS = ['CASH_ON_DELIVERY', 'TELEBIRR', 'CBE', 'CHAPA', 'CARD'] as const;
+export const DEMO_PAYMENT_METHOD = 'FAKE' as const;

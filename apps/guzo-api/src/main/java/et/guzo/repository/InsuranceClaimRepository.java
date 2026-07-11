@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface InsuranceClaimRepository extends JpaRepository<InsuranceClaim, String> {
     Page<InsuranceClaim> findByCustomerId(String customerId, Pageable pageable);
+
+    java.util.Optional<InsuranceClaim> findByOrderId(String orderId);
 }

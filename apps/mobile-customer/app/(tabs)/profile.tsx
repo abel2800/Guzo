@@ -1,12 +1,13 @@
-import { View, Text, Pressable, ScrollView, StyleSheet, Switch } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet, Switch, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getWallet } from '@guzo/mobile-shared';
+import { getWallet, getLoyaltyProfile } from '@guzo/mobile-shared';
 import { useAuth } from '@/lib/auth';
+import { setupPushNotifications, disablePushNotifications, loadPushPreference } from '@/lib/push';
 import { GlassCard } from '@guzo/mobile-ui';
 import { colors, gradients, designStyles, radius, spacing } from '@/lib/design';
 
@@ -14,7 +15,12 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut } = useAuth();
   const [pushEnabled, setPushEnabled] = useState(true);
+
+  useEffect(() => {
+    void loadPushPreference('customer').then(setPushEnabled);
+  }, []);
   const { data: wallet } = useQuery({ queryKey: ['wallet'], queryFn: getWallet });
+  const { data: loyalty } = useQuery({ queryKey: ['loyalty'], queryFn: getLoyaltyProfile });
   const currency = wallet?.currency ?? user?.walletCurrency ?? 'ETB';
   const balance = wallet?.balance ?? user?.walletBalance ?? 0;
 
@@ -37,7 +43,7 @@ export default function ProfileScreen() {
         ) : null}
         <View style={styles.ratingRow}>
           <Ionicons name="star" size={14} color={colors.warning} />
-          <Text style={styles.rating}>4.9 · Trusted customer</Text>
+          <Text style={styles.rating}>{loyalty?.loyaltyPoints ?? 0} loyalty points</Text>
         </View>
       </View>
 
@@ -60,6 +66,9 @@ export default function ProfileScreen() {
       <MenuItem icon="receipt-outline" label="Receipts & invoices" onPress={() => router.push('/receipts')} />
       <MenuItem icon="location-outline" label="Saved addresses" onPress={() => router.push('/addresses')} />
       <MenuItem icon="people-outline" label="Family members" onPress={() => router.push('/family')} />
+      <MenuItem icon="gift-outline" label="Loyalty & referrals" onPress={() => router.push('/loyalty')} />
+      <MenuItem icon="shield-outline" label="Insurance claims" onPress={() => router.push('/insurance')} />
+      <MenuItem icon="star-outline" label="Rate deliveries" onPress={() => router.push('/reviews')} />
       <MenuItem icon="headset-outline" label="Support" onPress={() => router.push('/support')} />
       <MenuItem icon="refresh-outline" label="Send again" subtitle="Reorder last shipment" onPress={() => router.push('/(tabs)/book')} />
 
@@ -70,12 +79,27 @@ export default function ProfileScreen() {
         <View style={styles.settingRow}>
           <Ionicons name="notifications-outline" size={20} color={colors.textMuted} />
           <Text style={styles.settingLabel}>Push notifications</Text>
-          <Switch value={pushEnabled} onValueChange={setPushEnabled} trackColor={{ true: colors.primary }} />
+          <Switch
+            value={pushEnabled}
+            onValueChange={async (v) => {
+              setPushEnabled(v);
+              if (v) {
+                const ok = await setupPushNotifications('customer');
+                if (!ok) {
+                  setPushEnabled(false);
+                  Alert.alert('Notifications', 'Enable notifications in system settings to receive alerts.');
+                }
+              } else {
+                await disablePushNotifications('customer');
+              }
+            }}
+            trackColor={{ true: colors.primary }}
+          />
         </View>
         <View style={styles.divider} />
-        <MenuItem icon="shield-checkmark-outline" label="Security & biometrics" compact />
+        <MenuItem icon="shield-checkmark-outline" label="Security & biometrics" onPress={() => router.push('/settings')} />
         <View style={styles.divider} />
-        <MenuItem icon="help-circle-outline" label="Help & support" compact />
+        <MenuItem icon="help-circle-outline" label="Help & support" onPress={() => router.push('/support')} />
       </GlassCard>
 
       <Pressable

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Platform, StyleSheet, Linking, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
@@ -35,7 +35,10 @@ export default function BookScreen() {
   const [dropPhone, setDropPhone] = useState('');
   const [dropGuzoId, setDropGuzoId] = useState('');
   const [receiverHint, setReceiverHint] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('FAKE');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH_ON_DELIVERY');
+  const paymentMethods: PaymentMethod[] = __DEV__
+    ? ['FAKE', 'CASH_ON_DELIVERY', 'TELEBIRR', 'CBE', 'CHAPA']
+    : ['CASH_ON_DELIVERY', 'TELEBIRR', 'CBE', 'CHAPA'];
   const [pickupMethod, setPickupMethod] = useState<PickupMethod>('COMPANY_PICKUP');
   const [originBranchId, setOriginBranchId] = useState('');
   const [destinationBranchId, setDestinationBranchId] = useState('');
@@ -164,6 +167,15 @@ export default function BookScreen() {
     setBusy(true);
     try {
       const order = await createOrder(input);
+      const checkoutUrl = order.payment?.checkoutUrl;
+      if (checkoutUrl) {
+        const canOpen = await Linking.canOpenURL(checkoutUrl);
+        if (canOpen) {
+          await Linking.openURL(checkoutUrl);
+        } else {
+          Alert.alert('Complete payment', 'Open your payment app to finish checkout, then return to track your order.');
+        }
+      }
       router.replace(`/order/${order.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Booking failed');
@@ -349,7 +361,7 @@ export default function BookScreen() {
             <SummaryRow icon="cube" label="Package" value={`${weight} kg · ${deliveryType}${isFragile ? ' · fragile' : ''}`} />
             <Text style={styles.fieldLabel}>Payment</Text>
             <View style={[styles.typeRow, { marginBottom: 12 }]}>
-              {(['FAKE', 'CASH_ON_DELIVERY', 'TELEBIRR', 'CBE', 'CHAPA'] as PaymentMethod[]).map((m) => (
+              {paymentMethods.map((m) => (
                 <Pressable key={m} onPress={() => setPaymentMethod(m)} style={[styles.typeChip, paymentMethod === m && styles.typeChipActive]}>
                   <Text style={[styles.typeChipText, paymentMethod === m && styles.typeChipTextActive]}>{m.replace(/_/g, ' ')}</Text>
                 </Pressable>

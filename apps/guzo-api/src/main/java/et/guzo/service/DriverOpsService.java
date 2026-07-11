@@ -3,12 +3,15 @@ package et.guzo.service;
 import et.guzo.common.ApiException;
 import et.guzo.domain.entity.Driver;
 import et.guzo.domain.entity.Order;
+import et.guzo.domain.entity.StoredFile;
 import et.guzo.domain.entity.TransportManifest;
 import et.guzo.domain.entity.Vehicle;
 import et.guzo.domain.entity.VehicleLog;
+import et.guzo.domain.enums.FileCategory;
 import et.guzo.domain.enums.ManifestStatus;
 import et.guzo.domain.enums.OrderStatus;
 import et.guzo.domain.enums.VehicleLogType;
+import et.guzo.domain.enums.VehicleStatus;
 import et.guzo.domain.enums.WalletTxnType;
 import et.guzo.repository.DriverRepository;
 import et.guzo.repository.ManifestParcelRepository;
@@ -19,15 +22,18 @@ import et.guzo.repository.VehicleRepository;
 import et.guzo.repository.DeliveryRepository;
 import et.guzo.repository.OrderRepository;
 import et.guzo.repository.AddressRepository;
+import et.guzo.repository.StoredFileRepository;
 import et.guzo.domain.entity.Address;
 import et.guzo.domain.entity.Delivery;
 import et.guzo.util.IdUtil;
 import et.guzo.security.AuthUser;
 import et.guzo.security.RoleChecker;
+import et.guzo.web.dto.UpsertVehicleRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -47,6 +53,8 @@ public class DriverOpsService {
     private final DeliveryRepository deliveryRepository;
     private final OrderRepository orderRepository;
     private final AddressRepository addressRepository;
+    private final FileStorageService fileStorageService;
+    private final StoredFileRepository storedFileRepository;
 
     private Driver requireDriver(String userId) {
         return driverRepository.findByUserId(userId)
@@ -148,18 +156,83 @@ public class DriverOpsService {
     public Map<String, Object> getMyVehicle(String userId) {
         Driver driver = requireDriver(userId);
         return vehicleRepository.findFirstByDriverIdOrderByCreatedAtDesc(driver.getId())
-            .map(v -> {
-                Map<String, Object> row = new LinkedHashMap<>();
-                row.put("id", v.getId());
-                row.put("plateNumber", v.getPlateNumber());
-                row.put("type", v.getType().name());
-                row.put("status", v.getStatus().name());
-                row.put("brand", v.getBrand());
-                row.put("model", v.getModel());
-                row.put("color", v.getColor());
-                return row;
-            })
+            .map(this::toVehicleMap)
             .orElse(null);
+    }
+
+    @Transactional
+    public Map<String, Object> upsertMyVehicle(String userId, UpsertVehicleRequest input) {
+        Driver driver = requireDriver(userId);
+        String plate = input.plateNumber().trim().toUpperCase();
+        if (plate.isBlank()) throw ApiException.badRequest("Plate number is required");
+
+        Instant now = Instant.now();
+        Vehicle vehicle = vehicleRepository.findFirstByDriverIdOrderByCreatedAtDesc(driver.getId()).orElse(null);
+        if (vehicle == null) {
+            vehicle = new Vehicle();
+            vehicle.setId(IdUtil.cuid());
+            vehicle.setDriverId(driver.getId());
+            vehicle.setCreatedAt(now);
+        }
+        vehicle.setType(input.type());
+        vehicle.setPlateNumber(plate);
+        vehicle.setBrand(trimOrNull(input.brand()));
+        vehicle.setModel(trimOrNull(input.model()));
+        vehicle.setColor(trimOrNull(input.color()));
+        vehicle.setStatus(VehicleStatus.ACTIVE);
+        vehicle.setUpdatedAt(now);
+        vehicleRepository.save(vehicle);
+        return toVehicleMap(vehicle);
+    }
+
+    @Transactional
+    public Map<String, Object> uploadVehiclePhoto(String userId, MultipartFile file) {
+        if (file == null || file.isEmpty()) throw ApiException.badRequest("Photo file is required");
+        Driver driver = requireDriver(userId);
+        Instant now = Instant.now();
+
+        Vehicle vehicle = vehicleRepository.findFirstByDriverIdOrderByCreatedAtDesc(driver.getId()).orElse(null);
+        if (vehicle == null) {
+            vehicle = new Vehicle();
+            vehicle.setId(IdUtil.cuid());
+            vehicle.setDriverId(driver.getId());
+            vehicle.setType(et.guzo.domain.enums.VehicleType.MOTORCYCLE);
+            vehicle.setPlateNumber("TMP-" + driver.getDriverCode());
+            vehicle.setStatus(VehicleStatus.ACTIVE);
+            vehicle.setCreatedAt(now);
+        }
+
+        StoredFile stored = fileStorageService.store(file, userId, FileCategory.OTHER);
+        vehicle.setPhotoFileId(stored.getId());
+        vehicle.setUpdatedAt(now);
+        vehicleRepository.save(vehicle);
+        return toVehicleMap(vehicle);
+    }
+
+    private Map<String, Object> toVehicleMap(Vehicle vehicle) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", vehicle.getId());
+        row.put("plateNumber", vehicle.getPlateNumber());
+        row.put("type", vehicle.getType().name());
+        row.put("status", vehicle.getStatus().name());
+        row.put("brand", vehicle.getBrand());
+        row.put("model", vehicle.getModel());
+        row.put("color", vehicle.getColor());
+        row.put("photoUrl", photoUrl(vehicle.getPhotoFileId()));
+        return row;
+    }
+
+    private String photoUrl(String photoFileId) {
+        if (photoFileId == null) return null;
+        return storedFileRepository.findById(photoFileId)
+            .map(f -> fileStorageService.publicUrl(f.getStorageKey()))
+            .orElse(null);
+    }
+
+    private static String trimOrNull(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     @Transactional

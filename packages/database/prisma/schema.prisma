@@ -233,6 +233,14 @@ enum InsuranceClaimStatus {
   PAID
 }
 
+enum FamilyRelation {
+  SPOUSE
+  CHILD
+  PARENT
+  SIBLING
+  OTHER
+}
+
 enum FileCategory {
   IMAGE
   DOCUMENT
@@ -291,6 +299,8 @@ model User {
   avatar           File?               @relation("UserAvatar", fields: [avatarFileId], references: [id])
   couponUsages     CouponUsage[]
   pushDevices      PushDevice[]
+  familyOwned      FamilyMember[] @relation("FamilyOwner")
+  familyAsMember   FamilyMember[] @relation("FamilyMemberUser")
 
   @@index([status])
   @@index([createdAt])
@@ -1041,6 +1051,22 @@ model PushDevice {
 
   @@index([userId])
   @@map("push_devices")
+}
+
+model FamilyMember {
+  id           String         @id @default(cuid())
+  ownerUserId  String
+  memberUserId String
+  relation     FamilyRelation @default(OTHER)
+  label        String?
+  createdAt    DateTime       @default(now())
+
+  owner  User @relation("FamilyOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  member User @relation("FamilyMemberUser", fields: [memberUserId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerUserId, memberUserId])
+  @@index([ownerUserId])
+  @@map("guzo_family_members")
 }
 
 // ============================================================================

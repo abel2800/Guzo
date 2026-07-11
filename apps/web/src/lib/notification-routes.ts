@@ -19,6 +19,10 @@ export function notificationHref(
     if (role === 'support') return '/dashboard/support/tickets';
     return null;
   }
+  if (/WALLET|TOP.?UP|CREDIT|REFUND/i.test(notification.type)) {
+    if (role === 'customer' || role === 'merchant') return `/dashboard/${role}/wallet`;
+    return null;
+  }
   const ref = extractTrackingReference(notification.body);
   if (!ref) return null;
   if (role === 'driver') return `/dashboard/driver/accepted`;
